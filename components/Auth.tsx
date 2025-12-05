@@ -1,26 +1,55 @@
 import React, { useState } from 'react';
-import { UserRole } from '../types';
-import { ShieldCheckIcon, LockIcon, MailIcon, UsersIcon } from './Icons';
+import { ShieldCheckIcon, LockIcon, MailIcon, UserIcon } from './Icons';
+import api from '../services/api';
 
 interface AuthProps {
-  onLogin: (username: string, role: UserRole) => void;
-  onRegister: (username: string, role: UserRole) => void;
+  onAuthSuccess: () => void;
 }
 
-export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister }) => {
+export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState(''); // Visual only for this demo
-  const [role, setRole] = useState<UserRole>(UserRole.USER);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) return;
-    
-    if (isLogin) {
-      onLogin(username, role); // In a real app, role would come from DB after auth
-    } else {
-      onRegister(username, role);
+    setError('');
+
+    if (!email || !password) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    if (!isLogin && !fullName) {
+      setError('Please enter your full name');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        await api.auth.login(email, password);
+      } else {
+        await api.auth.register(email, password, fullName);
+      }
+      onAuthSuccess();
+    } catch (err: any) {
+      console.error('Auth error:', err);
+
+      // Handle specific error messages
+      if (err.message === 'invalid_credentials') {
+        setError('Invalid email or password');
+      } else if (err.message === 'email_exists') {
+        setError('Email already registered');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,19 +84,38 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister }) => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-500 uppercase">Username</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase">Email Address</label>
                     <div className="relative">
                         <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                            placeholder="Enter username"
+                            placeholder="your@email.com"
                             required
+                            disabled={loading}
                         />
                     </div>
                 </div>
+
+                {!isLogin && (
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Full Name</label>
+                        <div className="relative">
+                            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                placeholder="John Doe"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">Password</label>
@@ -80,47 +128,23 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onRegister }) => {
                             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                             placeholder="••••••••"
                             required
+                            disabled={loading}
                         />
                     </div>
                 </div>
 
-                {!isLogin && (
-                    <div className="space-y-1">
-                         <label className="text-xs font-semibold text-gray-500 uppercase">Account Type</label>
-                         <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setRole(UserRole.USER)}
-                                className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all ${role === UserRole.USER ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'}`}
-                            >
-                                <span className="text-sm font-semibold">User</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setRole(UserRole.ADMIN)}
-                                className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all ${role === UserRole.ADMIN ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'}`}
-                            >
-                                <span className="text-sm font-semibold">Admin</span>
-                            </button>
-                         </div>
+                {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{error}</p>
                     </div>
                 )}
-                 
-                 {isLogin && (
-                    // Simulate selecting a role for login since we don't have a real DB to lookup role by username yet
-                    <div className="flex items-center justify-between text-xs text-gray-400 mt-2 px-1">
-                        <span>Demo: Login as {role === UserRole.ADMIN ? 'Admin' : 'User'}</span>
-                        <button type="button" onClick={() => setRole(role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN)} className="text-indigo-600 hover:underline">
-                            Switch Role
-                        </button>
-                    </div>
-                 )}
 
                 <button
                     type="submit"
-                    className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all shadow-lg hover:shadow-xl mt-6"
+                    disabled={loading}
+                    className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all shadow-lg hover:shadow-xl mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isLogin ? 'Sign In' : 'Create Account'}
+                    {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
                 </button>
             </form>
         </div>
