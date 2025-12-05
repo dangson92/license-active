@@ -4,13 +4,50 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 
 ## Chạy Nhanh
 
-- Sao chép cấu hình: `cp .env.example .env` (Windows: copy thủ công) và chỉnh giá trị trong `.env`
-- Cài dependencies: `npm install`
-- Chạy development: `npm run server` (mặc định `PORT=3000`)
-- Health check: `curl http://localhost:3000/health` → trả `{ ok: true }`
-- Production với PM2:
-  - `pm2 start npm --name license-server -- run server`
-  - `pm2 save && pm2 startup`
+### Development (Local với Domains)
+
+**Bước 1: Cấu hình /etc/hosts**
+```bash
+# Linux/macOS: sudo nano /etc/hosts
+# Windows: C:\Windows\System32\drivers\etc\hosts (as Admin)
+
+# Thêm vào:
+127.0.0.1   license.dangthanhson.com
+127.0.0.1   api.dangthanhson.com
+```
+
+**Bước 2: Backend API (Terminal 1)**
+```bash
+cp .env.example .env
+nano .env  # FRONTEND_URL=http://license.dangthanhson.com
+npm install
+npm run backend
+# Test: curl http://api.dangthanhson.com:3000/health
+```
+
+**Bước 3: Frontend UI (Terminal 2)**
+```bash
+cp .env.development.example .env
+nano .env  # VITE_API_URL=http://api.dangthanhson.com:3000
+sudo npm run dev
+# Truy cập: http://license.dangthanhson.com
+```
+
+📖 **Chi tiết:** [Local Development Guide](docs/LOCAL_DEVELOPMENT.md)
+
+### Production (VPS)
+
+**Backend:**
+```bash
+pm2 start npm --name license-api -- run backend
+pm2 save && pm2 startup
+```
+
+**Frontend:**
+```bash
+VITE_API_URL=https://api.dangthanhson.com npm run build
+# Deploy dist/ lên /var/www/license-app/
+```
 
 ## 🌐 Production URLs
 
@@ -44,6 +81,7 @@ Hệ thống tách thành 2 domains riêng biệt:
 
 ## 📚 Tài Liệu Chi Tiết
 
+- **[Local Development](docs/LOCAL_DEVELOPMENT.md)** - Setup development local với domains
 - **[Kiến Trúc Hệ Thống](docs/ARCHITECTURE.md)** - Mô tả chi tiết database schema, API flow, security model
 - **[Hướng Dẫn Triển Khai VPS](docs/DEPLOYMENT.md)** - Hướng dẫn từng bước triển khai lên Ubuntu VPS
 - **[Cấu Hình Nginx 2 Domains](docs/NGINX_TWO_DOMAINS.md)** - Tách Frontend và Backend ra 2 domains riêng biệt
