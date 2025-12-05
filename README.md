@@ -364,7 +364,7 @@ Nội dung file:
 ```nginx
 server {
     listen 80;
-    server_name license.mydomain.com;
+server_name license.dangthanhson.com;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -391,7 +391,7 @@ sudo systemctl reload nginx
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d license.mydomain.com
+sudo certbot --nginx -d license.dangthanhson.com
 
 # Tự động gia hạn
 sudo systemctl status certbot.timer
@@ -437,3 +437,47 @@ curl -f http://127.0.0.1:3000/health
 - Yêu cầu gia hạn cần admin approve, nếu được duyệt sẽ tự động cộng thêm 30 ngày vào `expires_at`
 - Frontend React (Vite) đã có sẵn trong thư mục gốc cho giao diện quản trị
 
+## Quản trị MySQL & ENV
+
+### Tạo/Quản lý User SQL
+
+```bash
+# Tạo user mới và cấp quyền
+mysql -u root -p -e "CREATE USER 'license_user'@'localhost' IDENTIFIED BY 'your_password';"
+mysql -u root -p -e "GRANT ALL PRIVILEGES ON license_db.* TO 'license_user'@'localhost'; FLUSH PRIVILEGES;"
+
+# Đổi mật khẩu user
+mysql -u root -p -e "ALTER USER 'license_user'@'localhost' IDENTIFIED BY 'new_password'; FLUSH PRIVILEGES;"
+
+# (Tuỳ chọn) cho phép kết nối từ IP khác (cần cấu hình tường lửa và bind-address)
+mysql -u root -p -e "CREATE USER 'license_user'@'%' IDENTIFIED BY 'your_password';"
+mysql -u root -p -e "GRANT ALL PRIVILEGES ON license_db.* TO 'license_user'@'%'; FLUSH PRIVILEGES;"
+```
+
+### Cập nhật Database (schema)
+
+- Sao lưu trước khi cập nhật:
+```bash
+mysqldump -u license_user -p license_db > backup_$(date +%F).sql
+```
+- Áp dụng thay đổi schema (chạy lại toàn bộ schema nếu cần):
+```bash
+mysql -u license_user -p license_db < server/sql/schema.sql
+```
+- Áp dụng thay đổi nhỏ (ví dụ thêm cột):
+```sql
+ALTER TABLE licenses ADD COLUMN meta JSON NULL;
+```
+
+### Cập nhật ENV
+
+- Sửa `.env` khi thay đổi DB hoặc secrets:
+```bash
+nano .env
+# Sau khi chỉnh sửa, giới hạn quyền file
+chmod 600 .env
+```
+- Khởi động lại tiến trình để nạp env mới:
+```bash
+pm2 restart license-server
+```

@@ -18,6 +18,10 @@ app.use(morgan('combined'))
 const activateLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })
 app.use('/activate', activateLimiter)
 
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'license-server' })
+})
+
 app.get('/health', (req, res) => {
   res.json({ ok: true })
 })
@@ -29,4 +33,3 @@ app.use('/activate', activateRouter)
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 app.listen(port, () => {})
-
