@@ -11,7 +11,15 @@ import activateRouter from './modules/activate.js'
 
 const app = express()
 app.use(express.json())
-app.use(cors())
+
+// CORS configuration for frontend domain
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'https://license.dangthanhson.com',
+  credentials: true,
+  optionsSuccessStatus: 200
+}
+app.use(cors(corsOptions))
+
 app.use(helmet())
 app.use(morgan('combined'))
 

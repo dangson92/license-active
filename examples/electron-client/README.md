@@ -42,7 +42,7 @@ Mở file `main.js` và cấu hình:
 
 ```javascript
 const licenseManager = new LicenseManager({
-  serverUrl: 'https://license.dangthanhson.com', // URL server của bạn
+  serverUrl: 'https://api.dangthanhson.com',     // URL API backend
   appCode: 'APP001',                              // Mã app (phải khớp với DB)
   appVersion: app.getVersion(),
   publicKey: PUBLIC_KEY,
