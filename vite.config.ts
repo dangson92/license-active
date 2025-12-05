@@ -6,8 +6,9 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: 3000,
-        host: '0.0.0.0',
+        port: 5173, // Frontend dev server port (khác với backend port 3000)
+        host: true, // Cho phép truy cập từ mọi host
+        strictPort: false, // Tự động tìm port khác nếu 5173 bận
       },
       plugins: [react()],
       define: {

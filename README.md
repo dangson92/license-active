@@ -4,13 +4,38 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 
 ## Chạy Nhanh
 
-- Sao chép cấu hình: `cp .env.example .env` (Windows: copy thủ công) và chỉnh giá trị trong `.env`
-- Cài dependencies: `npm install`
-- Chạy development: `npm run server` (mặc định `PORT=3000`)
-- Health check: `curl http://localhost:3000/health` → trả `{ ok: true }`
-- Production với PM2:
-  - `pm2 start npm --name license-server -- run server`
-  - `pm2 save && pm2 startup`
+### Development (Local)
+
+**Backend API (port 3000):**
+```bash
+cp .env.example .env          # Sao chép cấu hình
+nano .env                     # Chỉnh DB credentials & secrets
+npm install                   # Cài dependencies
+npm run backend               # Chạy API server
+curl http://localhost:3000/health  # Test
+```
+
+**Frontend UI (port 5173):**
+```bash
+cp .env.frontend.example .env      # Cấu hình frontend
+# Sửa: VITE_API_URL=http://localhost:3000
+npm run dev                        # Chạy dev server
+# Truy cập: http://localhost:5173
+```
+
+### Production (VPS)
+
+**Backend:**
+```bash
+pm2 start npm --name license-api -- run backend
+pm2 save && pm2 startup
+```
+
+**Frontend:**
+```bash
+VITE_API_URL=https://api.dangthanhson.com npm run build
+# Deploy dist/ lên /var/www/license-app/
+```
 
 ## 🌐 Production URLs
 
