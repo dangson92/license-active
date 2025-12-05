@@ -2,6 +2,16 @@
 
 Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, Client kích hoạt theo `licenseKey + appCode + deviceId` (JWT RS256 30 ngày).
 
+## Chạy Nhanh
+
+- Sao chép cấu hình: `cp .env.example .env` (Windows: copy thủ công) và chỉnh giá trị trong `.env`
+- Cài dependencies: `npm install`
+- Chạy development: `npm run server` (mặc định `PORT=3000`)
+- Health check: `curl http://localhost:3000/health` → trả `{ ok: true }`
+- Production với PM2:
+  - `pm2 start npm --name license-server -- run server`
+  - `pm2 save && pm2 startup`
+
 ## Tính năng
 
 - **Admin**: tạo apps, tạo license cho user, xem/lọc license, xem chi tiết kích hoạt, approve/reject yêu cầu gia hạn
