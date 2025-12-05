@@ -4,10 +4,14 @@ import { requireAdmin } from './auth.js'
 
 const router = express.Router()
 
+// Generate GUID-style license key
 const genKey = () => {
-  const s = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-  const part = () => Array.from({ length: 4 }, () => s[Math.floor(Math.random() * s.length)]).join('')
-  return `${part()}-${part()}-${part()}`
+  // Generate a UUID v4 style GUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 router.get('/users', requireAdmin, async (req, res) => {
@@ -159,6 +163,48 @@ router.patch('/renew-requests/:id', requireAdmin, async (req, res) => {
       [status, req.user.id, id]
     )
     res.json({ id, status })
+  } catch (e) {
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
+// Delete license
+router.delete('/licenses/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    await query('DELETE FROM licenses WHERE id=?', [id])
+    res.json({ id, deleted: true })
+  } catch (e) {
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
+// Extend license
+router.post('/licenses/:id/extend', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const { additionalMonths } = req.body
+    if (!additionalMonths || additionalMonths < 1) {
+      return res.status(400).json({ error: 'invalid_months' })
+    }
+    await query(
+      `UPDATE licenses SET expires_at=COALESCE(expires_at,NOW()) + INTERVAL ? MONTH WHERE id=?`,
+      [Number(additionalMonths), id]
+    )
+    const r = await query('SELECT expires_at FROM licenses WHERE id=?', [id])
+    res.json({ id, expires_at: r.rows[0]?.expires_at })
+  } catch (e) {
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
+// Remove device from license
+router.delete('/licenses/:licenseId/devices/:deviceHash', requireAdmin, async (req, res) => {
+  try {
+    const licenseId = Number(req.params.licenseId)
+    const deviceHash = String(req.params.deviceHash)
+    await query('DELETE FROM activations WHERE license_id=? AND device_hash=?', [licenseId, deviceHash])
+    res.json({ licenseId, deviceHash, removed: true })
   } catch (e) {
     res.status(500).json({ error: 'server_error' })
   }

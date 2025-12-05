@@ -120,13 +120,95 @@ export const api = {
     },
   },
 
-  // Placeholder for other API endpoints
-  licenses: {
-    // TODO: Add license management endpoints
+  // Admin endpoints
+  admin: {
+    // Apps
+    getApps: async () => {
+      return apiCall('/admin/apps');
+    },
+
+    // Users
+    getUsers: async () => {
+      return apiCall('/admin/users');
+    },
+
+    // Licenses
+    getLicenses: async (filters?: { user_id?: number; app_id?: number; status?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.user_id) params.append('user_id', filters.user_id.toString());
+      if (filters?.app_id) params.append('app_id', filters.app_id.toString());
+      if (filters?.status) params.append('status', filters.status);
+
+      const query = params.toString();
+      return apiCall(`/admin/licenses${query ? '?' + query : ''}`);
+    },
+
+    createLicense: async (data: {
+      user_id: number;
+      app_id: number;
+      max_devices: number;
+      expires_at?: string;
+      status?: string;
+    }) => {
+      return apiCall('/admin/licenses', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    getLicenseDetails: async (id: number) => {
+      return apiCall(`/admin/licenses/${id}`);
+    },
+
+    updateLicense: async (id: number, data: {
+      expires_at?: string;
+      status?: string;
+      max_devices?: number;
+      user_id?: number;
+      meta?: any;
+    }) => {
+      return apiCall(`/admin/licenses/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteLicense: async (id: number) => {
+      return apiCall(`/admin/licenses/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    revokeLicense: async (id: number) => {
+      return apiCall(`/admin/licenses/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'revoked' }),
+      });
+    },
+
+    extendLicense: async (id: number, additionalMonths: number) => {
+      return apiCall(`/admin/licenses/${id}/extend`, {
+        method: 'POST',
+        body: JSON.stringify({ additionalMonths }),
+      });
+    },
+
+    transferLicense: async (id: number, newUserId: number) => {
+      return apiCall(`/admin/licenses/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ user_id: newUserId }),
+      });
+    },
+
+    removeDevice: async (licenseId: number, deviceHash: string) => {
+      return apiCall(`/admin/licenses/${licenseId}/devices/${deviceHash}`, {
+        method: 'DELETE',
+      });
+    },
   },
 
   activations: {
-    // TODO: Add activation endpoints
+    // TODO: Add activation endpoints if needed
   },
 };
 

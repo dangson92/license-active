@@ -2,30 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UserDashboard } from './components/UserDashboard';
 import { Auth } from './components/Auth';
-import { LicenseKey, KeyStatus, UserRole, User } from './types';
+import { UserRole, User } from './types';
 import api, { getCurrentUser } from './services/api';
-
-// Helper to generate random keys
-const generateRandomKey = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const segments = 4;
-  const segmentLength = 4;
-
-  const parts = [];
-  for (let i = 0; i < segments; i++) {
-    let part = '';
-    for (let j = 0; j < segmentLength; j++) {
-      part += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    parts.push(part);
-  }
-  return parts.join('-');
-};
 
 const App: React.FC = () => {
   // --- State ---
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [keys, setKeys] = useState<LicenseKey[]>([]);
   const [loading, setLoading] = useState(true);
 
   // --- Effects ---
@@ -60,63 +42,6 @@ const App: React.FC = () => {
   const handleLogout = () => {
     api.auth.logout();
     setCurrentUser(null);
-    setKeys([]);
-  };
-
-  // --- Key Handlers ---
-
-  const handleGenerateKey = (plan: 'Standard' | 'Pro' | 'Enterprise') => {
-    const newKey: LicenseKey = {
-      id: Date.now().toString(),
-      key: generateRandomKey(),
-      status: KeyStatus.VALID,
-      plan,
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 31536000000).toISOString() // Default 1 year expiry
-    };
-    setKeys(prev => [newKey, ...prev]);
-  };
-
-  const handleRevokeKey = (id: string) => {
-    setKeys(prev => prev.map(k => {
-        if (k.id === id) {
-            return { ...k, status: KeyStatus.REVOKED };
-        }
-        return k;
-    }));
-  };
-
-  const handleActivateKey = async (keyString: string): Promise<{ success: boolean; message: string }> => {
-    if (!currentUser) return { success: false, message: 'Not logged in.' };
-
-    const targetKey = keys.find(k => k.key === keyString);
-
-    if (!targetKey) {
-        return { success: false, message: 'Invalid license key.' };
-    }
-
-    if (targetKey.status === KeyStatus.REVOKED) {
-        return { success: false, message: 'This key has been revoked.' };
-    }
-
-    if (targetKey.status === KeyStatus.ACTIVE) {
-        return { success: false, message: 'This key is already in use.' };
-    }
-
-    if (targetKey.status === KeyStatus.EXPIRED) {
-        return { success: false, message: 'This key has expired.' };
-    }
-
-    // Success case
-    const updatedKey: LicenseKey = { 
-        ...targetKey, 
-        status: KeyStatus.ACTIVE, 
-        activatedAt: new Date().toISOString(),
-        owner: currentUser.id
-    };
-
-    setKeys(prev => prev.map(k => k.id === targetKey.id ? updatedKey : k));
-    return { success: true, message: 'License activated successfully!' };
   };
 
   // --- Views ---
@@ -140,21 +65,15 @@ const App: React.FC = () => {
     return (
       <AdminDashboard
         user={currentUser}
-        keys={keys}
-        onGenerateKey={handleGenerateKey}
-        onRevokeKey={handleRevokeKey}
         onLogout={handleLogout}
       />
     );
   }
 
   if (currentUser.role === UserRole.USER) {
-    const myKeys = keys.filter(k => k.owner === currentUser.id);
     return (
       <UserDashboard
         user={currentUser}
-        userKeys={myKeys}
-        onActivate={handleActivateKey}
         onLogout={handleLogout}
       />
     );
