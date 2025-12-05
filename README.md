@@ -15,13 +15,17 @@ npm run backend               # Chạy API server
 curl http://localhost:3000/health  # Test
 ```
 
-**Frontend UI (port 5173):**
+**Frontend UI (port 80):**
 ```bash
 cp .env.frontend.example .env      # Cấu hình frontend
 # Sửa: VITE_API_URL=http://localhost:3000
-npm run dev                        # Chạy dev server
-# Truy cập: http://localhost:5173
+sudo npm run dev                   # Chạy dev server (cần sudo cho port 80)
+# Truy cập: http://localhost
 ```
+
+**Lưu ý:** Port 80 cần quyền root. Nếu không muốn dùng sudo, có thể:
+- Dùng Nginx reverse proxy từ 80 → 5173
+- Hoặc cấu hình setcap: `sudo setcap 'cap_net_bind_service=+ep' $(which node)`
 
 ### Production (VPS)
 
