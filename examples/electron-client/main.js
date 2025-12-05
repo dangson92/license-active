@@ -14,7 +14,7 @@ const PUBLIC_KEY = fs.readFileSync(path.join(__dirname, 'public.pem'), 'utf8')
 
 // Khởi tạo License Manager
 const licenseManager = new LicenseManager({
-  serverUrl: 'https://license.dangthanhson.com', // URL server của bạn
+  serverUrl: 'https://api.dangthanhson.com', // URL API backend
   appCode: 'APP001', // Mã app của bạn
   appVersion: app.getVersion(),
   publicKey: PUBLIC_KEY,

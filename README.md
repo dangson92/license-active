@@ -12,6 +12,22 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
   - `pm2 start npm --name license-server -- run server`
   - `pm2 save && pm2 startup`
 
+## 🌐 Production URLs
+
+Hệ thống tách thành 2 domains riêng biệt:
+
+- **Frontend (Admin/User UI)**: https://license.dangthanhson.com
+- **Backend API**: https://api.dangthanhson.com
+
+**API Endpoints:**
+- Health: `https://api.dangthanhson.com/health`
+- Auth: `https://api.dangthanhson.com/auth/login`
+- Activate: `https://api.dangthanhson.com/activate`
+- Admin: `https://api.dangthanhson.com/admin/*`
+- User: `https://api.dangthanhson.com/user/*`
+
+**Client Apps** (Electron/NodeJS) sử dụng: `https://api.dangthanhson.com`
+
 ## Tính năng
 
 - **Admin**: tạo apps, tạo license cho user, xem/lọc license, xem chi tiết kích hoạt, approve/reject yêu cầu gia hạn
@@ -30,6 +46,7 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 
 - **[Kiến Trúc Hệ Thống](docs/ARCHITECTURE.md)** - Mô tả chi tiết database schema, API flow, security model
 - **[Hướng Dẫn Triển Khai VPS](docs/DEPLOYMENT.md)** - Hướng dẫn từng bước triển khai lên Ubuntu VPS
+- **[Cấu Hình Nginx 2 Domains](docs/NGINX_TWO_DOMAINS.md)** - Tách Frontend và Backend ra 2 domains riêng biệt
 - **[Code Mẫu Client Electron](examples/electron-client/README.md)** - Tích hợp license vào ứng dụng Electron/NodeJS
 
 ## Cấu trúc dự án

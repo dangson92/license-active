@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken')
 
 class LicenseManager {
   constructor(config) {
-    this.serverUrl = config.serverUrl || 'https://license.dangthanhson.com'
+    this.serverUrl = config.serverUrl || 'https://api.dangthanhson.com'
     this.appCode = config.appCode // Mã app (ví dụ: 'APP001')
     this.appVersion = config.appVersion || '1.0.0'
     this.publicKey = config.publicKey // RSA Public Key để verify token
