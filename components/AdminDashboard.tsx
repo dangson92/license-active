@@ -13,11 +13,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const [insight, setInsight] = useState<string>('');
   const [loadingInsight, setLoadingInsight] = useState(false);
 
-  // Form state
+  // License form state
   const [selectedApp, setSelectedApp] = useState<number>(0);
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
   const [maxDevices, setMaxDevices] = useState<number>(1);
+
+  // App form state
+  const [newAppCode, setNewAppCode] = useState<string>('');
+  const [newAppName, setNewAppName] = useState<string>('');
+  const [creatingApp, setCreatingApp] = useState(false);
+  const [showAppForm, setShowAppForm] = useState(false);
 
   // Data
   const [keys, setKeys] = useState<LicenseKey[]>([]);
@@ -25,6 +31,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  // Filter, Sort, Search state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'created' | 'expires'>('created');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Load data
   useEffect(() => {
@@ -68,6 +80,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       alert('Không thể tải dữ liệu. Vui lòng thử lại.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateApp = async () => {
+    if (!newAppCode || !newAppName) {
+      alert('Vui lòng nhập đầy đủ App Code và App Name!');
+      return;
+    }
+
+    try {
+      setCreatingApp(true);
+      await api.admin.createApp({ code: newAppCode, name: newAppName });
+      alert('Ứng dụng đã được tạo thành công!');
+      setNewAppCode('');
+      setNewAppName('');
+      setShowAppForm(false);
+      await loadData();
+    } catch (error: any) {
+      console.error('Failed to create app:', error);
+      alert(`Không thể tạo ứng dụng: ${error.message}`);
+    } finally {
+      setCreatingApp(false);
     }
   };
 
@@ -207,6 +241,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     return new Date(dateStr).toLocaleDateString('vi-VN');
   };
 
+  // Filter, sort, and search logic
+  const getFilteredAndSortedKeys = () => {
+    let filtered = [...keys];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(key =>
+        key.key.toLowerCase().includes(query) ||
+        (key.owner && key.owner.toLowerCase().includes(query))
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(key => key.status.toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let compareA: any, compareB: any;
+
+      if (sortBy === 'created') {
+        compareA = new Date(a.createdAt).getTime();
+        compareB = new Date(b.createdAt).getTime();
+      } else if (sortBy === 'expires') {
+        compareA = a.expiresAt ? new Date(a.expiresAt).getTime() : 0;
+        compareB = b.expiresAt ? new Date(b.expiresAt).getTime() : 0;
+      }
+
+      if (sortOrder === 'asc') {
+        return compareA - compareB;
+      } else {
+        return compareB - compareA;
+      }
+    });
+
+    return filtered;
+  };
+
+  const filteredKeys = getFilteredAndSortedKeys();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -241,6 +317,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
         {/* Top Actions & Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {/* Create App Card */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-800">Quản lý Ứng dụng</h3>
+                    <button
+                        onClick={() => setShowAppForm(!showAppForm)}
+                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                    >
+                        {showAppForm ? 'Đóng' : '+ Tạo mới'}
+                    </button>
+                </div>
+
+                {showAppForm ? (
+                    <>
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm text-gray-500 font-medium">App Code</label>
+                            <input
+                                type="text"
+                                value={newAppCode}
+                                onChange={(e) => setNewAppCode(e.target.value)}
+                                placeholder="my-app"
+                                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm text-gray-500 font-medium">App Name</label>
+                            <input
+                                type="text"
+                                value={newAppName}
+                                onChange={(e) => setNewAppName(e.target.value)}
+                                placeholder="My Application"
+                                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleCreateApp}
+                            disabled={creatingApp}
+                            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {creatingApp ? 'Đang tạo...' : 'Tạo Ứng dụng'}
+                        </button>
+                    </>
+                ) : (
+                    <div className="text-sm text-gray-600">
+                        <p className="mb-2">Danh sách ứng dụng ({apps.length}):</p>
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                            {apps.map(app => (
+                                <div key={app.id} className="p-2 bg-gray-50 rounded text-xs">
+                                    <div className="font-medium">{app.name}</div>
+                                    <div className="text-gray-500">{app.code}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Generator Card */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col space-y-4">
@@ -308,7 +443,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
             </div>
 
             {/* AI Insights Card */}
-            <div className="md:col-span-2 bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-sm border border-indigo-100 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-2xl shadow-sm border border-indigo-100 relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
                     <h3 className="text-lg font-semibold text-indigo-900 flex items-center">
                         <SparklesIcon className="w-5 h-5 mr-2 text-indigo-500" />
@@ -334,9 +469,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
         {/* Keys Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-bold text-gray-800">Danh sách License Keys</h3>
-                <span className="text-sm text-gray-500">{keys.length} license keys</span>
+            <div className="px-6 py-4 border-b border-gray-100">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <h3 className="font-bold text-gray-800">Danh sách License Keys</h3>
+
+                    <div className="flex flex-col md:flex-row gap-3 flex-1 md:max-w-2xl">
+                        {/* Search */}
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm theo key hoặc email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                        />
+
+                        {/* Status Filter */}
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        >
+                            <option value="all">Tất cả trạng thái</option>
+                            <option value="active">Active</option>
+                            <option value="valid">Valid</option>
+                            <option value="expired">Expired</option>
+                            <option value="revoked">Revoked</option>
+                        </select>
+
+                        {/* Sort */}
+                        <select
+                            value={`${sortBy}-${sortOrder}`}
+                            onChange={(e) => {
+                                const [by, order] = e.target.value.split('-');
+                                setSortBy(by as 'created' | 'expires');
+                                setSortOrder(order as 'asc' | 'desc');
+                            }}
+                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        >
+                            <option value="created-desc">Mới nhất</option>
+                            <option value="created-asc">Cũ nhất</option>
+                            <option value="expires-desc">Hết hạn muộn nhất</option>
+                            <option value="expires-asc">Hết hạn sớm nhất</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="mt-3 text-sm text-gray-500">
+                    Hiển thị {filteredKeys.length} / {keys.length} license keys
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-gray-600">
@@ -353,12 +533,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {keys.length === 0 && (
+                        {filteredKeys.length === 0 && (
                             <tr>
-                                <td colSpan={8} className="text-center py-8 text-gray-400">Chưa có license key nào.</td>
+                                <td colSpan={8} className="text-center py-8 text-gray-400">
+                                    {searchQuery || statusFilter !== 'all'
+                                        ? 'Không tìm thấy license key phù hợp.'
+                                        : 'Chưa có license key nào.'}
+                                </td>
                             </tr>
                         )}
-                        {keys.map((key) => (
+                        {filteredKeys.map((key) => (
                             <tr key={key.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-3 font-mono text-xs text-gray-800">{key.key}</td>
                                 <td className="px-6 py-3">
