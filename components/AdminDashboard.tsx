@@ -119,6 +119,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       const expiresAt = new Date(now);
       expiresAt.setMonth(expiresAt.getMonth() + selectedDuration);
 
+      console.log('Creating license with data:', {
+        user_id: selectedUser,
+        app_id: selectedApp,
+        max_devices: maxDevices,
+        expires_at: expiresAt.toISOString(),
+        status: 'active',
+      });
+
       const result = await api.admin.createLicense({
         user_id: selectedUser,
         app_id: selectedApp,
@@ -127,13 +135,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         status: 'active',
       });
 
+      console.log('License created result:', result);
       alert(`License key đã được tạo thành công!\n\nKey: ${result.license_key}`);
 
       // Reload data
       await loadData();
     } catch (error: any) {
       console.error('Failed to create license:', error);
-      alert(`Không thể tạo license key: ${error.message}`);
+      const errorMsg = error.message || 'Unknown error';
+      alert(`Không thể tạo license key!\n\nLỗi: ${errorMsg}\n\nVui lòng kiểm tra console để biết thêm chi tiết.`);
     } finally {
       setCreating(false);
     }

@@ -19,7 +19,8 @@ router.get('/users', requireAdmin, async (req, res) => {
     const r = await query('SELECT id,email,full_name,role,created_at,last_login_at FROM users ORDER BY id DESC')
     res.json({ items: r.rows })
   } catch (e) {
-    res.status(500).json({ error: 'server_error' })
+    console.error('Error getting users:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
@@ -28,19 +29,23 @@ router.get('/apps', requireAdmin, async (req, res) => {
     const r = await query('SELECT id,code,name,created_at FROM apps ORDER BY id DESC')
     res.json({ items: r.rows })
   } catch (e) {
-    res.status(500).json({ error: 'server_error' })
+    console.error('Error getting apps:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
 router.post('/apps', requireAdmin, async (req, res) => {
   try {
     const { code, name } = req.body
+    console.log('Create app request:', { code, name })
     if (!code || !name) return res.status(400).json({ error: 'invalid_input' })
     await query('INSERT INTO apps(code,name,created_at) VALUES(?,?,NOW())', [code, name])
     const r = await query('SELECT id FROM apps WHERE code=?', [code])
+    console.log('App created successfully:', r.rows[0].id)
     res.json({ id: r.rows[0].id })
   } catch (e) {
-    res.status(500).json({ error: 'server_error' })
+    console.error('Error creating app:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
@@ -66,24 +71,44 @@ router.get('/licenses', requireAdmin, async (req, res) => {
     )
     res.json({ items: r.rows })
   } catch (e) {
-    res.status(500).json({ error: 'server_error' })
+    console.error('Error getting licenses:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
 router.post('/licenses', requireAdmin, async (req, res) => {
   try {
     const { user_id, app_id, max_devices, expires_at, status } = req.body
-    if (!user_id || !app_id || !max_devices) return res.status(400).json({ error: 'invalid_input' })
+    console.log('Create license request:', { user_id, app_id, max_devices, expires_at, status })
+
+    if (!user_id || !app_id || !max_devices) {
+      console.error('Missing required fields')
+      return res.status(400).json({ error: 'invalid_input' })
+    }
+
     const license_key = genKey()
+    console.log('Generated license key:', license_key)
+
+    // Convert expires_at to MySQL datetime format if provided
+    let expiresAtFormatted = null
+    if (expires_at) {
+      const date = new Date(expires_at)
+      expiresAtFormatted = date.toISOString().slice(0, 19).replace('T', ' ')
+    }
+
+    console.log('Inserting license with expires_at:', expiresAtFormatted)
+
     await query(
       `INSERT INTO licenses(user_id,app_id,license_key,max_devices,expires_at,status,created_at)
        VALUES(?,?,?,?,?,?,NOW())`,
-      [Number(user_id), Number(app_id), license_key, Number(max_devices), expires_at || null, status || 'active']
+      [Number(user_id), Number(app_id), license_key, Number(max_devices), expiresAtFormatted, status || 'active']
     )
     const r = await query('SELECT id FROM licenses WHERE license_key=?', [license_key])
+    console.log('License created successfully:', r.rows[0].id)
     res.json({ id: r.rows[0].id, license_key })
   } catch (e) {
-    res.status(500).json({ error: 'server_error' })
+    console.error('Error creating license:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
