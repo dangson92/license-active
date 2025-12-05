@@ -26,11 +26,17 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 - Auth: JWT (`jsonwebtoken`) + Bcrypt (`bcryptjs`)
 - Bảo vệ: `helmet`, `cors`, `express-rate-limit`, `morgan`
 
+## 📚 Tài Liệu Chi Tiết
+
+- **[Kiến Trúc Hệ Thống](docs/ARCHITECTURE.md)** - Mô tả chi tiết database schema, API flow, security model
+- **[Hướng Dẫn Triển Khai VPS](docs/DEPLOYMENT.md)** - Hướng dẫn từng bước triển khai lên Ubuntu VPS
+- **[Code Mẫu Client Electron](examples/electron-client/README.md)** - Tích hợp license vào ứng dụng Electron/NodeJS
+
 ## Cấu trúc dự án
 
 ```
 .
-├── server/
+├── server/                   # Backend Node.js
 │   ├── index.js              # Khởi tạo Express, middleware, router
 │   ├── db.js                 # Kết nối MySQL
 │   ├── modules/
@@ -40,7 +46,16 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 │   │   └── activate.js      # API kích hoạt client
 │   └── sql/
 │       └── schema.sql       # Schema MySQL
+├── docs/                     # Tài liệu hệ thống
+│   ├── ARCHITECTURE.md       # Kiến trúc chi tiết
+│   └── DEPLOYMENT.md         # Hướng dẫn triển khai VPS
+├── examples/                 # Code mẫu
+│   └── electron-client/      # Ví dụ tích hợp Electron
+│       ├── licenseManager.js # License manager class
+│       ├── main.js           # Main process integration
+│       └── README.md         # Hướng dẫn sử dụng
 ├── .env                      # Biến môi trường (không commit)
+├── .env.example              # Template file .env
 └── package.json
 ```
 
