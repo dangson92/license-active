@@ -4,28 +4,36 @@ Backend quản lý License Key: Admin tạo/duyệt, User xem/gửi gia hạn, C
 
 ## Chạy Nhanh
 
-### Development (Local)
+### Development (Local với Domains)
 
-**Backend API (port 3000):**
+**Bước 1: Cấu hình /etc/hosts**
 ```bash
-cp .env.example .env          # Sao chép cấu hình
-nano .env                     # Chỉnh DB credentials & secrets
-npm install                   # Cài dependencies
-npm run backend               # Chạy API server
-curl http://localhost:3000/health  # Test
+# Linux/macOS: sudo nano /etc/hosts
+# Windows: C:\Windows\System32\drivers\etc\hosts (as Admin)
+
+# Thêm vào:
+127.0.0.1   license.dangthanhson.com
+127.0.0.1   api.dangthanhson.com
 ```
 
-**Frontend UI (port 80):**
+**Bước 2: Backend API (Terminal 1)**
 ```bash
-cp .env.frontend.example .env      # Cấu hình frontend
-# Sửa: VITE_API_URL=http://localhost:3000
-sudo npm run dev                   # Chạy dev server (cần sudo cho port 80)
-# Truy cập: http://localhost
+cp .env.example .env
+nano .env  # FRONTEND_URL=http://license.dangthanhson.com
+npm install
+npm run backend
+# Test: curl http://api.dangthanhson.com:3000/health
 ```
 
-**Lưu ý:** Port 80 cần quyền root. Nếu không muốn dùng sudo, có thể:
-- Dùng Nginx reverse proxy từ 80 → 5173
-- Hoặc cấu hình setcap: `sudo setcap 'cap_net_bind_service=+ep' $(which node)`
+**Bước 3: Frontend UI (Terminal 2)**
+```bash
+cp .env.development.example .env
+nano .env  # VITE_API_URL=http://api.dangthanhson.com:3000
+sudo npm run dev
+# Truy cập: http://license.dangthanhson.com
+```
+
+📖 **Chi tiết:** [Local Development Guide](docs/LOCAL_DEVELOPMENT.md)
 
 ### Production (VPS)
 
@@ -73,6 +81,7 @@ Hệ thống tách thành 2 domains riêng biệt:
 
 ## 📚 Tài Liệu Chi Tiết
 
+- **[Local Development](docs/LOCAL_DEVELOPMENT.md)** - Setup development local với domains
 - **[Kiến Trúc Hệ Thống](docs/ARCHITECTURE.md)** - Mô tả chi tiết database schema, API flow, security model
 - **[Hướng Dẫn Triển Khai VPS](docs/DEPLOYMENT.md)** - Hướng dẫn từng bước triển khai lên Ubuntu VPS
 - **[Cấu Hình Nginx 2 Domains](docs/NGINX_TWO_DOMAINS.md)** - Tách Frontend và Backend ra 2 domains riêng biệt
