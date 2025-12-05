@@ -127,6 +127,13 @@ export const api = {
       return apiCall('/admin/apps');
     },
 
+    createApp: async (data: { code: string; name: string }) => {
+      return apiCall('/admin/apps', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
     // Users
     getUsers: async () => {
       return apiCall('/admin/users');
