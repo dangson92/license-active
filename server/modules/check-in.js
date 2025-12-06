@@ -11,6 +11,12 @@ import { getPrivateKey, getPublicKey } from '../config/keys.js'
 
 const router = express.Router()
 
+// Force JSON content-type for all responses on this router
+router.use((req, res, next) => {
+  res.set('Content-Type', 'application/json; charset=utf-8')
+  next()
+})
+
 /**
  * Hash deviceId với DEVICE_SALT (giống activate.js)
  */
