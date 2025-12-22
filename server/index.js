@@ -4,6 +4,8 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import rateLimit from 'express-rate-limit'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import authRouter from './modules/auth.js'
 import userRouter from './modules/user.js'
 import adminRouter from './modules/admin.js'
@@ -11,6 +13,9 @@ import activateRouter from './modules/activate.js'
 import checkInRouter from './modules/check-in.js'
 import versionRouter from './modules/version.js'
 import appVersionsRouter from './modules/app-versions.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 
@@ -71,7 +76,7 @@ app.use('/version', versionRouter)
 app.use('/admin/app-versions', appVersionsRouter)
 
 // Serve static files từ uploads folder
-app.use('/uploads', express.static('uploads'))
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 const server = app.listen(port, () => {
