@@ -1,15 +1,8 @@
-/**
- * Frontend Configuration
- *
- * API_URL: Backend API endpoint
- * - Development: http://localhost:3000
- * - Production: https://api.dangthanhson.com
- */
-
+// Config for API endpoints
 export const config = {
-  API_URL: import.meta.env.VITE_API_URL || 'https://api.dangthanhson.com',
-  APP_NAME: 'License Manager',
-  VERSION: '1.0.0'
-}
+  // Main API domain (qua CloudFlare)
+  apiUrl: import.meta.env.VITE_API_URL || 'https://license.dangthanhson.com',
 
-export default config
+  // Upload API domain (KHÔNG qua CloudFlare - no 100MB limit)
+  uploadApiUrl: import.meta.env.VITE_UPLOAD_API_URL || 'https://upload.dangthanhson.com',
+}

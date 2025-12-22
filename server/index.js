@@ -31,6 +31,7 @@ const corsOptions = {
     // Allow requests from frontend URL, localhost, and Electron apps (no origin)
     const allowedOrigins = [
       process.env.FRONTEND_URL || 'https://license.dangthanhson.com',
+	  'https://upload.dangthanhson.com',
       'http://localhost:3000',
       'http://localhost:5173'
     ]

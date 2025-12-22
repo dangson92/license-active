@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { App } from '../types';
 import api from '../services/api';
+import { config } from '../config';
 
 interface AppVersion {
   id: number;
@@ -107,9 +108,10 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
       const response = await uploadFileWithProgress(file, selectedApp.code, formData.version);
 
       // Update form với thông tin file
+      // Use upload subdomain for download URL (no CloudFlare limit)
       setFormData(prev => ({
         ...prev,
-        download_url: `${window.location.origin}${response.file.path}`,
+        download_url: `${config.uploadApiUrl}${response.file.path}`,
         file_name: response.file.filename,
         file_size: response.file.size
       }));
@@ -182,7 +184,8 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
       const token = localStorage.getItem('auth_token');
 
       // Open and send request
-      xhr.open('POST', `${window.location.origin}/admin/app-versions/upload`);
+      // Use upload subdomain to bypass CloudFlare 100MB limit
+      xhr.open('POST', `${config.uploadApiUrl}/admin/app-versions/upload`);
       if (token) {
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
