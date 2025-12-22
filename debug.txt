@@ -1,0 +1,145 @@
+=== 1. Check uploads folder exists and permissions ===
+total 12
+drwxr-xr-x  3 root root 4096 Dec 22 15:27 .
+drwxr-xr-x 13 root root 4096 Dec 22 15:36 ..
+drwxr-xr-x  2 root root 4096 Dec 22 15:27 releases
+total 8
+drwxr-xr-x 2 root root 4096 Dec 22 15:27 .
+drwxr-xr-x 3 root root 4096 Dec 22 15:27 ..
+
+=== 2. Check backend is running ===
+│ 0  │ license-api    │ default     │ N/A     │ fork    │ 404610   │ 7m     │ 5    │ online    │ 0%       │ 71.6mb   │ root     │ disabled │
+{"ok":true}
+=== 3. Check nginx config for proxy ===
+    server_name license.dangthanhson.com;
+
+    root /var/www/license-app;
+    index index.html;
+
+    access_log /var/log/nginx/license-frontend-access.log;
+    error_log /var/log/nginx/license-frontend-error.log;
+
+    # IMPORTANT: Allow large file uploads
+    client_max_body_size 2G;
+    client_body_timeout 1800s;
+    client_header_timeout 1800s;
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+    # Cache static files
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+
+=== 4. Test backend upload endpoint directly (needs auth token) ===
+You need to run this manually with a valid token:
+curl -X POST http://localhost:3000/admin/app-versions/upload \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "appCode=test" \
+  -F "version=1.0.0" \
+  -F "file=@/path/to/test.zip"
+
+=== 5. Check recent backend logs ===
+[TAILING] Tailing last 30 lines for [license-api] process (change the value with --lines option)
+/root/.pm2/logs/license-api-error.log last 30 lines:
+0|license- | npm error A complete log of this run can be found in: /root/.npm/_logs/2025-12-06T03_48_07_899Z-debug-0.log
+0|license- | npm error Missing script: "start"
+0|license- | npm error
+0|license- | npm error Did you mean one of these?
+0|license- | npm error   npm star # Mark your favorite packages
+0|license- | npm error   npm stars # View packages marked as favorites
+0|license- | npm error
+0|license- | npm error To see a list of scripts, run:
+0|license- | npm error   npm run
+0|license- | npm error A complete log of this run can be found in: /root/.npm/_logs/2025-12-06T03_48_08_338Z-debug-0.log
+0|license- | ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+0|license- |     at Object.xForwardedForHeader (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:157:13)
+0|license- |     at wrappedValidations.<computed> [as xForwardedForHeader] (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:369:22)
+0|license- |     at Object.keyGenerator (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:630:20)
+0|license- |     at file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:682:32
+0|license- |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+0|license- |     at async file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:663:5 {
+0|license- |   code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+0|license- |   help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'
+0|license- | }
+0|license- | ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false (default). This could indicate a misconfiguration which would prevent express-rate-limit from accurately identifying users. See https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/ for more information.
+0|license- |     at Object.xForwardedForHeader (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:157:13)
+0|license- |     at wrappedValidations.<computed> [as xForwardedForHeader] (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:369:22)
+0|license- |     at Object.keyGenerator (file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:630:20)
+0|license- |     at file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:682:32
+0|license- |     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+0|license- |     at async file:///root/apps/license-active/node_modules/express-rate-limit/dist/index.mjs:663:5 {
+0|license- |   code: 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR',
+0|license- |   help: 'https://express-rate-limit.github.io/ERR_ERL_UNEXPECTED_X_FORWARDED_FOR/'
+0|license- | }
+
+/root/.pm2/logs/license-api-out.log last 30 lines:
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:13:11 +0000] "GET /admin/licenses HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:13:11 +0000] "GET /admin/apps HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:13:11 +0000] "GET /admin/users HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:17:55 +0000] "POST /check-in HTTP/1.1" 200 845 "-" "-"
+0|license- |
+0|license- | > keymaster-ai@0.0.0 backend
+0|license- | > node server/index.js
+0|license- |
+0|license- | ✓ Private key loaded from file: ./keys/private.pem
+0|license- | ✓ Public key loaded from file: ./keys/public.pem
+0|license- | ✅ Server running on port 3000
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:28:58 +0000] "GET /admin/apps HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:28:58 +0000] "GET /admin/users HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:28:58 +0000] "GET /admin/licenses HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:28:59 +0000] "GET /admin/app-versions/2 HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:00 +0000] "GET /admin/app-versions/1 HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:15 +0000] "GET /admin/apps HTTP/1.1" 200 211 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:15 +0000] "GET /admin/licenses HTTP/1.1" 200 4611 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:15 +0000] "GET /admin/users HTTP/1.1" 200 1368 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:21 +0000] "GET /admin/app-versions/2 HTTP/1.1" 200 12 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:22 +0000] "GET /admin/app-versions/1 HTTP/1.1" 200 12 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:29:31 +0000] "GET /admin/app-versions/upload HTTP/1.1" 401 24 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:19 +0000] "POST /auth/login HTTP/1.1" 200 213 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:19 +0000] "GET /admin/apps HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:19 +0000] "GET /admin/users HTTP/1.1" 200 1368 "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:19 +0000] "GET /admin/licenses HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:20 +0000] "GET /admin/app-versions/2 HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:31:21 +0000] "GET /admin/app-versions/1 HTTP/1.1" 304 - "https://license.dangthanhson.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:34:15 +0000] "GET /health HTTP/1.1" 200 11 "-" "curl/7.81.0"
+0|license- | ::ffff:127.0.0.1 - - [22/Dec/2025:08:36:22 +0000] "GET /health HTTP/1.1" 200 11 "-" "curl/7.81.0"
+
+
+=== 6. Check nginx error logs ===
+2025/12/16 09:08:52 [error] 129022#129022: *5865 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/16 09:08:53 [error] 129022#129022: *5866 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/16 15:25:00 [error] 129022#129022: *6248 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/16 15:25:01 [error] 129022#129022: *6249 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/17 10:59:39 [error] 129022#129022: *6623 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/17 10:59:40 [error] 129022#129022: *6632 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.143, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/17 13:47:09 [error] 129022#129022: *6748 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/17 21:20:13 [error] 129022#129022: *6915 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/17 21:20:14 [error] 129022#129022: *6916 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.143, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/18 15:39:27 [error] 129022#129022: *7236 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/18 15:39:28 [error] 129022#129022: *7237 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/18 21:26:44 [error] 129022#129022: *7357 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/18 21:26:45 [error] 129022#129022: *7358 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/19 08:25:35 [error] 129022#129022: *7489 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/19 08:25:36 [error] 129022#129022: *7499 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.143, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/20 15:47:08 [error] 129022#129022: *7987 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/20 15:47:09 [error] 129022#129022: *7988 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/20 21:57:37 [error] 129022#129022: *8153 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/20 21:57:38 [error] 129022#129022: *8154 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.143, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 11:18:48 [error] 129022#129022: *8706 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 11:18:49 [error] 129022#129022: *8707 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 14:30:31 [error] 129022#129022: *8977 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 14:38:08 [error] 129022#129022: *9005 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 14:50:03 [error] 129022#129022: *9045 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 14:56:10 [error] 129023#129023: *9088 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 14:56:10 [error] 129022#129022: *9098 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.143, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 15:02:24 [error] 129022#129022: *9129 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 15:08:27 [error] 403713#403713: *9154 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.182, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 15:10:36 [error] 403713#403713: *9177 open() "/var/www/license-app/favicon.ico" failed (2: No such file or directory), client: 172.68.211.142, server: license.dangthanhson.com, request: "GET /favicon.ico HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+2025/12/22 15:29:14 [error] 404346#404346: *9213 open() "/var/www/license-app/index.css" failed (2: No such file or directory), client: 162.158.179.181, server: license.dangthanhson.com, request: "GET /index.css HTTP/1.1", host: "license.dangthanhson.com", referrer: "https://license.dangthanhson.com/"
+
+=== 7. Check if port 3000 is listening ===
+sudo: netstat: command not found
+LISTEN 0      511                *:3000             *:*    users:(("MainThread",pid=404622,fd=21))

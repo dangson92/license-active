@@ -19,6 +19,10 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
+// Trust proxy - Required when behind Nginx reverse proxy
+// This allows Express to read X-Forwarded-* headers
+app.set('trust proxy', true)
+
 // CORS must be FIRST - before any other middleware
 // CORS configuration for frontend domain and Electron apps
 const corsOptions = {
