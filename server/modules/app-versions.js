@@ -287,6 +287,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 /**
  * POST /admin/app-versions/upload
  * Upload file .zip cho version
+ * Security: Chỉ admin mới upload được (requireAdmin middleware)
  */
 router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {
   try {
@@ -296,6 +297,19 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
         message: 'No file uploaded'
       })
     }
+
+    // Extra validation: kiểm tra lại file extension
+    const ext = path.extname(req.file.filename).toLowerCase()
+    if (ext !== '.zip') {
+      // Xóa file đã upload
+      fs.unlinkSync(req.file.path)
+      return res.status(400).json({
+        error: 'invalid_file_type',
+        message: 'Only .zip files are allowed'
+      })
+    }
+
+    console.log(`✅ Admin uploaded file: ${req.file.filename} (${req.file.size} bytes)`)
 
     // Return file info
     res.json({
@@ -309,6 +323,12 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
     })
   } catch (e) {
     console.error('Error uploading file:', e)
+
+    // Cleanup file nếu có lỗi
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path)
+    }
+
     res.status(500).json({ error: 'server_error', message: e.message })
   }
 })

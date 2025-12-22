@@ -103,7 +103,8 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
         throw new Error('App not found');
       }
 
-      const response = await api.admin.uploadVersionFile(file, selectedApp.code, formData.version);
+      // Upload với progress tracking
+      const response = await uploadFileWithProgress(file, selectedApp.code, formData.version);
 
       // Update form với thông tin file
       setFormData(prev => ({
@@ -116,17 +117,81 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
       alert('Upload file thành công!');
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload file thất bại!');
+      alert('Upload file thất bại: ' + (error as Error).message);
     } finally {
       setUploadingFile(false);
+      setUploadProgress(0);
     }
+  };
+
+  // Upload file với XMLHttpRequest để track progress
+  const uploadFileWithProgress = (file: File, appCode: string, version: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('appCode', appCode);
+      formData.append('version', version);
+
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(percentComplete);
+        }
+      });
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error('Invalid response from server'));
+          }
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.error || `HTTP ${xhr.status}`));
+          } catch {
+            reject(new Error(`Upload failed: HTTP ${xhr.status}`));
+          }
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error occurred'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      // Get auth token
+      const token = localStorage.getItem('auth_token');
+
+      // Open and send request
+      xhr.open('POST', `${window.location.origin}/admin/app-versions/upload`);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      xhr.send(formData);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.version || !formData.download_url) {
-      alert('Vui lòng nhập đầy đủ thông tin!');
+    if (!formData.version) {
+      alert('Vui lòng nhập Version!');
+      return;
+    }
+
+    if (!formData.download_url || !formData.file_name) {
+      alert('Vui lòng upload file trước khi lưu!');
       return;
     }
 
@@ -331,10 +396,10 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
             {/* File Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload File .zip
+                Upload File .zip <span className="text-red-500">*</span>
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                ⚠️ Lưu ý: Phải nhập <strong>Version</strong> trước khi upload file. File sẽ được rename thành <code className="bg-gray-100 px-1 rounded">appCode-version.zip</code>
+                ⚠️ Lưu ý: Phải nhập <strong>Version</strong> trước khi upload. File sẽ được rename thành <code className="bg-gray-100 px-1 rounded">appCode-version.zip</code>
               </p>
               <input
                 type="file"
@@ -343,29 +408,40 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
                 disabled={uploadingFile || !formData.version}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
-              {uploadingFile && (
-                <p className="text-sm text-gray-600 mt-1">Đang upload...</p>
-              )}
-              {formData.file_name && (
-                <p className="text-sm text-green-600 mt-1">
-                  ✓ {formData.file_name} ({formatFileSize(formData.file_size)})
-                </p>
-              )}
-            </div>
 
-            {/* Download URL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Download URL <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="url"
-                value={formData.download_url}
-                onChange={(e) => setFormData({ ...formData, download_url: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
+              {/* Upload Progress */}
+              {uploadingFile && (
+                <div className="mt-3">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Đang upload...</span>
+                    <span className="font-medium">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Success */}
+              {formData.file_name && !uploadingFile && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 font-medium mb-1">
+                    ✓ Upload thành công
+                  </p>
+                  <p className="text-xs text-green-700">
+                    File: <span className="font-mono">{formData.file_name}</span>
+                  </p>
+                  <p className="text-xs text-green-700">
+                    Kích thước: {formatFileSize(formData.file_size)}
+                  </p>
+                  <p className="text-xs text-green-700 break-all">
+                    URL: <a href={formData.download_url} target="_blank" rel="noopener noreferrer" className="underline">{formData.download_url}</a>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Release Notes */}
