@@ -43,7 +43,9 @@ app.use(cors(corsOptions))
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions))
 
-app.use(express.json())
+// Increase body size limits for file uploads
+app.use(express.json({ limit: '1gb' }))
+app.use(express.urlencoded({ limit: '1gb', extended: true, parameterLimit: 50000 }))
 app.use(helmet({
   crossOriginResourcePolicy: false, // Don't block cross-origin requests
 }))
@@ -72,4 +74,11 @@ app.use('/admin/app-versions', appVersionsRouter)
 app.use('/uploads', express.static('uploads'))
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
-app.listen(port, () => {})
+const server = app.listen(port, () => {
+  console.log(`✅ Server running on port ${port}`)
+})
+
+// Increase timeout for large file uploads (30 minutes)
+server.timeout = 30 * 60 * 1000
+server.keepAliveTimeout = 30 * 60 * 1000
+server.headersTimeout = 30 * 60 * 1000
