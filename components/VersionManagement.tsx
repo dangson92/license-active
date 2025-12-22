@@ -128,11 +128,15 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
   const uploadFileWithProgress = (file: File, appCode: string, version: string): Promise<any> => {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
-      formData.append('file', file);
+      // IMPORTANT: Append text fields BEFORE file so multer can access them in filename function
       formData.append('appCode', appCode);
       formData.append('version', version);
+      formData.append('file', file);
 
       const xhr = new XMLHttpRequest();
+
+      // Set timeout to 30 minutes for large file uploads
+      xhr.timeout = 30 * 60 * 1000; // 30 minutes
 
       // Track upload progress
       xhr.upload.addEventListener('progress', (e) => {
@@ -168,6 +172,10 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
 
       xhr.addEventListener('abort', () => {
         reject(new Error('Upload cancelled'));
+      });
+
+      xhr.addEventListener('timeout', () => {
+        reject(new Error('Upload timeout - file quá lớn hoặc mạng chậm'));
       });
 
       // Get auth token
