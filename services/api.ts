@@ -212,6 +212,83 @@ export const api = {
         method: 'DELETE',
       });
     },
+
+    // App Versions
+    getAppVersions: async (appId: number) => {
+      return apiCall(`/admin/app-versions/${appId}`);
+    },
+
+    getLatestVersion: async (appId: number) => {
+      return apiCall(`/admin/app-versions/latest/${appId}`);
+    },
+
+    createAppVersion: async (data: {
+      app_id: number;
+      version: string;
+      release_date: string;
+      release_notes?: string;
+      download_url: string;
+      file_name?: string;
+      file_size?: number;
+      mandatory?: boolean;
+      platform?: string;
+      file_type?: string;
+    }) => {
+      return apiCall('/admin/app-versions', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    updateAppVersion: async (id: number, data: {
+      version?: string;
+      release_date?: string;
+      release_notes?: string;
+      download_url?: string;
+      file_name?: string;
+      file_size?: number;
+      mandatory?: boolean;
+      platform?: string;
+      file_type?: string;
+    }) => {
+      return apiCall(`/admin/app-versions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteAppVersion: async (id: number) => {
+      return apiCall(`/admin/app-versions/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    uploadVersionFile: async (file: File, appCode: string, version: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('appCode', appCode);
+      formData.append('version', version);
+
+      const token = getToken();
+      const headers: HeadersInit = {};
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${config.API_URL}/admin/app-versions/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    },
   },
 
   // User endpoints

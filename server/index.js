@@ -9,6 +9,8 @@ import userRouter from './modules/user.js'
 import adminRouter from './modules/admin.js'
 import activateRouter from './modules/activate.js'
 import checkInRouter from './modules/check-in.js'
+import versionRouter from './modules/version.js'
+import appVersionsRouter from './modules/app-versions.js'
 
 const app = express()
 
@@ -63,6 +65,11 @@ app.use('/user', userRouter)
 app.use('/admin', adminRouter)
 app.use('/activate', activateRouter)
 app.use('/check-in', checkInRouter)
+app.use('/version', versionRouter)
+app.use('/admin/app-versions', appVersionsRouter)
+
+// Serve static files từ uploads folder
+app.use('/uploads', express.static('uploads'))
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 app.listen(port, () => {})
