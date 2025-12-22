@@ -73,7 +73,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${config.API_URL}${endpoint}`, {
+  const response = await fetch(`${config.apiUrl}${endpoint}`, {
     ...options,
     headers,
   });
@@ -276,7 +276,7 @@ export const api = {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${config.API_URL}/admin/app-versions/upload`, {
+      const response = await fetch(`${config.uploadApiUrl}/admin/app-versions/upload`, {
         method: 'POST',
         headers,
         body: formData,
