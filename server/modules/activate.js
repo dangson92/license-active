@@ -1,17 +1,9 @@
 import express from 'express'
-import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { query } from '../db.js'
 import { privateKey } from '../config/keys.js'
 
 const router = express.Router()
-
-const hashDevice = (deviceId) => {
-  const h = crypto.createHash('sha256')
-  h.update(String(deviceId))
-  h.update(String(process.env.DEVICE_SALT || ''))
-  return h.digest('hex')
-}
 
 router.post('/', async (req, res) => {
   try {
@@ -40,13 +32,11 @@ router.post('/', async (req, res) => {
     const lic = licR.rows[0]
     if (lic.status !== 'active') return res.status(400).json({ error: 'license_inactive' })
     if (lic.expires_at && new Date(lic.expires_at).getTime() < Date.now()) return res.status(400).json({ error: 'license_expired' })
-    const deviceHash = hashDevice(deviceId)
 
     console.log('🔐 Device info:', {
-      deviceId: deviceId?.substring(0, 32) + '...',
-      deviceHash: deviceHash?.substring(0, 16) + '...'
+      deviceId: deviceId?.substring(0, 32) + '...'
     })
-    const actR = await query('SELECT id,status FROM activations WHERE license_id=? AND device_hash=?', [lic.id, deviceHash])
+    const actR = await query('SELECT id,status FROM activations WHERE license_id=? AND device_id=?', [lic.id, deviceId])
     if (!actR.rows.length) {
       const countR = await query(
         `SELECT COUNT(*) AS c FROM activations WHERE license_id=? AND status='active'`,
@@ -61,9 +51,9 @@ router.post('/', async (req, res) => {
       }
 
       await query(
-        `INSERT INTO activations(license_id,device_hash,first_activated_at,last_checkin_at,status)
+        `INSERT INTO activations(license_id,device_id,first_activated_at,last_checkin_at,status)
          VALUES(?,?,NOW(),NOW(),'active')`,
-        [lic.id, deviceHash]
+        [lic.id, deviceId]
       )
       console.log('✅ New device activated')
     } else {
@@ -73,7 +63,7 @@ router.post('/', async (req, res) => {
     const payload = {
       licenseId: lic.id,
       appCode,
-      deviceHash,
+      deviceId,
       licenseStatus: lic.status,
       maxDevices: lic.max_devices,
       appVersion: appVersion || null,

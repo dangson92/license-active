@@ -243,8 +243,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
     try {
       // Remove devices one by one
-      for (const deviceHash of devicePopup.selectedDevices) {
-        await api.admin.removeDevice(Number(devicePopup.licenseId), deviceHash);
+      for (const deviceId of devicePopup.selectedDevices) {
+        await api.admin.removeDevice(Number(devicePopup.licenseId), deviceId);
       }
 
       alert(`Đã gỡ ${devicePopup.selectedDevices.length} device thành công!`);
@@ -255,15 +255,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     }
   };
 
-  const toggleDeviceSelection = (deviceHash: string) => {
+  const toggleDeviceSelection = (deviceId: string) => {
     if (!devicePopup) return;
 
-    const isSelected = devicePopup.selectedDevices.includes(deviceHash);
+    const isSelected = devicePopup.selectedDevices.includes(deviceId);
     setDevicePopup({
       ...devicePopup,
       selectedDevices: isSelected
-        ? devicePopup.selectedDevices.filter(h => h !== deviceHash)
-        : [...devicePopup.selectedDevices, deviceHash],
+        ? devicePopup.selectedDevices.filter(h => h !== deviceId)
+        : [...devicePopup.selectedDevices, deviceId],
     });
   };
 
@@ -707,13 +707,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
               <div className="space-y-2">
                 {devicePopup.devices.map((device: any, index: number) => (
                   <div
-                    key={device.device_hash}
+                    key={device.device_id}
                     className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => toggleDeviceSelection(device.device_hash)}
+                    onClick={() => toggleDeviceSelection(device.device_id)}
                   >
                     <input
                       type="checkbox"
-                      checked={devicePopup.selectedDevices.includes(device.device_hash)}
+                      checked={devicePopup.selectedDevices.includes(device.device_id)}
                       onChange={() => {}}
                       className="mt-1 h-4 w-4 text-indigo-600 rounded border-gray-300"
                     />
@@ -729,7 +729,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
                         </span>
                       </div>
                       <div className="text-xs font-mono text-gray-600 bg-gray-50 p-2 rounded break-all">
-                        {device.device_hash}
+                        {device.device_id}
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
                         <div>

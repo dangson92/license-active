@@ -32,11 +32,11 @@ CREATE TABLE IF NOT EXISTS licenses (
 CREATE TABLE IF NOT EXISTS activations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   license_id INT NOT NULL,
-  device_hash VARCHAR(255) NOT NULL,
+  device_id VARCHAR(255) NOT NULL,
   first_activated_at DATETIME NOT NULL,
   last_checkin_at DATETIME NOT NULL,
   status ENUM('active','banned') NOT NULL,
-  UNIQUE KEY uniq_activation (license_id, device_hash),
+  UNIQUE KEY uniq_activation (license_id, device_id),
   CONSTRAINT fk_activations_license FOREIGN KEY (license_id) REFERENCES licenses(id) ON DELETE CASCADE
 );
 
