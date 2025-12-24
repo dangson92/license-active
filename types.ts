@@ -28,6 +28,7 @@ export interface LicenseKey {
   appName?: string; // App name
   hwid?: string; // Hardware ID (device hash)
   maxDevices?: number; // Max devices allowed
+  activeDevices?: number; // Number of active devices
 }
 
 export interface AnalyticsSummary {

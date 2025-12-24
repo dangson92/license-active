@@ -7,7 +7,8 @@ const router = express.Router()
 router.get('/licenses', requireUser, async (req, res) => {
   try {
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name
+      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name,
+              (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.user_id=? ORDER BY l.id DESC`,
       [req.user.id]
     )
@@ -28,7 +29,7 @@ router.get('/licenses/:id', requireUser, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'not_found' })
     const lic = r.rows[0]
     const acts = await query(
-      `SELECT id,device_hash,first_activated_at,last_checkin_at,status FROM activations WHERE license_id=? ORDER BY id DESC`,
+      `SELECT id,device_id,first_activated_at,last_checkin_at,status FROM activations WHERE license_id=? ORDER BY id DESC`,
       [lic.id]
     )
     res.json({ license: lic, activations: acts.rows })
