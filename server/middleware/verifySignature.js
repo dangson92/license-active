@@ -18,7 +18,7 @@ import crypto from 'crypto'
 
 // IMPORTANT: This secret MUST match the one in client code
 // In production, use environment variable
-const REQUEST_SIGNING_SECRET = process.env.REQUEST_SIGNING_SECRET || 'your-super-secret-key-change-this-in-production'
+const SIGNING_SECRET = process.env.LICENSE_SIGNING_SECRET || 'your-super-secret-key-change-this-in-production'
 
 // Request timeout: 5 minutes
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000
@@ -78,7 +78,7 @@ export const verifySignature = (req, res, next) => {
     const bodyString = JSON.stringify(req.body)
     const dataToSign = bodyString + timestamp
     const expectedSignature = crypto
-      .createHmac('sha256', REQUEST_SIGNING_SECRET)
+      .createHmac('sha256', SIGNING_SECRET)
       .update(dataToSign)
       .digest('hex')
 
