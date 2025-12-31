@@ -5,9 +5,10 @@
 
 import express from 'express'
 import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
 import { query } from '../db.js'
 import { getPrivateKey, getPublicKey } from '../config/keys.js'
+import { verifySignature } from '../middleware/verifySignature.js'
+import { createRateLimiter } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
 
@@ -17,22 +18,15 @@ router.use((req, res, next) => {
   next()
 })
 
-/**
- * Hash deviceId với DEVICE_SALT (giống activate.js)
- */
-function hashDeviceId(deviceId) {
-  const hash = crypto.createHash('sha256')
-  hash.update(deviceId)
-  hash.update(process.env.DEVICE_SALT || 'default-device-salt')
-  return hash.digest('hex')
-}
+// Apply security middleware: signature verification + rate limiting
+const rateLimiter = createRateLimiter('checkIn')
 
 /**
  * POST /check-in
  * Body: { token, appCode, deviceId, appVersion }
  * Returns: { valid: true/false, message/error }
  */
-router.post('/', async (req, res) => {
+router.post('/', verifySignature, rateLimiter, async (req, res) => {
   try {
     const { token, appCode, deviceId, appVersion } = req.body
 
@@ -54,9 +48,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ active: false, status: 'app_code_mismatch' })
     }
 
-    // 3. Hash deviceId and check if it matches payload
-    const deviceHash = hashDeviceId(deviceId)
-    if (payload.deviceHash !== deviceHash) {
+    // 3. Check if deviceId matches payload
+    if (payload.deviceId !== deviceId) {
       return res.status(400).json({ active: false, status: 'device_mismatch' })
     }
 
@@ -66,8 +59,8 @@ router.post('/', async (req, res) => {
     const activations = await query(
       `SELECT id, status, last_checkin_at
        FROM activations
-       WHERE license_id=? AND device_hash=?`,
-      [licenseId, deviceHash]
+       WHERE license_id=? AND device_id=?`,
+      [licenseId, deviceId]
     )
     if (activations.rows.length === 0) {
       return res.status(403).json({ active: false, status: 'device_removed' })
@@ -123,7 +116,7 @@ router.post('/', async (req, res) => {
     const newPayload = {
       licenseId: licenseId,
       appCode,
-      deviceHash,
+      deviceId,
       licenseStatus: license.status,
       maxDevices: license.max_devices,
       appVersion: appVersion || null,

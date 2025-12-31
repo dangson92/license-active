@@ -128,7 +128,7 @@ router.get('/licenses/:id', requireAdmin, async (req, res) => {
     )
     if (!r.rows.length) return res.status(404).json({ error: 'not_found' })
     const acts = await query(
-      `SELECT id,device_hash,first_activated_at,last_checkin_at,status FROM activations WHERE license_id=? ORDER BY id DESC`,
+      `SELECT id,device_id,first_activated_at,last_checkin_at,status FROM activations WHERE license_id=? ORDER BY id DESC`,
       [id]
     )
     res.json({ license: r.rows[0], activations: acts.rows })
@@ -230,12 +230,12 @@ router.post('/licenses/:id/extend', requireAdmin, async (req, res) => {
 })
 
 // Remove device from license
-router.delete('/licenses/:licenseId/devices/:deviceHash', requireAdmin, async (req, res) => {
+router.delete('/licenses/:licenseId/devices/:deviceId', requireAdmin, async (req, res) => {
   try {
     const licenseId = Number(req.params.licenseId)
-    const deviceHash = String(req.params.deviceHash)
-    await query('DELETE FROM activations WHERE license_id=? AND device_hash=?', [licenseId, deviceHash])
-    res.json({ licenseId, deviceHash, removed: true })
+    const deviceId = String(req.params.deviceId)
+    await query('DELETE FROM activations WHERE license_id=? AND device_id=?', [licenseId, deviceId])
+    res.json({ licenseId, deviceId, removed: true })
   } catch (e) {
     res.status(500).json({ error: 'server_error' })
   }

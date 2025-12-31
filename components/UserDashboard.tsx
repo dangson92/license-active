@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheckIcon, LogOutIcon, KeyIcon } from './Icons';
+import { ShieldCheckIcon, LogOutIcon, KeyIcon, CopyIcon, CheckIcon } from './Icons';
 import { LicenseKey, KeyStatus, User } from '../types';
 import api from '../services/api';
 
@@ -11,6 +11,7 @@ interface UserDashboardProps {
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) => {
   const [userKeys, setUserKeys] = useState<LicenseKey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserLicenses();
@@ -31,6 +32,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
         appCode: item.app_code,
         appName: item.app_name,
         maxDevices: item.max_devices,
+        activeDevices: item.active_devices || 0,
       }));
 
       setUserKeys(licenses);
@@ -64,6 +66,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Lifetime';
     return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
+
+  const copyToClipboard = async (text: string, keyId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(keyId);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   if (loading) {
@@ -113,9 +125,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
                         <tr>
                             <th className="px-6 py-3">License Key</th>
                             <th className="px-6 py-3">Ứng dụng</th>
+                            <th className="px-6 py-3">Số máy</th>
                             <th className="px-6 py-3">Status</th>
                             <th className="px-6 py-3">Thời hạn</th>
-                            <th className="px-6 py-3">Ngày tạo</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -128,8 +140,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
                         )}
                         {userKeys.map((key) => (
                             <tr key={key.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 font-mono text-xs text-gray-800 font-medium">
-                                    {key.key}
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center space-x-2">
+                                        <span className="font-mono text-xs text-gray-800 font-medium">
+                                            {key.key}
+                                        </span>
+                                        <button
+                                            onClick={() => copyToClipboard(key.key, key.id)}
+                                            className="p-1.5 rounded hover:bg-gray-100 transition-colors text-gray-500 hover:text-indigo-600"
+                                            title="Copy license key"
+                                        >
+                                            {copiedKey === key.id ? (
+                                                <CheckIcon className="w-4 h-4 text-green-600" />
+                                            ) : (
+                                                <CopyIcon className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="text-sm">
@@ -138,15 +165,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
+                                    <span className="text-sm text-gray-700 font-medium">
+                                        {key.activeDevices || 0}/{key.maxDevices}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
                                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(key.status)}`}>
                                         {key.status}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-500">
                                     {formatDate(key.expiresAt)}
-                                </td>
-                                <td className="px-6 py-4 text-gray-500">
-                                    {formatDate(key.createdAt)}
                                 </td>
                             </tr>
                         ))}

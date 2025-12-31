@@ -207,8 +207,8 @@ export const api = {
       });
     },
 
-    removeDevice: async (licenseId: number, deviceHash: string) => {
-      return apiCall(`/admin/licenses/${licenseId}/devices/${deviceHash}`, {
+    removeDevice: async (licenseId: number, deviceId: string) => {
+      return apiCall(`/admin/licenses/${licenseId}/devices/${deviceId}`, {
         method: 'DELETE',
       });
     },
