@@ -20,6 +20,21 @@ import crypto from 'crypto'
 // In production, use environment variable
 const SIGNING_SECRET = process.env.LICENSE_SIGNING_SECRET || 'your-super-secret-key-change-this-in-production'
 
+/**
+ * Sort object keys recursively to ensure consistent JSON stringification
+ */
+function sortObjectKeys(obj) {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj
+  }
+  return Object.keys(obj)
+    .sort()
+    .reduce((sorted, key) => {
+      sorted[key] = sortObjectKeys(obj[key])
+      return sorted
+    }, {})
+}
+
 // Request timeout: 5 minutes
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000
 
@@ -75,8 +90,19 @@ export const verifySignature = (req, res, next) => {
 
     // Generate expected signature
     // Signature = HMAC-SHA256(body_json + timestamp, secret)
-    const bodyString = JSON.stringify(req.body)
+    // IMPORTANT: Sort keys to ensure consistent JSON stringification
+    const sortedBody = sortObjectKeys(req.body)
+    const bodyString = JSON.stringify(sortedBody)
     const dataToSign = bodyString + timestamp
+
+    // Debug logging
+    console.log('🔍 Debug signature verification:')
+    console.log('Secret:', SIGNING_SECRET)
+    console.log('Original body:', JSON.stringify(req.body))
+    console.log('Sorted body:', bodyString)
+    console.log('Timestamp:', timestamp)
+    console.log('Data to sign:', dataToSign)
+
     const expectedSignature = crypto
       .createHmac('sha256', SIGNING_SECRET)
       .update(dataToSign)
