@@ -7,14 +7,10 @@ import { createRateLimiter } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
 
-<<<<<<< HEAD
 // Apply security middleware: signature verification + rate limiting
 const rateLimiter = createRateLimiter('activate')
 
 router.post('/', verifySignature, rateLimiter, async (req, res) => {
-=======
-router.post('/', async (req, res) => {
->>>>>>> 7f7ee9189d2e6deb398881bae1fba4a855527135
   try {
     const { licenseKey, appCode, deviceId, appVersion } = req.body
 
