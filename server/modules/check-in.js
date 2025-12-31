@@ -7,6 +7,8 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import { query } from '../db.js'
 import { getPrivateKey, getPublicKey } from '../config/keys.js'
+import { verifySignature } from '../middleware/verifySignature.js'
+import { createRateLimiter } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
 
@@ -16,12 +18,15 @@ router.use((req, res, next) => {
   next()
 })
 
+// Apply security middleware: signature verification + rate limiting
+const rateLimiter = createRateLimiter('checkIn')
+
 /**
  * POST /check-in
  * Body: { token, appCode, deviceId, appVersion }
  * Returns: { valid: true/false, message/error }
  */
-router.post('/', async (req, res) => {
+router.post('/', verifySignature, rateLimiter, async (req, res) => {
   try {
     const { token, appCode, deviceId, appVersion } = req.body
 
