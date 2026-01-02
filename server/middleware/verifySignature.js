@@ -80,7 +80,7 @@ export const verifySignature = (req, res, next) => {
     }
 
     // Check if timestamp is not from future (clock skew protection)
-    if (requestTime > now + 60000) { // Allow 1 minute clock skew
+    if (requestTime > now + 300000) { // Allow 5 minutes clock skew
       console.warn('⚠️ Request timestamp is in the future')
       return res.status(401).json({
         error: 'unauthorized',
