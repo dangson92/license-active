@@ -77,16 +77,16 @@ app.get('/health', (req, res) => {
   res.json({ ok: true })
 })
 
-app.use('/auth', authRouter)
-app.use('/user', userRouter)
-app.use('/admin', adminRouter)
-app.use('/activate', activateRouter)
-app.use('/check-in', checkInRouter)
-app.use('/version', versionRouter)
-app.use('/admin/app-versions', appVersionsRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/user', userRouter)
+app.use('/api/admin', adminRouter)
+app.use('/api/activate', activateRouter)
+app.use('/api/check-in', checkInRouter)
+app.use('/api/version', versionRouter)
+app.use('/api/admin/app-versions', appVersionsRouter)
 
 // Serve static files từ uploads folder
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
 const server = app.listen(port, () => {
