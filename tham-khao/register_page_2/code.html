@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - SD Automation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0b6cea",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .form-input:focus {
+            border-color: #0b6cea;
+            ring-color: #0b6cea;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen transition-colors duration-200">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e7ecf4] dark:border-slate-800 px-6 md:px-10 py-3 bg-white dark:bg-slate-900">
+<div class="flex items-center gap-4 text-[#0d131c] dark:text-slate-100">
+<h2 class="text-[#0d131c] dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] font-display">Quản lý SD Automation</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<div class="hidden md:flex items-center gap-9">
+<a class="text-[#0d131c] dark:text-slate-300 text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Product</a>
+<a class="text-[#0d131c] dark:text-slate-300 text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Pricing</a>
+<a class="text-[#0d131c] dark:text-slate-300 text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">About</a>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+<span class="truncate">Sign Up</span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center p-6 md:p-12">
+<div class="w-full max-w-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-8 md:p-10">
+<div class="flex flex-col items-center mb-8">
+<div class="p-3 bg-primary/10 rounded-full mb-4">
+<span class="material-symbols-outlined text-primary text-3xl">waving_hand</span>
+</div>
+<h1 class="text-[#0d131c] dark:text-slate-100 tracking-tight text-3xl font-bold leading-tight text-center pb-2 font-display">Log in to your account</h1>
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal text-center max-w-[320px]">
+                        Welcome back! Please enter your details to access your dashboard.
+                    </p>
+</div>
+<form class="space-y-5">
+<div class="flex flex-col gap-2">
+<label class="text-[#0d131c] dark:text-slate-200 text-sm font-semibold leading-normal">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">mail</span>
+<input class="form-input flex w-full rounded-lg text-[#0d131c] dark:text-slate-100 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 pl-11 pr-4 placeholder:text-slate-400 text-sm font-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="name@company.com" type="email"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-[#0d131c] dark:text-slate-200 text-sm font-semibold leading-normal">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>
+<input class="form-input flex w-full rounded-lg text-[#0d131c] dark:text-slate-100 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-12 pl-11 pr-4 placeholder:text-slate-400 text-sm font-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-center justify-between py-2">
+<div class="flex items-center gap-2">
+<input class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" id="remember" type="checkbox"/>
+<label class="text-sm text-slate-600 dark:text-slate-400 leading-tight cursor-pointer" for="remember">
+                                Remember me
+                            </label>
+</div>
+<a class="text-sm text-primary font-semibold hover:underline" href="#">Forgot password?</a>
+</div>
+<button class="w-full flex items-center justify-center gap-2 rounded-lg h-12 px-4 bg-primary text-white text-base font-bold leading-normal tracking-wide hover:bg-primary/90 transition-all shadow-md shadow-primary/20" type="submit">
+                        Sign In
+                    </button>
+</form>
+<div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">
+<p class="text-slate-600 dark:text-slate-400 text-sm">
+                        Don't have an account? 
+                        <a class="text-primary font-bold hover:underline ml-1" href="#">Sign Up</a>
+</p>
+</div>
+</div>
+<div class="mt-12 text-center max-w-[600px]">
+<p class="text-slate-400 dark:text-slate-500 text-xs font-medium uppercase tracking-widest mb-6">Trusted by industry leaders</p>
+<div class="flex flex-wrap justify-center gap-8 opacity-40 grayscale filter dark:invert">
+<img alt="Logo 1" class="h-6 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzPEv7OfM60NtFw9Tt4xFdbrwQcNd9H5p5uBv-GE05BVb-lFei3Q8zEcbcMJMQph7A-WM2RJGzkY7u4AEERGyPTGfSqsOik00Z7R08kfL-rZVBtJyXBm8LWApfcvZ9irvEaxIf7b2jouLgZyqRYy8X73gxCMukSXXxNwRQsuRW-j4LHPYZSbjfjmACHk5-uYEON5eq-XcXDRQssP_AjKOVXFmjsDmAEOshTX10el0ruV6q8NehTmOb5Xd9oUmTAMQpairFibscZ-wf"/>
+<img alt="Logo 2" class="h-6 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtDBK0g0lGblE2ZkeMOnonNNX0IMZ66Y_zWtrLGAMLl73E0QF_vPlHl_bXv6hYycwYj44CiDrw5N1dadG-N0Eg7nNMWn2SH2jTBZdtobosB1r7HSndm1LUNryU2cx03v4QtfhtlNfe95dZNiDj4YuXFCScTXvcla0W5iNPsyW_lP_csSPx57IKuRGSpX8mIaBEKH_0bxJVp_x6LjYBHFmaR89pqpgWEMVo1R6m-f6uj-7R4R9TmmvlgIjg56huunG4x_QDwE8rSdAH"/>
+<img alt="Logo 3" class="h-6 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeOWJ6OyXbk2Uiyr86gpBPY09tN84Q_7rh4J0ycnu0yVjcLDRj8Xcb02PdCUu6pOXhtrG0mSyFyXxustSWQiZhIKlRIU8E6ZQKPKM5fVUASjqz777KViMmty_t6F5EgdlT9OYtgh2Lgt-9zo6fndufI820qq5lQy2DCGQVIAxgvRdGLQuFzsq366zqL2zNfpd4lm3a5CuCGW_fM2J9kARLOeohUBvlnFRr2y892X7ZKyRPTHoHtFlYRPHBripB20e48q7nSRc9Xmgm"/>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/10 via-primary to-primary/10 opacity-50"></div>
+</div>
+
+</body></html>

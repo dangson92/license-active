@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Light Mode Member Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f172a",
+                        "background": "#ffffff",
+                        "sidebar": "#f8fafc",
+                        "border-light": "#e2e8f0",
+                        "accent": "#3b82f6"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .table-row-hover:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-background text-slate-600 antialiased font-display">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-64 border-r border-border-light flex flex-col bg-sidebar">
+<div class="p-6 flex items-center gap-3">
+<div class="size-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[20px]">shield_person</span>
+</div>
+<div>
+<h1 class="text-sm font-bold tracking-tight text-slate-900">Admin Portal</h1>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Management</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-200/50 text-slate-900 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span class="text-sm">Members</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+<span class="text-sm">Licenses</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+<span class="text-sm">Applications</span>
+</a>
+<div class="pt-4 pb-2 px-3">
+<p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">System</p>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm">Settings</span>
+</a>
+</nav>
+<div class="p-4 border-t border-border-light">
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="size-8 rounded-full bg-slate-200 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA--FHwGLjs7ftTCufRps0Y6GQyG39KtkxwPTTHrlZazsXtdyQogFJTNcgOtqz3-dI1qzPM8vmYTW06IYSgduseXdx2YHWYdefcoPxeuKtPLOezNLltSNdb8xVI2so8qHqOljzWKAYRIOVFGakcWIutnJXle4Fp2yOAkDaykkJHU_wecrXVVXJ9m6Pg0HCeuszWQbMlkbVoaNJxCNt6WXYMQzTcLOpIEkedXpjJ9dC9mDP8REm4RosZvk_jlXY_FxcW2RNmJPIR-t-W')"></div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold truncate text-slate-900">Alex Rivera</p>
+<p class="text-[10px] text-slate-400 truncate">System Admin</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
+<header class="h-16 border-b border-border-light flex items-center justify-between px-8 bg-white">
+<div class="flex-1 max-w-md">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] transition-colors group-focus-within:text-slate-900">search</span>
+<input class="w-full bg-white border border-border-light focus:ring-1 focus:ring-slate-900 focus:border-slate-900 rounded-md pl-10 pr-4 py-2 text-sm placeholder:text-slate-400" placeholder="Search directory..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="size-9 flex items-center justify-center rounded-md border border-border-light hover:bg-slate-50 text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="size-9 flex items-center justify-center rounded-md border border-border-light hover:bg-slate-50 text-slate-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<div class="flex items-end justify-between gap-4">
+<div class="space-y-1">
+<h2 class="text-3xl font-bold tracking-tight text-slate-900">Member Management</h2>
+<p class="text-slate-500 text-sm">Organize your organization directory and manage access permissions.</p>
+</div>
+<button class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px]">person_add</span>
+                    Invite Member
+                </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="p-6 rounded-xl border border-border-light bg-white shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Members</span>
+<span class="material-symbols-outlined text-slate-400 text-[20px]">groups</span>
+</div>
+<div class="flex items-baseline gap-3">
+<span class="text-3xl font-bold text-slate-900">1,284</span>
+<span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+12.5%</span>
+</div>
+<p class="text-[10px] text-slate-400 mt-2 font-medium">Monthly growth across all divisions</p>
+</div>
+<div class="p-6 rounded-xl border border-border-light bg-white shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Licenses</span>
+<span class="material-symbols-outlined text-slate-400 text-[20px]">check_circle</span>
+</div>
+<div class="flex items-baseline gap-3">
+<span class="text-3xl font-bold text-slate-900">856</span>
+<span class="text-xs font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">82% Cap</span>
+</div>
+<p class="text-[10px] text-slate-400 mt-2 font-medium">94 licenses remaining in current tier</p>
+</div>
+</div>
+<div class="border border-border-light rounded-xl overflow-hidden bg-white shadow-sm">
+<div class="p-4 border-b border-border-light flex items-center justify-between gap-4 bg-slate-50/30">
+<div class="flex items-center gap-2">
+<div class="relative">
+<select class="appearance-none bg-white border border-border-light text-xs font-medium rounded-md pl-3 pr-8 py-1.5 focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none cursor-pointer">
+<option>All Roles</option>
+<option>Admin</option>
+<option>Editor</option>
+<option>Viewer</option>
+</select>
+<span class="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[16px]">expand_more</span>
+</div>
+<button class="text-xs font-medium px-3 py-1.5 bg-white border border-border-light rounded-md hover:bg-slate-50 transition-colors text-slate-700">
+                            Export
+                        </button>
+</div>
+<div class="text-xs text-slate-400 font-medium">
+                        Showing <span class="text-slate-900">10</span> of 1,284 results
+                    </div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-slate-50/50 border-b border-border-light">
+<tr>
+<th class="px-6 py-4 font-bold text-slate-900 text-xs tracking-tight">Member</th>
+<th class="px-6 py-4 font-bold text-slate-900 text-xs tracking-tight">Email</th>
+<th class="px-6 py-4 font-bold text-slate-900 text-xs tracking-tight">Role</th>
+<th class="px-6 py-4 font-bold text-slate-900 text-xs tracking-tight">Status</th>
+<th class="px-6 py-4 font-bold text-slate-900 text-xs tracking-tight text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-900 text-[10px]">JD</div>
+<span class="font-semibold text-slate-900">Jordan Davidson</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-500">jordan.d@company.com</td>
+<td class="px-6 py-4">
+<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">Admin</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+<span class="text-xs text-slate-600 font-medium">Active</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-border-light px-3 py-1 rounded-md hover:shadow-sm transition-all">Edit</button>
+<button class="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-border-light px-3 py-1 rounded-md hover:bg-red-50 transition-all">Disable</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-900 text-[10px]">SK</div>
+<span class="font-semibold text-slate-900">Sarah Kinsley</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-500">sarah.k@company.com</td>
+<td class="px-6 py-4">
+<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">Editor</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+<span class="text-xs text-slate-600 font-medium">Active</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-border-light px-3 py-1 rounded-md hover:shadow-sm transition-all">Edit</button>
+<button class="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-border-light px-3 py-1 rounded-md hover:bg-red-50 transition-all">Disable</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-900 text-[10px]">MR</div>
+<span class="font-semibold text-slate-900">Marcus Reed</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-500">m.reed@company.com</td>
+<td class="px-6 py-4">
+<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">Viewer</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="size-1.5 rounded-full bg-slate-300"></span>
+<span class="text-xs text-slate-400 font-medium">Inactive</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-border-light px-3 py-1 rounded-md hover:shadow-sm transition-all">Edit</button>
+<button class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-white border border-border-light px-3 py-1 rounded-md hover:bg-emerald-50 transition-all">Enable</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-900 text-[10px]">EL</div>
+<span class="font-semibold text-slate-900">Elena Loft</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-500">elena.loft@company.com</td>
+<td class="px-6 py-4">
+<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">Editor</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="size-1.5 rounded-full bg-emerald-500"></span>
+<span class="text-xs text-slate-600 font-medium">Active</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-border-light px-3 py-1 rounded-md hover:shadow-sm transition-all">Edit</button>
+<button class="text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-border-light px-3 py-1 rounded-md hover:bg-red-50 transition-all">Disable</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 bg-white border-t border-border-light flex items-center justify-between">
+<div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Page 1 of 129</div>
+<div class="flex items-center gap-1.5">
+<button class="p-1.5 border border-border-light rounded-md bg-white text-slate-400 hover:bg-slate-50 disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<div class="flex items-center gap-1">
+<button class="size-8 rounded-md bg-slate-900 text-white text-xs font-bold">1</button>
+<button class="size-8 rounded-md text-slate-500 hover:bg-slate-50 text-xs font-semibold">2</button>
+<button class="size-8 rounded-md text-slate-500 hover:bg-slate-50 text-xs font-semibold">3</button>
+<span class="text-slate-300 mx-1 text-xs">...</span>
+</div>
+<button class="p-1.5 border border-border-light rounded-md bg-white text-slate-400 hover:bg-slate-50">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-center pt-8 border-t border-border-light">
+<p class="text-[10px] text-slate-400 text-center uppercase tracking-[0.2em] font-bold">System Identity Service • Deployment 2.4.0-PRD</p>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

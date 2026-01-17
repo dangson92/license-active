@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Application Inventory Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f172a",
+                        "primary-foreground": "#ffffff",
+                        "secondary": "#f1f5f9",
+                        "muted": "#f8fafc",
+                        "muted-foreground": "#64748b",
+                        "border": "#e2e8f0",
+                        "ring": "#94a3b8"
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "lg": "0.5rem",
+                        "md": "calc(0.5rem - 2px)",
+                        "sm": "calc(0.5rem - 4px)"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .table-row-hover:hover { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-white text-slate-950 min-h-screen">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-64 flex-shrink-0 border-r border-border bg-white flex flex-col">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[20px]">inventory_2</span>
+</div>
+<div>
+<h1 class="text-sm font-semibold tracking-tight">StackTrack</h1>
+<p class="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Admin Console</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-slate-900 hover:bg-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-sm font-medium">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md bg-secondary text-slate-900 border border-border" href="#">
+<span class="material-symbols-outlined text-[20px] fill-[1]">grid_view</span>
+<span class="text-sm font-semibold">Applications</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-slate-900 hover:bg-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span class="text-sm font-medium">Members</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-slate-900 hover:bg-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+<span class="text-sm font-medium">Licenses</span>
+</a>
+<div class="pt-4 mt-4 border-t border-border">
+<a class="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:text-slate-900 hover:bg-secondary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm font-medium">Organization Settings</span>
+</a>
+</div>
+</nav>
+</div>
+<div class="mt-auto p-4 border-t border-border">
+<div class="flex items-center gap-3 p-2 hover:bg-secondary rounded-lg transition-colors cursor-pointer">
+<div class="h-9 w-9 rounded-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAiSQUmDTR4b24EAplz_G4DQRjbPCHdudKtuLv_5dodBCzujEm_R3wfLnZtx8cv9V1AwL_sb2tNMA4qgYH_fU0VFlrZqafmZeg0bG0T19jLyeuJE6bh9seutdcMMAsR6L6U7cB-1lkhETn9OOB_sNCbcMdXm1itpmIlydpzvbTaM_0s0xNSvMhkKmC4LgffrJGiM6I2heFeAbJ3cpmpzKMlBvkW8Su3AI-02tueQDftskOhjkqKBCSgn8ftOBnZvIS9aGwBZU7Mmm5B')"></div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold truncate">Alex Rivera</p>
+<p class="text-[10px] text-muted-foreground truncate">alex@organization.com</p>
+</div>
+<span class="material-symbols-outlined text-muted-foreground text-[18px]">unfold_more</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<header class="h-16 border-b border-border flex items-center justify-between px-8 bg-white/80 backdrop-blur-md z-20">
+<div class="flex-1 max-w-xl">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-[20px] group-focus-within:text-slate-900 transition-colors">search</span>
+<input class="w-full bg-secondary/50 border border-border focus:border-slate-400 focus:ring-0 rounded-md pl-10 pr-4 text-sm h-9 transition-all placeholder:text-muted-foreground" placeholder="Search applications, vendors, or license IDs..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-3 ml-8">
+<button class="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-secondary transition-colors relative">
+<span class="material-symbols-outlined text-slate-600 text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 h-2 w-2 bg-blue-600 rounded-full border-2 border-white"></span>
+</button>
+<button class="h-9 w-9 flex items-center justify-center rounded-md border border-border hover:bg-secondary transition-colors">
+<span class="material-symbols-outlined text-slate-600 text-[20px]">help_outline</span>
+</button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto no-scrollbar">
+<div class="px-8 pt-8 pb-6">
+<div class="flex items-start justify-between gap-4">
+<div class="space-y-1">
+<h2 class="text-2xl font-bold tracking-tight text-slate-900">Application Inventory</h2>
+<p class="text-muted-foreground text-sm max-w-lg font-medium leading-relaxed">Centralized hub for organization-wide software distribution and license compliance.</p>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md font-semibold text-sm transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Register New App</span>
+</button>
+</div>
+</div>
+<div class="px-8 mb-4">
+<div class="flex items-center justify-end gap-2">
+<button class="text-xs font-semibold text-slate-600 flex items-center gap-1.5 border border-border px-3 py-1.5 rounded-md hover:bg-secondary transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                        Filter
+                    </button>
+<button class="text-xs font-semibold text-slate-600 flex items-center gap-1.5 border border-border px-3 py-1.5 rounded-md hover:bg-secondary transition-colors">
+<span class="material-symbols-outlined text-[16px]">sort</span>
+                        Latest
+                    </button>
+</div>
+</div>
+<div class="px-8 pb-8">
+<div class="w-full border border-border rounded-lg overflow-hidden bg-white">
+<table class="w-full text-left text-sm border-collapse">
+<thead class="bg-muted/50 border-b border-border">
+<tr>
+<th class="px-6 py-3 font-semibold text-muted-foreground w-[45%]">Application</th>
+<th class="px-6 py-3 font-semibold text-muted-foreground w-[15%]">Version</th>
+<th class="px-6 py-3 font-semibold text-muted-foreground w-[25%]">License Usage</th>
+<th class="px-6 py-3 font-semibold text-muted-foreground text-right w-[15%]">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border">
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC_Vw4POMjIOoAJ80QYmRhrnrozjS1UZhQL7vo-O7P_HXrEaWrWtPQH9Qai-XWeo1Wd3QZb4znqrS5TckA-vn_mEunLHe8_fZJltqvFIuax3rAmkEbYbwIDSXEKK0oPbmhKTBskbuHrdZsqfHimFphqqg_P8xILkqqUD0Wa-bVe-0Jsi2JmJ_jmteqY4dt3CzSsm38hGtEJ-NA0qIUybwClt0nTm30cTyk0m9C948wN0b3SpsS1-rdki2049VmMcua50jn2VyccEK5s')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Slack</p>
+<p class="text-xs text-muted-foreground">Team communication and real-time messaging platform.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v4.33.90</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-muted-foreground">85 / 100 seats</span>
+<span class="text-slate-900">85%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[85%]"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAAavFhlluYAXfh6ZVX3iBUfuUmHc7lQKAPH1_812w9BzGfoSYfykkRrTgN3v21e2kEddwFczB7tDB78o4CRtPqA9FX0aW_O3O6rjAK0vme139Acf6f9W8wteAhU2jpqmqRWpY76sR2czRqWGRIMY72upf69875K4eegy1eESwmsSD5jtQbILp_IQDB2eRvncX9FooytlcQPeG7uMCI29q-acUdprt-uk_aXvEZ-ePfT19fRiE3LMELZlYy9u1J5A9ye3SqGTkmQm4N')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Adobe Creative Cloud</p>
+<p class="text-xs text-muted-foreground">Comprehensive suite of design and video editing tools.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v2024.1.2</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-muted-foreground">12 / 15 seats</span>
+<span class="text-slate-900">80%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[80%]"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCX_UkNGAGxUFzBQKn6ECEp2pXHjthGZARvrGYwIyhU9f3Q3SYdjon84XnKASSQIecmN2sD9WedHY_RD0F3L84YcEk7BgZEudpJoag7lwoBY04m6shuMMGEpUJMAfCRoCG56SyP7yH7pe9P-19uIERqYC7BBSwfCmBQUvBPFgrF9NftKVGbj7mMEVIqmgL-gi_iFrBl_Tn_f-RVskR43Xva5je9S0q1UaEtBcSEv-NN2zKx5_X6gwBpT5L-4iKuzY-Bxe9s2VXcwFof')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Jira Software</p>
+<p class="text-xs text-muted-foreground">Issue tracking and agile project management solution.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v9.12.3</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-amber-600">200 / 200 seats</span>
+<span class="text-amber-600">100%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-amber-500 rounded-full w-full"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDxwdHYnExCZlERQTvzJu2ZVyDnqQjvHShE47R8ndZHHGHCU5oB4YqJ5JjzGlAdzuM2XpxEFti-Tzi8A3JO2zuzWa9JHf23gL3eJPmIdP2QyBgMowEeaan3JpOaoYf5UdL9KH2dzLQqdC0ZlY_n2jEQbkMMhvudTQLqC9Mv48vkmq7qtz2wbR7ERRI8IIO6cR55oPE4kOHGcpxbS2ZtHZmCdNqbSFMvlYbAVe66vjt2aV2qAxIXDUVBTw0Epyv66zwZI1f1YJmo1y9t')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Figma</p>
+<p class="text-xs text-muted-foreground">Collaborative interface design tool for teams.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v116.15</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-muted-foreground">45 / 50 seats</span>
+<span class="text-slate-900">90%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[90%]"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCoTRrh0kuJIleysSoP7muNaaxddYmp0PsZRNm96NvvaRpbhac2qREY3eA4T722RIcIwbgzjTT0sS2d1LP12h6R3_eJ8AaTv0ttBMRQqdhndK5w3pYSuzv9Z7CaFQIWjwPP_v3S2HTh6yHsZNUl6rRqPTYr4Ck50i2Hznuyc5zOj-yubpd6Dxj-ZlOikiLUxTGV0rp2t_yHEdxQwzFqm-ZBDuxPE9HdJNnZnit3XzlBdrhwncCI3HKLny9DhHscdDjEVUIYIGS2P8UK')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Zoom</p>
+<p class="text-xs text-muted-foreground">Video conferencing and online meeting solution.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v5.17.5</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-muted-foreground">90 / 150 seats</span>
+<span class="text-slate-900">60%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[60%]"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="table-row-hover transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-md border border-border flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAqZmLKgx_00zOmg7rbhvz7UaqZEda-_xZZQPI0fXMCecGNGLhhu7a13rlq-6A_kT689G4IKTJJjpofQrirqFA-1djvqR7d3meWSKjCqKsFQFqenliunmb514Kh7OtJz303-W6gW9QOac6eci2WpZnGxpWQKpR-VcpoPF9PHzgfgKlr4O8Js53SvMuwFc_hjbRLFfooLouvZXe2VMlBnJsu78ZhWl2FlI8teEGZX17YXflKHYHS89IdD0xX2bxrkrcMUxqDijIGZ0Kd')"></div>
+</div>
+<div>
+<p class="font-semibold text-slate-900">Notion</p>
+<p class="text-xs text-muted-foreground">All-in-one workspace for notes, docs, and wikis.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-600 font-medium">v2.36.0</span>
+</td>
+<td class="px-6 py-4">
+<div class="w-full max-w-[200px] space-y-1.5">
+<div class="flex justify-between text-[11px] font-bold">
+<span class="text-muted-foreground">10 / 20 seats</span>
+<span class="text-slate-900">50%</span>
+</div>
+<div class="h-2 w-full bg-secondary rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[50%]"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end gap-2">
+<button class="h-8 px-3 text-xs font-semibold border border-border rounded-md hover:bg-secondary transition-all">Manage</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-6 flex items-center justify-between">
+<p class="text-xs font-medium text-muted-foreground">Showing <span class="text-slate-900 font-semibold">6</span> of <span class="text-slate-900 font-semibold">24</span> applications</p>
+<div class="flex items-center gap-1.5">
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-slate-400 hover:text-slate-900 hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="h-8 px-3 text-xs font-bold rounded-md border border-primary bg-primary text-white">1</button>
+<button class="h-8 px-3 text-xs font-bold rounded-md border border-border text-slate-600 hover:bg-secondary transition-all">2</button>
+<button class="h-8 px-3 text-xs font-bold rounded-md border border-border text-slate-600 hover:bg-secondary transition-all">3</button>
+<button class="h-8 w-8 flex items-center justify-center rounded-md border border-border text-slate-400 hover:text-slate-900 hover:bg-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

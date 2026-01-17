@@ -134,6 +134,12 @@ export const api = {
       });
     },
 
+    deleteApp: async (id: number) => {
+      return apiCall(`/admin/apps/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
     // Users
     getUsers: async () => {
       return apiCall('/admin/users');
