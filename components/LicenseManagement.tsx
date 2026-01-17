@@ -65,7 +65,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                 status: mapStatus(item.status),
                 createdAt: item.created_at || new Date().toISOString(),
                 expiresAt: item.expires_at,
-                owner: item.user_email,
+                owner: item.email,
                 appCode: item.app_code,
                 appName: item.app_name,
                 maxDevices: item.max_devices,
@@ -566,11 +566,14 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                                         </code>
                                                     </TableCell>
                                                     <TableCell className="text-sm text-muted-foreground">
-                                                        {new Date(device.activated_at).toLocaleString('vi-VN')}
+                                                        {device.first_activated_at
+                                                            ? new Date(device.first_activated_at).toLocaleString('vi-VN')
+                                                            : '-'
+                                                        }
                                                     </TableCell>
                                                     <TableCell className="text-sm text-muted-foreground">
-                                                        {device.last_used_at
-                                                            ? new Date(device.last_used_at).toLocaleString('vi-VN')
+                                                        {device.last_checkin_at
+                                                            ? new Date(device.last_checkin_at).toLocaleString('vi-VN')
                                                             : '-'
                                                         }
                                                     </TableCell>

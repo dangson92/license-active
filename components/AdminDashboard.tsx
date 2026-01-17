@@ -105,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
             lic.status === 'expired' ? KeyStatus.EXPIRED : KeyStatus.VALID,
         createdAt: lic.created_at,
         expiresAt: lic.expires_at,
-        owner: lic.user_email,
+        owner: lic.email,
         appCode: lic.app_code,
         appName: lic.app_name,
         maxDevices: lic.max_devices,
