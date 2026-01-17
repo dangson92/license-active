@@ -46,6 +46,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [appFilter, setAppFilter] = useState<string>('all');
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [devicePopup, setDevicePopup] = useState<DevicePopup | null>(null);
 
@@ -205,6 +206,9 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
         });
     };
 
+    // Get unique apps for filter
+    const uniqueApps = Array.from(new Set(keys.map(k => k.appCode).filter(Boolean))).sort();
+
     // Filter and search
     const getFilteredKeys = () => {
         let filtered = [...keys];
@@ -220,6 +224,17 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
         if (statusFilter !== 'all') {
             filtered = filtered.filter(key => key.status.toLowerCase() === statusFilter.toLowerCase());
         }
+
+        if (appFilter !== 'all') {
+            filtered = filtered.filter(key => key.appCode === appFilter);
+        }
+
+        // Sort by appName (A-Z)
+        filtered.sort((a, b) => {
+            const appA = (a.appName || a.appCode || '').toLowerCase();
+            const appB = (b.appName || b.appCode || '').toLowerCase();
+            return appA.localeCompare(appB);
+        });
 
         return filtered;
     };
@@ -329,6 +344,22 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                 Danh sách License Keys
                             </CardTitle>
                             <div className="flex items-center gap-3">
+                                <Select value={appFilter} onValueChange={setAppFilter}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Tất cả ứng dụng" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tất cả ứng dụng</SelectItem>
+                                        {uniqueApps.map(appCode => {
+                                            const app = keys.find(k => k.appCode === appCode);
+                                            return (
+                                                <SelectItem key={appCode} value={appCode}>
+                                                    {app?.appName || appCode}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue placeholder="Tất cả trạng thái" />
@@ -509,8 +540,8 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                         </DialogHeader>
 
                         {devicePopup && (
-                            <div className="space-y-4">
-                                <div className="border rounded-lg">
+                            <div className="space-y-4 max-h-[60vh] overflow-hidden flex flex-col">
+                                <div className="border rounded-lg overflow-auto flex-1">
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="bg-muted/50">
@@ -529,8 +560,8 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                                             onCheckedChange={() => toggleDeviceSelection(device.device_id)}
                                                         />
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                                                    <TableCell className="max-w-[300px]">
+                                                        <code className="text-xs bg-muted px-2 py-1 rounded block break-all">
                                                             {device.device_id}
                                                         </code>
                                                     </TableCell>
