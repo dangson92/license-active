@@ -90,7 +90,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 export const api = {
   auth: {
     login: async (email: string, password: string): Promise<LoginResponse> => {
-      const response = await apiCall('/auth/login', {
+      const response = await apiCall('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -103,7 +103,7 @@ export const api = {
     },
 
     register: async (email: string, password: string, fullName: string): Promise<RegisterResponse> => {
-      const response = await apiCall('/auth/register', {
+      const response = await apiCall('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, fullName }),
       });
@@ -124,25 +124,25 @@ export const api = {
   admin: {
     // Apps
     getApps: async () => {
-      return apiCall('/admin/apps');
+      return apiCall('/api/admin/apps');
     },
 
     createApp: async (data: { code: string; name: string }) => {
-      return apiCall('/admin/apps', {
+      return apiCall('/api/admin/apps', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
     deleteApp: async (id: number) => {
-      return apiCall(`/admin/apps/${id}`, {
+      return apiCall(`/api/admin/apps/${id}`, {
         method: 'DELETE',
       });
     },
 
     // Users
     getUsers: async () => {
-      return apiCall('/admin/users');
+      return apiCall('/api/admin/users');
     },
 
     // Licenses
@@ -153,7 +153,7 @@ export const api = {
       if (filters?.status) params.append('status', filters.status);
 
       const query = params.toString();
-      return apiCall(`/admin/licenses${query ? '?' + query : ''}`);
+      return apiCall(`/api/admin/licenses${query ? '?' + query : ''}`);
     },
 
     createLicense: async (data: {
@@ -163,14 +163,14 @@ export const api = {
       expires_at?: string;
       status?: string;
     }) => {
-      return apiCall('/admin/licenses', {
+      return apiCall('/api/admin/licenses', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
     getLicenseDetails: async (id: number) => {
-      return apiCall(`/admin/licenses/${id}`);
+      return apiCall(`/api/admin/licenses/${id}`);
     },
 
     updateLicense: async (id: number, data: {
@@ -180,52 +180,52 @@ export const api = {
       user_id?: number;
       meta?: any;
     }) => {
-      return apiCall(`/admin/licenses/${id}`, {
+      return apiCall(`/api/admin/licenses/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
     },
 
     deleteLicense: async (id: number) => {
-      return apiCall(`/admin/licenses/${id}`, {
+      return apiCall(`/api/admin/licenses/${id}`, {
         method: 'DELETE',
       });
     },
 
     revokeLicense: async (id: number) => {
-      return apiCall(`/admin/licenses/${id}`, {
+      return apiCall(`/api/admin/licenses/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'revoked' }),
       });
     },
 
     extendLicense: async (id: number, additionalMonths: number) => {
-      return apiCall(`/admin/licenses/${id}/extend`, {
+      return apiCall(`/api/admin/licenses/${id}/extend`, {
         method: 'POST',
         body: JSON.stringify({ additionalMonths }),
       });
     },
 
     transferLicense: async (id: number, newUserId: number) => {
-      return apiCall(`/admin/licenses/${id}`, {
+      return apiCall(`/api/admin/licenses/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ user_id: newUserId }),
       });
     },
 
     removeDevice: async (licenseId: number, deviceId: string) => {
-      return apiCall(`/admin/licenses/${licenseId}/devices/${deviceId}`, {
+      return apiCall(`/api/admin/licenses/${licenseId}/devices/${deviceId}`, {
         method: 'DELETE',
       });
     },
 
     // App Versions
     getAppVersions: async (appId: number) => {
-      return apiCall(`/admin/app-versions/${appId}`);
+      return apiCall(`/api/admin/app-versions/${appId}`);
     },
 
     getLatestVersion: async (appId: number) => {
-      return apiCall(`/admin/app-versions/latest/${appId}`);
+      return apiCall(`/api/admin/app-versions/latest/${appId}`);
     },
 
     createAppVersion: async (data: {
@@ -240,7 +240,7 @@ export const api = {
       platform?: string;
       file_type?: string;
     }) => {
-      return apiCall('/admin/app-versions', {
+      return apiCall('/api/admin/app-versions', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -257,14 +257,14 @@ export const api = {
       platform?: string;
       file_type?: string;
     }) => {
-      return apiCall(`/admin/app-versions/${id}`, {
+      return apiCall(`/api/admin/app-versions/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
     },
 
     deleteAppVersion: async (id: number) => {
-      return apiCall(`/admin/app-versions/${id}`, {
+      return apiCall(`/api/admin/app-versions/${id}`, {
         method: 'DELETE',
       });
     },
@@ -282,7 +282,7 @@ export const api = {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${config.uploadApiUrl}/admin/app-versions/upload`, {
+      const response = await fetch(`${config.uploadApiUrl}/api/admin/app-versions/upload`, {
         method: 'POST',
         headers,
         body: formData,
@@ -301,17 +301,17 @@ export const api = {
   user: {
     // Get licenses for current user
     getLicenses: async () => {
-      return apiCall('/user/licenses');
+      return apiCall('/api/user/licenses');
     },
 
     // Get license details
     getLicenseDetails: async (id: number) => {
-      return apiCall(`/user/licenses/${id}`);
+      return apiCall(`/api/user/licenses/${id}`);
     },
 
     // Request license renewal
     requestRenewal: async (licenseId: number, message?: string) => {
-      return apiCall(`/user/licenses/${licenseId}/renew-requests`, {
+      return apiCall(`/api/user/licenses/${licenseId}/renew-requests`, {
         method: 'POST',
         body: JSON.stringify({ message }),
       });
@@ -319,7 +319,7 @@ export const api = {
 
     // Get renewal requests
     getRenewalRequests: async () => {
-      return apiCall('/user/renew-requests');
+      return apiCall('/api/user/renew-requests');
     },
   },
 
