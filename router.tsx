@@ -9,6 +9,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { MemberManagement } from './components/MemberManagement';
 import { CreateLicense } from './components/CreateLicense';
 import { ApplicationManagement } from './components/ApplicationManagement';
+import { Settings } from './components/Settings';
 
 // Components that need to be extracted from AdminDashboard
 // For now, we'll create wrapper components
@@ -109,17 +110,7 @@ const DashboardPage: React.FC = () => (
     </div>
 );
 
-const SettingsPage: React.FC = () => (
-    <div className="space-y-6">
-        <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground text-sm">Cài đặt hệ thống.</p>
-        </div>
-        <div className="bg-muted/50 rounded-lg p-12 text-center text-muted-foreground">
-            Settings content sẽ được thêm sau...
-        </div>
-    </div>
-);
+const SettingsPage: React.FC = () => <Settings />;
 
 // Wrapper for CreateLicense to get apps and users
 const CreateLicensePage: React.FC<{ onBack: () => void; onSuccess: () => void }> = ({ onBack, onSuccess }) => {

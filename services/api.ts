@@ -115,8 +115,43 @@ export const api = {
       return response;
     },
 
+    verifyEmail: async (token: string) => {
+      return apiCall('/api/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
+    },
+
+    resendVerification: async (email: string) => {
+      return apiCall('/api/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    },
+
     logout: () => {
       removeToken();
+    },
+  },
+
+  // Settings endpoints
+  settings: {
+    get: async () => {
+      return apiCall('/api/admin/settings');
+    },
+
+    update: async (settings: Record<string, string>) => {
+      return apiCall('/api/admin/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      });
+    },
+
+    testEmail: async (to: string) => {
+      return apiCall('/api/admin/settings/test-email', {
+        method: 'POST',
+        body: JSON.stringify({ to }),
+      });
     },
   },
 

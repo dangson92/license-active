@@ -13,6 +13,7 @@ import activateRouter from './modules/activate.js'
 import checkInRouter from './modules/check-in.js'
 import versionRouter from './modules/version.js'
 import appVersionsRouter from './modules/app-versions.js'
+import settingsRouter from './modules/settings.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -80,6 +81,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/user', userRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/admin/settings', settingsRouter)
 app.use('/api/activate', activateRouter)
 app.use('/api/check-in', checkInRouter)
 app.use('/api/version', versionRouter)

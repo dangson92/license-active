@@ -13,6 +13,8 @@ import { ApplicationManagement } from './components/ApplicationManagement';
 import { LicenseManagement } from './components/LicenseManagement';
 import { AddAppVersion } from './components/AddAppVersion';
 import { AppVersionHistory } from './components/AppVersionHistory';
+import { Settings } from './components/Settings';
+import { VerifyEmail } from './components/VerifyEmail';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -129,7 +131,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           />
         } />
         <Route path="dashboard" element={<DashboardPlaceholder />} />
-        <Route path="settings" element={<SettingsPlaceholder />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
       </Routes>
     </AppLayout>
@@ -149,17 +151,7 @@ const DashboardPlaceholder: React.FC = () => (
   </div>
 );
 
-const SettingsPlaceholder: React.FC = () => (
-  <div className="space-y-6">
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-      <p className="text-muted-foreground text-sm">Cài đặt hệ thống.</p>
-    </div>
-    <div className="bg-muted/50 rounded-lg p-12 text-center text-muted-foreground">
-      Settings content sẽ được thêm sau...
-    </div>
-  </div>
-);
+
 
 // Wrapper components for route params
 import { useParams } from 'react-router-dom';
@@ -260,6 +252,9 @@ const App: React.FC = () => {
         <Route path="/login" element={
           currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/licenses' : '/user/licenses'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
         } />
+
+        {/* Email Verification Route */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* Admin Routes */}
         <Route path="/admin/*" element={
