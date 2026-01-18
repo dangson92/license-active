@@ -51,12 +51,12 @@ router.post('/tickets', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'validation_error', message: 'Subject and message are required' })
         }
 
-        const r = await query(
+        await query(
             `INSERT INTO support_tickets (user_id, subject, category, message, status, priority, created_at)
-       VALUES (?, ?, ?, ?, 'pending', 'normal', NOW())
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, 'pending', 'normal', NOW())`,
             [userId, subject, category || 'other', message]
         )
+        const r = await query('SELECT LAST_INSERT_ID() as id')
 
         res.json({ id: r.rows[0].id, message: 'Ticket created successfully' })
     } catch (e) {
@@ -156,12 +156,12 @@ router.get('/admin/faqs', requireAdmin, async (req, res) => {
 router.post('/admin/faqs', requireAdmin, async (req, res) => {
     try {
         const { question, answer, category, display_order } = req.body
-        const r = await query(
+        await query(
             `INSERT INTO faqs (question, answer, category, display_order, is_active, created_at)
-       VALUES (?, ?, ?, ?, TRUE, NOW())
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, TRUE, NOW())`,
             [question, answer, category || null, display_order || 0]
         )
+        const r = await query('SELECT LAST_INSERT_ID() as id')
         res.json({ id: r.rows[0].id })
     } catch (e) {
         console.error('Error creating FAQ:', e)

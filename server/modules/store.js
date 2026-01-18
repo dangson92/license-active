@@ -90,12 +90,12 @@ router.post('/orders', requireAuth, async (req, res) => {
         const orderCode = generateOrderCode()
         const totalPrice = unit_price * (quantity || 1)
 
-        const r = await query(
+        await query(
             `INSERT INTO purchase_orders (user_id, app_id, order_code, quantity, duration_months, unit_price, total_price, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
             [userId, app_id, orderCode, quantity || 1, duration_months, unit_price, totalPrice]
         )
+        const r = await query('SELECT LAST_INSERT_ID() as id')
 
         res.json({
             id: r.rows[0].id,
@@ -261,9 +261,9 @@ router.post('/admin/orders/:id/reject', requireAdmin, async (req, res) => {
 router.get('/admin/pricing', requireAdmin, async (req, res) => {
     try {
         const r = await query(`
-      SELECT a.id as app_id, a.code, a.name,
+      SELECT a.id as app_id, a.code, a.name, a.is_active,
              p.id, p.description, p.price_1_month, p.price_6_months, p.price_1_year,
-             p.is_active, p.is_featured, p.badge, p.icon_class
+             p.is_featured, p.badge, p.icon_class
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
       ORDER BY a.name ASC
@@ -277,7 +277,7 @@ router.get('/admin/pricing', requireAdmin, async (req, res) => {
 
 router.post('/admin/pricing', requireAdmin, async (req, res) => {
     try {
-        const { app_id, description, price_1_month, price_6_months, price_1_year, is_active, is_featured, badge, icon_class } = req.body
+        const { app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class } = req.body
 
         // Check if pricing already exists
         const existing = await query('SELECT id FROM app_pricing WHERE app_id = ?', [app_id])
@@ -286,19 +286,19 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
             // Update existing
             await query(
                 `UPDATE app_pricing SET description = ?, price_1_month = ?, price_6_months = ?, price_1_year = ?,
-         is_active = ?, is_featured = ?, badge = ?, icon_class = ?, updated_at = NOW()
+         is_featured = ?, badge = ?, icon_class = ?, updated_at = NOW()
          WHERE app_id = ?`,
-                [description, price_1_month, price_6_months, price_1_year, is_active ?? true, is_featured ?? false, badge, icon_class, app_id]
+                [description, price_1_month, price_6_months, price_1_year, is_featured ?? false, badge, icon_class, app_id]
             )
             res.json({ app_id, updated: true })
         } else {
             // Insert new
-            const r = await query(
-                `INSERT INTO app_pricing (app_id, description, price_1_month, price_6_months, price_1_year, is_active, is_featured, badge, icon_class, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-         RETURNING id`,
-                [app_id, description, price_1_month, price_6_months, price_1_year, is_active ?? true, is_featured ?? false, badge, icon_class]
+            await query(
+                `INSERT INTO app_pricing (app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+                [app_id, description, price_1_month, price_6_months, price_1_year, is_featured ?? false, badge, icon_class]
             )
+            const r = await query('SELECT LAST_INSERT_ID() as id')
             res.json({ id: r.rows[0].id, app_id, created: true })
         }
     } catch (e) {
