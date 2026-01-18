@@ -139,6 +139,21 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
         }
     };
 
+    const handleEdit = (version: AppVersion) => {
+        // TODO: Implement edit dialog or navigate to edit page
+        // For now, trigger the onAddVersion callback which will open the version form
+        // The parent component should handle switching to edit mode
+        alert(`Chỉnh sửa version ${version.version} - Tính năng đang được phát triển. Vui lòng sử dụng trang Quản lý Versions để chỉnh sửa.`);
+    };
+
+    const handleDownload = (version: AppVersion) => {
+        if (version.download_url) {
+            window.open(version.download_url, '_blank');
+        } else {
+            alert('Không tìm thấy link download cho version này!');
+        }
+    };
+
     const totalPages = Math.ceil(totalVersions / itemsPerPage);
 
     if (loading) {
@@ -222,7 +237,12 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                                 <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                onClick={() => handleEdit(version)}
+                                                            >
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -230,7 +250,12 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                onClick={() => handleDownload(version)}
+                                                            >
                                                                 <Download className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>

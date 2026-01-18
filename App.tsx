@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { UserDashboard } from './components/UserDashboard';
+import { UserRoutes } from './components/UserRoutes';
 import { Auth } from './components/Auth';
 import { UserRole, User } from './types';
 import api, { getCurrentUser } from './services/api';
@@ -15,6 +15,8 @@ import { AddAppVersion } from './components/AddAppVersion';
 import { AppVersionHistory } from './components/AppVersionHistory';
 import { Settings } from './components/Settings';
 import { VerifyEmail } from './components/VerifyEmail';
+import { AdminTicketManagement } from './components/AdminTicketManagement';
+import { ApplicationSetting } from './components/ApplicationSetting';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -68,6 +70,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
     if (path.includes('/admin/create-license')) return 'licenses';
     if (path.includes('/admin/settings')) return 'settings';
     if (path.includes('/admin/dashboard')) return 'dashboard';
+    if (path.includes('/admin/support')) return 'support';
     return 'licenses';
   };
 
@@ -87,6 +90,9 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         break;
       case 'settings':
         navigate('/admin/settings');
+        break;
+      case 'support':
+        navigate('/admin/support');
         break;
       default:
         navigate('/admin/licenses');
@@ -132,6 +138,8 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         } />
         <Route path="dashboard" element={<DashboardPlaceholder />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="support" element={<AdminTicketManagement />} />
+        <Route path="applications/:appId/settings" element={<ApplicationSettingWrapper />} />
         <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
       </Routes>
     </AppLayout>
@@ -184,6 +192,25 @@ const AddAppVersionWrapper: React.FC = () => {
       appName={appName}
       onBack={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
       onSuccess={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
+    />
+  );
+};
+
+const ApplicationSettingWrapper: React.FC = () => {
+  const { appId } = useParams<{ appId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const appName = (location.state as any)?.appName || 'Application';
+
+  return (
+    <ApplicationSetting
+      appId={appId}
+      appName={appName}
+      onBack={() => navigate('/admin/applications')}
+      onSave={(data) => {
+        console.log('Saving app settings:', data);
+        navigate('/admin/applications');
+      }}
     />
   );
 };
@@ -266,7 +293,7 @@ const App: React.FC = () => {
         {/* User Routes */}
         <Route path="/user/*" element={
           currentUser?.role === UserRole.USER
-            ? <UserDashboard user={currentUser} onLogout={handleLogout} />
+            ? <UserRoutes user={currentUser} onLogout={handleLogout} />
             : <Navigate to="/login" />
         } />
 

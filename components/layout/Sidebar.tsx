@@ -45,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: Key, label: 'Licenses', id: 'licenses' },
         { icon: AppWindow, label: 'Applications', id: 'applications' },
         { icon: Users, label: 'Members', id: 'members' },
+        { icon: HelpCircle, label: 'Support', id: 'support' },
     ];
 
     const userNavItems: NavItem[] = [

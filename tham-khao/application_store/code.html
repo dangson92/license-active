@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Application Store - SD Automation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0284c7",
+                        "secondary": "#64748b",
+                        "accent": "#0ea5e9",
+                        "border": "#e2e8f0",
+                        "input": "#f8fafc",
+                        "ring": "#94a3b8",
+                        "destructive": "#ef4444"
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.375rem",
+                        "md": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-slate-50 text-slate-950 font-sans antialiased;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            font-size: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            @apply bg-slate-200 rounded-full;
+        }
+        .pricing-radio:checked + label {
+            @apply border-primary bg-sky-50 ring-1 ring-primary;
+        }
+        .pricing-radio:checked + label .option-text {
+            @apply text-primary;
+        }
+        .pricing-radio:checked + label .price-text {
+            @apply text-primary;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+<aside class="w-64 border-r border-border bg-white flex flex-col shrink-0 z-50">
+<div class="h-16 flex items-center px-6 border-b border-border">
+<div class="flex items-center gap-2.5">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-sm shadow-primary/20">
+<span class="material-symbols-outlined !text-[20px]">hub</span>
+</div>
+<div class="flex flex-col leading-tight">
+<h1 class="text-slate-900 text-sm font-bold tracking-tight">SD Automation</h1>
+<span class="text-[9px] uppercase tracking-widest font-bold text-primary">Enterprise</span>
+</div>
+</div>
+</div>
+<nav class="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+<p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
+<a class="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-primary bg-sky-50 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-primary">storefront</span>
+            Store
+        </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600">verified_user</span>
+            My Licenses
+        </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600">support_agent</span>
+            Support
+        </a>
+<div class="pt-8">
+<p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Account</p>
+<a class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all group" href="#">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-600">notifications</span>
+                Notifications
+            </a>
+</div>
+</nav>
+<div class="p-4 border-t border-border">
+<div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+<div class="size-9 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white shadow-sm">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5VLccmw2K-l0swlivqe-wBMX9dIkHLZHFWOS0eNaMmsiBNEo-XqRq6btp2olB7MNLgVt4fGozjVJymcyN9Hx1_T9nMxWCGaXoa71nBx8uj-OEFsxxcqGcZOjVAoueOa93qSKKrmBbUG149nJffp7cIRvTuonURvzeF72UCl0vNQb9sMfkCdRAWMeircl1hbVloMoGBsUQ5v6ApMCu1JU--rtujcAkIKG33cQHpGoq7mJdf8RL3dlSFMLfW-RUeyv52LFq6pMuAnIL"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold text-slate-900 truncate">Alex Henderson</p>
+<p class="text-[10px] text-slate-500 truncate">Pro Plan Admin</p>
+</div>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined !text-[18px]">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<header class="h-16 border-b border-border bg-white/90 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between shrink-0">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-slate-100 border-transparent rounded-lg pl-10 pr-4 py-2 text-sm focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all" placeholder="Search applications..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative size-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute top-1.5 right-1.5 size-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">0</span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<button class="size-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto custom-scrollbar p-8">
+<div class="max-w-7xl mx-auto">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+<div>
+<h2 class="text-4xl font-black tracking-tight text-slate-900">Application Store</h2>
+<p class="text-slate-500 mt-3 text-lg max-w-2xl">Enhance your SD Automation environment with our curated suite of enterprise software licenses.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filter</span>
+<select class="border-none bg-transparent p-0 pr-6 text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer">
+<option>All Solutions</option>
+<option>Workflow Engine</option>
+<option>Security Suite</option>
+<option>Analytics &amp; Reporting</option>
+<option>Developer Tools</option>
+</select>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="size-14 rounded-xl bg-sky-50 flex items-center justify-center border border-sky-100 text-primary group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined !text-[32px]">auto_fix_high</span>
+</div>
+<span class="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full border border-primary/20">POPULAR</span>
+</div>
+<h3 class="text-lg font-bold text-slate-900 mb-2">Workflow Automator</h3>
+<p class="text-sm text-slate-500 leading-relaxed mb-6">Optimize cross-departmental tasks with AI-driven sequencing.</p>
+<div class="space-y-2 mb-6">
+<div>
+<input checked="" class="hidden pricing-radio" id="p1-1m" name="pricing-1" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p1-1m">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Month</span>
+<span class="text-sm font-bold text-slate-900 price-text">$10</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p1-6m" name="pricing-1" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p1-6m">
+<span class="text-xs font-semibold text-slate-600 option-text">6 Months</span>
+<span class="text-sm font-bold text-slate-900 price-text">$50</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p1-1y" name="pricing-1" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p1-1y">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Year</span>
+<span class="text-sm font-bold text-slate-900 price-text">$90</span>
+</label>
+</div>
+</div>
+</div>
+<div class="px-6 pb-6 mt-auto">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                            Đăng ký ngay
+                            <span class="material-symbols-outlined !text-[18px]">shopping_bag</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="size-14 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100 text-indigo-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined !text-[32px]">security</span>
+</div>
+</div>
+<h3 class="text-lg font-bold text-slate-900 mb-2">Sentinel Shield</h3>
+<p class="text-sm text-slate-500 leading-relaxed mb-6">Enterprise-grade security perimeter for your automation workflows.</p>
+<div class="space-y-2 mb-6">
+<div>
+<input checked="" class="hidden pricing-radio" id="p2-1m" name="pricing-2" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p2-1m">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Month</span>
+<span class="text-sm font-bold text-slate-900 price-text">$25</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p2-6m" name="pricing-2" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p2-6m">
+<span class="text-xs font-semibold text-slate-600 option-text">6 Months</span>
+<span class="text-sm font-bold text-slate-900 price-text">$120</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p2-1y" name="pricing-2" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p2-1y">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Year</span>
+<span class="text-sm font-bold text-slate-900 price-text">$200</span>
+</label>
+</div>
+</div>
+</div>
+<div class="px-6 pb-6 mt-auto">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                            Đăng ký ngay
+                            <span class="material-symbols-outlined !text-[18px]">shopping_bag</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="size-14 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined !text-[32px]">monitoring</span>
+</div>
+<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100">NEW</span>
+</div>
+<h3 class="text-lg font-bold text-slate-900 mb-2">Metrics Engine</h3>
+<p class="text-sm text-slate-500 leading-relaxed mb-6">Deep-dive analytics dashboard that visualizes ROI in real-time.</p>
+<div class="space-y-2 mb-6">
+<div>
+<input checked="" class="hidden pricing-radio" id="p3-1m" name="pricing-3" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p3-1m">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Month</span>
+<span class="text-sm font-bold text-slate-900 price-text">$15</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p3-6m" name="pricing-3" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p3-6m">
+<span class="text-xs font-semibold text-slate-600 option-text">6 Months</span>
+<span class="text-sm font-bold text-slate-900 price-text">$75</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p3-1y" name="pricing-3" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p3-1y">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Year</span>
+<span class="text-sm font-bold text-slate-900 price-text">$130</span>
+</label>
+</div>
+</div>
+</div>
+<div class="px-6 pb-6 mt-auto">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                            Đăng ký ngay
+                            <span class="material-symbols-outlined !text-[18px]">shopping_bag</span>
+</button>
+</div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden group">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="size-14 rounded-xl bg-orange-50 flex items-center justify-center border border-orange-100 text-orange-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined !text-[32px]">database</span>
+</div>
+</div>
+<h3 class="text-lg font-bold text-slate-900 mb-2">Data Synchronizer</h3>
+<p class="text-sm text-slate-500 leading-relaxed mb-6">Bi-directional data syncing between legacy and cloud systems.</p>
+<div class="space-y-2 mb-6">
+<div>
+<input checked="" class="hidden pricing-radio" id="p4-1m" name="pricing-4" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p4-1m">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Month</span>
+<span class="text-sm font-bold text-slate-900 price-text">$20</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p4-6m" name="pricing-4" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p4-6m">
+<span class="text-xs font-semibold text-slate-600 option-text">6 Months</span>
+<span class="text-sm font-bold text-slate-900 price-text">$100</span>
+</label>
+</div>
+<div>
+<input class="hidden pricing-radio" id="p4-1y" name="pricing-4" type="radio"/>
+<label class="flex items-center justify-between p-3 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" for="p4-1y">
+<span class="text-xs font-semibold text-slate-600 option-text">1 Year</span>
+<span class="text-sm font-bold text-slate-900 price-text">$180</span>
+</label>
+</div>
+</div>
+</div>
+<div class="px-6 pb-6 mt-auto">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                            Đăng ký ngay
+                            <span class="material-symbols-outlined !text-[18px]">shopping_bag</span>
+</button>
+</div>
+</div>
+</div>
+<footer class="mt-16 pt-12 border-t border-slate-200">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8 mb-10 text-[13px] text-slate-400">
+<p>© 2024 SD Automation Inc. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="hover:text-slate-600" href="#">Privacy Policy</a>
+<a class="hover:text-slate-600" href="#">Terms of Service</a>
+<a class="hover:text-slate-600" href="#">Cookie Settings</a>
+</div>
+</div>
+</footer>
+</div>
+</main>
+</div>
+
+</body></html>
