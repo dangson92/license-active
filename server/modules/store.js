@@ -279,6 +279,15 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
     try {
         const { app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class } = req.body
 
+        // Convert undefined to null
+        const desc = description ?? null
+        const p1m = price_1_month ?? null
+        const p6m = price_6_months ?? null
+        const p1y = price_1_year ?? null
+        const featured = is_featured ?? false
+        const badgeVal = badge ?? null
+        const iconVal = icon_class ?? null
+
         // Check if pricing already exists
         const existing = await query('SELECT id FROM app_pricing WHERE app_id = ?', [app_id])
 
@@ -288,7 +297,7 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
                 `UPDATE app_pricing SET description = ?, price_1_month = ?, price_6_months = ?, price_1_year = ?,
          is_featured = ?, badge = ?, icon_class = ?, updated_at = NOW()
          WHERE app_id = ?`,
-                [description, price_1_month, price_6_months, price_1_year, is_featured ?? false, badge, icon_class, app_id]
+                [desc, p1m, p6m, p1y, featured, badgeVal, iconVal, app_id]
             )
             res.json({ app_id, updated: true })
         } else {
@@ -296,7 +305,7 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
             await query(
                 `INSERT INTO app_pricing (app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-                [app_id, description, price_1_month, price_6_months, price_1_year, is_featured ?? false, badge, icon_class]
+                [app_id, desc, p1m, p6m, p1y, featured, badgeVal, iconVal]
             )
             const r = await query('SELECT LAST_INSERT_ID() as id')
             res.json({ id: r.rows[0].id, app_id, created: true })
