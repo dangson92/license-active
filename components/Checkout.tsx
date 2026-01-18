@@ -36,31 +36,57 @@ export const Checkout: React.FC<CheckoutProps> = ({
     const [quantity, setQuantity] = useState(1);
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [appDetails, setAppDetails] = useState<any>(null);
+    const [paymentSettings, setPaymentSettings] = useState({
+        bank_name: 'Techcombank',
+        bank_code: 'TCB',
+        bank_account: '19034567890123',
+        bank_holder: 'SD AUTOMATION CO',
+    });
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [orderCode, setOrderCode] = useState<string | null>(null);
     const [copied, setCopied] = useState<string | null>(null);
 
     useEffect(() => {
-        loadAppDetails();
+        loadData();
     }, [appId]);
 
-    const loadAppDetails = async () => {
-        if (!appId) {
-            setLoading(false);
-            return;
-        }
+    const loadData = async () => {
         try {
-            const response = await api.store.getApp(parseInt(appId));
-            setAppDetails(response);
+            // Load payment settings
+            const settings = await api.settings.get();
+            if (settings.bank_code) {
+                setPaymentSettings({
+                    bank_name: settings.bank_name || 'Techcombank',
+                    bank_code: settings.bank_code || 'TCB',
+                    bank_account: settings.bank_account || '',
+                    bank_holder: settings.bank_holder || '',
+                });
+            }
+
+            // Load app details
+            if (appId) {
+                const response = await api.store.getApp(parseInt(appId));
+                setAppDetails(response);
+            }
         } catch (error) {
-            console.error('Failed to load app:', error);
+            console.error('Failed to load data:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    const transferContent = `SDA_${appId}_${quantity}D`;
     const totalPrice = price * quantity;
+
+    // Generate VietQR URL
+    const getVietQRUrl = () => {
+        const { bank_code, bank_account, bank_holder } = paymentSettings;
+        const amount = totalPrice;
+        const addInfo = encodeURIComponent(transferContent);
+        const accountName = encodeURIComponent(bank_holder);
+        return `https://img.vietqr.io/image/${bank_code}-${bank_account}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`;
+    };
 
     const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
@@ -141,10 +167,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
                             <CardContent className="pt-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <span className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">1</span>
-                                    <h2 className="text-lg font-bold">Chọn số lượng</h2>
+                                    <h2 className="text-lg font-bold">Chọn số lượng thiết bị</h2>
                                 </div>
                                 <div className="max-w-xs">
-                                    <Label htmlFor="quantity">Số lượng License cần mua</Label>
+                                    <Label htmlFor="quantity">Số lượng thiết bị cần kích hoạt</Label>
                                     <div className="relative mt-2">
                                         <Input
                                             id="quantity"
@@ -155,11 +181,11 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                             className="pr-16"
                                         />
                                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <span className="text-muted-foreground text-xs">License</span>
+                                            <span className="text-muted-foreground text-xs">Thiết bị</span>
                                         </div>
                                     </div>
                                     <p className="mt-2 text-xs text-muted-foreground">
-                                        Giảm giá tự động áp dụng cho số lượng lớn.
+                                        Mỗi thiết bị là một máy tính/điện thoại được phép sử dụng license.
                                     </p>
                                 </div>
                             </CardContent>
@@ -179,21 +205,21 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                             <div className="space-y-3">
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Ngân hàng</p>
-                                                    <p className="font-semibold">Techcombank (TCB)</p>
+                                                    <p className="font-semibold">{paymentSettings.bank_name} ({paymentSettings.bank_code})</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Chủ tài khoản</p>
-                                                    <p className="font-semibold uppercase">SD AUTOMATION CO</p>
+                                                    <p className="font-semibold uppercase">{paymentSettings.bank_holder}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Số tài khoản</p>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-lg tracking-tight">1903 4567 8901 23</p>
+                                                        <p className="font-bold text-lg tracking-tight">{paymentSettings.bank_account}</p>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-6 w-6"
-                                                            onClick={() => copyToClipboard('19034567890123', 'account')}
+                                                            onClick={() => copyToClipboard(paymentSettings.bank_account, 'account')}
                                                         >
                                                             {copied === 'account' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                                         </Button>
@@ -202,16 +228,20 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Nội dung chuyển khoản</p>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-primary">SDA_{appId}_{quantity}L</p>
+                                                        <p className="font-bold text-primary">{transferContent}</p>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-6 w-6"
-                                                            onClick={() => copyToClipboard(`SDA_${appId}_${quantity}L`, 'content')}
+                                                            onClick={() => copyToClipboard(transferContent, 'content')}
                                                         >
                                                             {copied === 'content' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                                         </Button>
                                                     </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Số tiền</p>
+                                                    <p className="font-bold text-lg text-primary">{formatCurrency(totalPrice)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -225,7 +255,16 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                     <div className="flex flex-col items-center justify-center border rounded-lg p-4 bg-background shadow-sm">
                                         <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-widest">Quét mã VietQR</p>
                                         <div className="bg-background p-2 border rounded-lg shadow-inner">
-                                            <div className="w-40 h-40 bg-muted flex items-center justify-center rounded">
+                                            <img
+                                                src={getVietQRUrl()}
+                                                alt="VietQR Code"
+                                                className="w-48 h-48 object-contain"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                }}
+                                            />
+                                            <div className="hidden w-48 h-48 flex items-center justify-center">
                                                 <QrCode className="w-16 h-16 text-muted-foreground" />
                                             </div>
                                         </div>
@@ -295,7 +334,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                         <span className="font-semibold">{formatCurrency(price)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground font-medium">Số lượng (Quantity)</span>
+                                        <span className="text-muted-foreground font-medium">Số thiết bị</span>
                                         <span className="font-bold text-primary">x {quantity}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">

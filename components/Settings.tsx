@@ -21,6 +21,11 @@ interface SettingsData {
     smtp_secure: string;
     app_name: string;
     email_verify_required: string;
+    // Payment settings
+    bank_name: string;
+    bank_code: string;
+    bank_account: string;
+    bank_holder: string;
 }
 
 export const Settings: React.FC = () => {
@@ -33,6 +38,10 @@ export const Settings: React.FC = () => {
         smtp_secure: 'false',
         app_name: 'License System',
         email_verify_required: 'true',
+        bank_name: '',
+        bank_code: '',
+        bank_account: '',
+        bank_holder: '',
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -118,8 +127,8 @@ export const Settings: React.FC = () => {
             {/* Message */}
             {message && (
                 <div className={`flex items-center gap-2 p-4 rounded-lg ${message.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                     {message.type === 'success' ? (
                         <CheckCircle className="h-5 w-5" />
@@ -250,6 +259,62 @@ export const Settings: React.FC = () => {
                             checked={settings.email_verify_required === 'true'}
                             onCheckedChange={(checked) => updateSetting('email_verify_required', checked ? 'true' : 'false')}
                         />
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Payment Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Cài đặt thanh toán</CardTitle>
+                    <CardDescription>
+                        Cấu hình tài khoản ngân hàng để hiển thị trong trang thanh toán.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="bank_name">Tên ngân hàng</Label>
+                            <Input
+                                id="bank_name"
+                                placeholder="Techcombank"
+                                value={settings.bank_name}
+                                onChange={(e) => updateSetting('bank_name', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="bank_code">Mã ngân hàng (VietQR)</Label>
+                            <Input
+                                id="bank_code"
+                                placeholder="TCB"
+                                value={settings.bank_code}
+                                onChange={(e) => updateSetting('bank_code', e.target.value.toUpperCase())}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Mã ngân hàng cho VietQR (TCB, VCB, ACB, MB, ...)
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="bank_account">Số tài khoản</Label>
+                            <Input
+                                id="bank_account"
+                                placeholder="19034567890123"
+                                value={settings.bank_account}
+                                onChange={(e) => updateSetting('bank_account', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="bank_holder">Chủ tài khoản</Label>
+                            <Input
+                                id="bank_holder"
+                                placeholder="NGUYEN VAN A"
+                                value={settings.bank_holder}
+                                onChange={(e) => updateSetting('bank_holder', e.target.value.toUpperCase())}
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

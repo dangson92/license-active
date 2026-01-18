@@ -43,8 +43,11 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
   const [apps, setApps] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  // Load data for create license page
+  // Load data only for create license page
   useEffect(() => {
+    const isCreateLicensePage = location.pathname.includes('/admin/create-license');
+    if (!isCreateLicensePage) return;
+
     const loadData = async () => {
       try {
         const [appsRes, usersRes] = await Promise.all([
@@ -60,7 +63,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
       }
     };
     loadData();
-  }, []);
+  }, [location.pathname]);
 
   // Get active section from URL
   const getActiveSection = () => {
