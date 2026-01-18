@@ -17,6 +17,7 @@ import { Settings } from './components/Settings';
 import { VerifyEmail } from './components/VerifyEmail';
 import { AdminTicketManagement } from './components/AdminTicketManagement';
 import { ApplicationSetting } from './components/ApplicationSetting';
+import { OrderManagement } from './components/OrderManagement';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -68,6 +69,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
   // Get active section from URL
   const getActiveSection = () => {
     const path = location.pathname;
+    if (path.includes('/admin/orders')) return 'orders';
     if (path.includes('/admin/members')) return 'members';
     if (path.includes('/admin/applications')) return 'applications';
     if (path.includes('/admin/create-license')) return 'licenses';
@@ -81,6 +83,9 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
     switch (itemId) {
       case 'licenses':
         navigate('/admin/licenses');
+        break;
+      case 'orders':
+        navigate('/admin/orders');
         break;
       case 'members':
         navigate('/admin/members');
@@ -141,6 +146,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
             onSuccess={() => navigate('/admin/licenses')}
           />
         } />
+        <Route path="orders" element={<OrderManagement />} />
         <Route path="dashboard" element={<DashboardPlaceholder />} />
         <Route path="settings" element={<Settings />} />
         <Route path="support" element={<AdminTicketManagement />} />

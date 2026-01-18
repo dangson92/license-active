@@ -54,8 +54,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
     const loadData = async () => {
         try {
-            // Load payment settings
-            const settings = await api.settings.get();
+            // Load payment settings from public endpoint
+            const settings = await api.settings.getPaymentSettings();
             // Merge settings regardless of specific fields to ensure we get partial updates
             setPaymentSettings(prev => ({
                 bank_name: settings.bank_name || prev.bank_name,

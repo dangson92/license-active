@@ -142,6 +142,11 @@ export const api = {
       return apiCall('/api/admin/settings');
     },
 
+    // Get public payment settings (bank info for checkout)
+    getPaymentSettings: async () => {
+      return apiCall('/api/admin/settings/payment');
+    },
+
     update: async (settings: Record<string, string>) => {
       return apiCall('/api/admin/settings', {
         method: 'PUT',

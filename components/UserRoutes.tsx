@@ -61,8 +61,8 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         }
     };
 
-    const handleCheckout = (appId: number, duration: string, price: number) => {
-        navigate(`/user/checkout/${appId}`, { state: { duration, price } });
+    const handleCheckout = (appId: number, duration: string, price: number, appName: string) => {
+        navigate(`/user/checkout/${appId}`, { state: { duration, price, appName } });
     };
 
     return (
@@ -99,12 +99,17 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
 };
 
 // Checkout Wrapper
+import { useParams } from 'react-router-dom';
+
 const CheckoutWrapper: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
     const location = useLocation();
-    const state = location.state as { duration?: string; price?: number } | null;
+    const { appId } = useParams<{ appId: string }>();
+    const state = location.state as { duration?: string; price?: number; appName?: string } | null;
 
     return (
         <Checkout
+            appId={appId}
+            appName={state?.appName}
             duration={state?.duration || '12 Tháng'}
             price={state?.price || 1200000}
             onSuccess={onSuccess}

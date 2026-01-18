@@ -5,6 +5,22 @@ import { sendTestEmail } from '../services/email.js'
 
 const router = express.Router()
 
+// Get public payment settings (bank info for checkout - no auth required)
+router.get('/payment', async (req, res) => {
+    try {
+        const result = await query('SELECT setting_key, setting_value FROM settings WHERE setting_key IN (?, ?, ?, ?)',
+            ['bank_name', 'bank_code', 'bank_account', 'bank_holder'])
+        const settings = {}
+        for (const row of result.rows) {
+            settings[row.setting_key] = row.setting_value
+        }
+        res.json(settings)
+    } catch (e) {
+        console.error('Get payment settings error:', e)
+        res.status(500).json({ error: 'server_error' })
+    }
+})
+
 // Get all settings
 router.get('/', requireAdmin, async (req, res) => {
     try {

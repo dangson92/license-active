@@ -50,7 +50,7 @@ const badgeColors: Record<string, string> = {
 };
 
 interface ApplicationStoreProps {
-    onCheckout?: (appId: number, duration: string, price: number) => void;
+    onCheckout?: (appId: number, duration: string, price: number, appName: string) => void;
 }
 
 export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }) => {
@@ -114,7 +114,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
         const duration = getSelectedDuration(app.id);
         const price = getPrice(app, duration);
         if (price > 0) {
-            onCheckout?.(app.id, `${getDurationMonths(duration)} Tháng`, price);
+            onCheckout?.(app.id, `${getDurationMonths(duration)} Tháng`, price, app.name);
         }
     };
 
@@ -204,8 +204,8 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                                 <label
                                                     key={option.key}
                                                     className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all ${selectedDuration === option.key
-                                                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                                                            : 'border-muted hover:bg-muted/50'
+                                                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                                                        : 'border-muted hover:bg-muted/50'
                                                         }`}
                                                 >
                                                     <input
