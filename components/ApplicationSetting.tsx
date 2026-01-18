@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, DollarSign } from 'lucide-react';
+import { ArrowLeft, DollarSign, Upload, Image } from 'lucide-react';
 
 interface ApplicationSettingProps {
     appId?: string;
@@ -22,21 +22,35 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
 }) => {
     const [formData, setFormData] = useState({
         name: appName,
-        version: '4.2.0',
-        description: 'Cloud Suite Pro is an enterprise-grade solution designed to streamline workflow orchestration and secure data distribution across hybrid cloud environments. This version includes enhanced security protocols and improved real-time monitoring capabilities.',
+        description: 'Cloud Suite Pro is an enterprise-grade solution designed to streamline workflow orchestration.',
+        iconUrl: '',
         price1Month: 29,
         price6Months: 149,
         price1Year: 249,
         isActive: true,
         isPublic: false,
     });
+    const [iconFile, setIconFile] = useState<File | null>(null);
+    const [iconPreview, setIconPreview] = useState<string | null>(null);
 
     const handleInputChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setIconFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setIconPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSave = () => {
-        onSave?.(formData);
+        onSave?.({ ...formData, iconFile });
     };
 
     return (
@@ -48,7 +62,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 </Button>
                 <div>
                     <h2 className="text-sm font-semibold">Edit Application</h2>
-                    <p className="text-xs text-muted-foreground">{formData.name} • v.{formData.version}</p>
+                    <p className="text-xs text-muted-foreground">{formData.name}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
                     <Button variant="outline" onClick={onBack}>Cancel</Button>
@@ -77,13 +91,32 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="version">Current Version</Label>
-                            <Input
-                                id="version"
-                                value={formData.version}
-                                onChange={(e) => handleInputChange('version', e.target.value)}
-                                placeholder="4.2.0"
-                            />
+                            <Label>Application Icon</Label>
+                            <div className="flex items-center gap-4">
+                                <div className="size-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+                                    {iconPreview || formData.iconUrl ? (
+                                        <img src={iconPreview || formData.iconUrl} alt="Icon" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Image className="w-8 h-8 text-muted-foreground" />
+                                    )}
+                                </div>
+                                <div className="relative flex-1">
+                                    <input
+                                        type="file"
+                                        id="icon-upload"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        accept="image/*"
+                                        onChange={handleIconChange}
+                                    />
+                                    <Button variant="outline" className="w-full" asChild>
+                                        <label htmlFor="icon-upload" className="cursor-pointer">
+                                            <Upload className="w-4 h-4 mr-2" />
+                                            {iconFile ? iconFile.name : 'Upload Icon'}
+                                        </label>
+                                    </Button>
+                                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG max 500KB</p>
+                                </div>
+                            </div>
                         </div>
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="description">Application Description</Label>

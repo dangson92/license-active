@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-    Search,
     Plus,
     Download,
     Ban,
@@ -14,55 +12,114 @@ import {
     Monitor,
     Trash2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Check,
+    X,
+    AlertTriangle
 } from 'lucide-react';
+import api from '../services/api';
 
-// Mock data for tickets
-const mockTickets = [
-    {
-        id: 'TK-1284',
-        subject: 'Unable to login to Dashboard',
-        description: 'System returns 500 error when clicking the login button.',
-        user: 'Sarah Johnson',
-        status: 'pending',
-    },
-    {
-        id: 'TK-9921',
-        subject: 'Billing inquiry for license renewal',
-        description: 'User wants to know if there\'s a discount for annual plans.',
-        user: 'Marcus Aurel',
-        status: 'resolved',
-    },
-    {
-        id: 'TK-0032',
-        subject: 'Integration with Slack failing',
-        description: 'Webhooks are not triggering after latest update.',
-        user: 'Emily Chen',
-        status: 'critical',
-    },
-];
+interface Ticket {
+    id: number;
+    subject: string;
+    message: string;
+    category: string;
+    status: string;
+    priority: string;
+    created_at: string;
+    user_id: number;
+    user_email: string;
+    user_name: string;
+}
 
-// Mock data for FAQs
-const mockFaqs = [
-    { id: 1, question: 'How do I renew my license key?', answer: 'You can renew your license by going to the Licenses section...' },
-    { id: 2, question: 'What does "Unbind Device" mean?', answer: 'Each license is bound to a specific hardware ID...' },
-    { id: 3, question: 'Can I transfer my license to another user?', answer: 'Currently, licenses are tied to the account that purchased them...' },
-];
+interface FAQ {
+    id: number;
+    question: string;
+    answer: string;
+    category?: string;
+    display_order: number;
+    is_active: boolean;
+}
 
 export const AdminTicketManagement: React.FC = () => {
     const [activeTab, setActiveTab] = useState('tickets');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [faqs, setFaqs] = useState<FAQ[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadData();
+    }, [activeTab]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            if (activeTab === 'tickets') {
+                const response = await api.support.getAdminTickets();
+                setTickets(response.items || []);
+            } else {
+                const response = await api.support.getAdminFaqs();
+                setFaqs(response.items || []);
+            }
+        } catch (error) {
+            console.error('Failed to load data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateTicketStatus = async (id: number, status: string) => {
+        try {
+            await api.support.updateTicket(id, { status });
+            loadData();
+        } catch (error) {
+            console.error('Failed to update ticket:', error);
+        }
+    };
+
+    const handleDeleteTicket = async (id: number) => {
+        if (!confirm('Bạn có chắc muốn xóa ticket này?')) return;
+        try {
+            await api.support.deleteTicket(id);
+            loadData();
+        } catch (error) {
+            console.error('Failed to delete ticket:', error);
+        }
+    };
+
+    const handleDeleteFaq = async (id: number) => {
+        if (!confirm('Bạn có chắc muốn xóa FAQ này?')) return;
+        try {
+            await api.support.deleteFaq(id);
+            loadData();
+        } catch (error) {
+            console.error('Failed to delete FAQ:', error);
+        }
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'pending':
                 return <Badge variant="warning"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>Pending</Badge>;
+            case 'in_progress':
+                return <Badge variant="info"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5"></span>In Progress</Badge>;
             case 'resolved':
                 return <Badge variant="success"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Resolved</Badge>;
-            case 'critical':
-                return <Badge variant="destructive"><span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>Critical</Badge>;
+            case 'closed':
+                return <Badge variant="secondary"><span className="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span>Closed</Badge>;
             default:
                 return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getPriorityBadge = (priority: string) => {
+        switch (priority) {
+            case 'critical':
+                return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />Critical</Badge>;
+            case 'high':
+                return <Badge variant="warning">High</Badge>;
+            default:
+                return null;
         }
     };
 
@@ -77,13 +134,13 @@ export const AdminTicketManagement: React.FC = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="outline">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export CSV
+                    <Button variant="outline" onClick={loadData}>
+                        <History className="w-4 h-4 mr-2" />
+                        Refresh
                     </Button>
                     <Button>
                         <Plus className="w-4 h-4 mr-2" />
-                        New Support Item
+                        {activeTab === 'tickets' ? 'New Ticket' : 'New FAQ'}
                     </Button>
                 </div>
             </div>
@@ -110,118 +167,152 @@ export const AdminTicketManagement: React.FC = () => {
 
                     {/* Tickets Tab */}
                     <TabsContent value="tickets" className="m-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                    <TableHead className="font-semibold">Ticket ID</TableHead>
-                                    <TableHead className="font-semibold">Subject</TableHead>
-                                    <TableHead className="font-semibold">User</TableHead>
-                                    <TableHead className="font-semibold">Status</TableHead>
-                                    <TableHead className="font-semibold text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mockTickets.map((ticket) => (
-                                    <TableRow key={ticket.id} className="group">
-                                        <TableCell>
-                                            <code className="text-xs font-mono font-medium bg-muted px-2 py-1 rounded">
-                                                #{ticket.id}
-                                            </code>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <p className="text-sm font-semibold">{ticket.subject}</p>
-                                                <p className="text-xs text-muted-foreground truncate max-w-xs">
-                                                    {ticket.description}
-                                                </p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                                                    {ticket.user.split(' ').map(n => n[0]).join('')}
-                                                </div>
-                                                <span className="text-sm font-medium">{ticket.user}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {getStatusBadge(ticket.status)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Vô hiệu">
-                                                    <Ban className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Gia hạn">
-                                                    <History className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Gỡ máy">
-                                                    <Monitor className="w-4 h-4" />
-                                                </Button>
-                                                <div className="w-px h-4 bg-border mx-1"></div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Xóa">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                        {loading ? (
+                            <div className="p-12 text-center text-muted-foreground">Đang tải...</div>
+                        ) : tickets.length === 0 ? (
+                            <div className="p-12 text-center text-muted-foreground">Không có ticket nào.</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">Ticket ID</TableHead>
+                                        <TableHead className="font-semibold">Subject</TableHead>
+                                        <TableHead className="font-semibold">User</TableHead>
+                                        <TableHead className="font-semibold">Status</TableHead>
+                                        <TableHead className="font-semibold text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {tickets.map((ticket) => (
+                                        <TableRow key={ticket.id} className="group">
+                                            <TableCell>
+                                                <code className="text-xs font-mono font-medium bg-muted px-2 py-1 rounded">
+                                                    #TK-{ticket.id}
+                                                </code>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-semibold">{ticket.subject}</p>
+                                                        {getPriorityBadge(ticket.priority)}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground truncate max-w-xs">
+                                                        {ticket.message}
+                                                    </p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                                                        {ticket.user_name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm font-medium block">{ticket.user_name || 'Unknown'}</span>
+                                                        <span className="text-xs text-muted-foreground">{ticket.user_email}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {getStatusBadge(ticket.status)}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {ticket.status === 'pending' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-emerald-600"
+                                                            title="Đánh dấu đã giải quyết"
+                                                            onClick={() => handleUpdateTicketStatus(ticket.id, 'resolved')}
+                                                        >
+                                                            <Check className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                    {ticket.status !== 'closed' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8"
+                                                            title="Đóng ticket"
+                                                            onClick={() => handleUpdateTicketStatus(ticket.id, 'closed')}
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                    <div className="w-px h-4 bg-border mx-1"></div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                                        title="Xóa"
+                                                        onClick={() => handleDeleteTicket(ticket.id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
 
                         {/* Pagination */}
-                        <div className="px-6 py-4 flex items-center justify-between bg-muted/30 border-t">
-                            <p className="text-xs text-muted-foreground">
-                                Showing <span className="font-semibold text-foreground">1-3</span> of <span className="font-semibold text-foreground">24</span> tickets
-                            </p>
-                            <div className="flex gap-1">
-                                <Button variant="outline" size="icon" className="h-8 w-8">
-                                    <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" className="h-8 w-8">1</Button>
-                                <Button variant="outline" size="icon" className="h-8 w-8">2</Button>
-                                <Button variant="outline" size="icon" className="h-8 w-8">
-                                    <ChevronRight className="w-4 h-4" />
-                                </Button>
+                        {tickets.length > 0 && (
+                            <div className="px-6 py-4 flex items-center justify-between bg-muted/30 border-t">
+                                <p className="text-xs text-muted-foreground">
+                                    Showing <span className="font-semibold text-foreground">{tickets.length}</span> tickets
+                                </p>
                             </div>
-                        </div>
+                        )}
                     </TabsContent>
 
                     {/* FAQs Tab */}
                     <TabsContent value="faqs" className="m-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                    <TableHead className="font-semibold">ID</TableHead>
-                                    <TableHead className="font-semibold">Question</TableHead>
-                                    <TableHead className="font-semibold">Answer Preview</TableHead>
-                                    <TableHead className="font-semibold text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mockFaqs.map((faq) => (
-                                    <TableRow key={faq.id}>
-                                        <TableCell>
-                                            <code className="text-xs font-mono font-medium bg-muted px-2 py-1 rounded">
-                                                #{faq.id}
-                                            </code>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{faq.question}</TableCell>
-                                        <TableCell className="text-muted-foreground text-sm truncate max-w-xs">
-                                            {faq.answer}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button variant="outline" size="sm">Edit</Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                        {loading ? (
+                            <div className="p-12 text-center text-muted-foreground">Đang tải...</div>
+                        ) : faqs.length === 0 ? (
+                            <div className="p-12 text-center text-muted-foreground">Không có FAQ nào.</div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-semibold">ID</TableHead>
+                                        <TableHead className="font-semibold">Question</TableHead>
+                                        <TableHead className="font-semibold">Answer Preview</TableHead>
+                                        <TableHead className="font-semibold text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {faqs.map((faq) => (
+                                        <TableRow key={faq.id}>
+                                            <TableCell>
+                                                <code className="text-xs font-mono font-medium bg-muted px-2 py-1 rounded">
+                                                    #{faq.id}
+                                                </code>
+                                            </TableCell>
+                                            <TableCell className="font-medium">{faq.question}</TableCell>
+                                            <TableCell className="text-muted-foreground text-sm truncate max-w-xs">
+                                                {faq.answer}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <Button variant="outline" size="sm">Edit</Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                                        onClick={() => handleDeleteFaq(faq.id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
                     </TabsContent>
                 </Tabs>
             </Card>

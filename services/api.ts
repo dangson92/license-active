@@ -164,11 +164,46 @@ export const api = {
       return apiCall('/api/admin/apps');
     },
 
-    createApp: async (data: { code: string; name: string }) => {
+    getApp: async (id: number) => {
+      return apiCall(`/api/admin/apps/${id}`);
+    },
+
+    createApp: async (data: { code: string; name: string; description?: string }) => {
       return apiCall('/api/admin/apps', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+    },
+
+    updateApp: async (id: number, data: { name?: string; description?: string; is_active?: boolean }) => {
+      return apiCall(`/api/admin/apps/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    uploadAppIcon: async (id: number, file: File) => {
+      const formData = new FormData();
+      formData.append('icon', file);
+
+      const token = getToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${config.apiUrl}/api/admin/apps/${id}/icon`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
     },
 
     deleteApp: async (id: number) => {
@@ -375,6 +410,171 @@ export const api = {
 
   activations: {
     // TODO: Add activation endpoints if needed
+  },
+
+  // Support endpoints
+  support: {
+    // Get FAQs (public)
+    getFaqs: async () => {
+      return apiCall('/api/support/faqs');
+    },
+
+    // Get my tickets
+    getMyTickets: async () => {
+      return apiCall('/api/support/tickets');
+    },
+
+    // Create ticket
+    createTicket: async (data: { subject: string; category: string; message: string }) => {
+      return apiCall('/api/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Get all tickets
+    getAdminTickets: async (status?: string) => {
+      const query = status ? `?status=${status}` : '';
+      return apiCall(`/api/support/admin/tickets${query}`);
+    },
+
+    // Admin: Update ticket
+    updateTicket: async (id: number, data: { status?: string; priority?: string }) => {
+      return apiCall(`/api/support/admin/tickets/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Delete ticket
+    deleteTicket: async (id: number) => {
+      return apiCall(`/api/support/admin/tickets/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    // Admin: Get all FAQs
+    getAdminFaqs: async () => {
+      return apiCall('/api/support/admin/faqs');
+    },
+
+    // Admin: Create FAQ
+    createFaq: async (data: { question: string; answer: string; category?: string; display_order?: number }) => {
+      return apiCall('/api/support/admin/faqs', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Update FAQ
+    updateFaq: async (id: number, data: { question?: string; answer?: string; category?: string; display_order?: number; is_active?: boolean }) => {
+      return apiCall(`/api/support/admin/faqs/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Delete FAQ
+    deleteFaq: async (id: number) => {
+      return apiCall(`/api/support/admin/faqs/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
+  // Store endpoints
+  store: {
+    // Get store apps with pricing
+    getApps: async () => {
+      return apiCall('/api/store/apps');
+    },
+
+    // Get single app
+    getApp: async (id: number) => {
+      return apiCall(`/api/store/apps/${id}`);
+    },
+
+    // Create order
+    createOrder: async (data: { app_id: number; quantity: number; duration_months: number; unit_price: number }) => {
+      return apiCall('/api/store/orders', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Upload receipt
+    uploadReceipt: async (orderId: number, file: File) => {
+      const formData = new FormData();
+      formData.append('receipt', file);
+
+      const token = getToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${config.apiUrl}/api/store/orders/${orderId}/receipt`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    },
+
+    // Get my orders
+    getMyOrders: async () => {
+      return apiCall('/api/store/orders');
+    },
+
+    // Admin: Get all orders
+    getAdminOrders: async (status?: string) => {
+      const query = status ? `?status=${status}` : '';
+      return apiCall(`/api/store/admin/orders${query}`);
+    },
+
+    // Admin: Approve order
+    approveOrder: async (orderId: number) => {
+      return apiCall(`/api/store/admin/orders/${orderId}/approve`, {
+        method: 'POST',
+      });
+    },
+
+    // Admin: Reject order
+    rejectOrder: async (orderId: number, notes?: string) => {
+      return apiCall(`/api/store/admin/orders/${orderId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      });
+    },
+
+    // Admin: Get pricing
+    getAdminPricing: async () => {
+      return apiCall('/api/store/admin/pricing');
+    },
+
+    // Admin: Save pricing
+    savePricing: async (data: {
+      app_id: number;
+      description?: string;
+      price_1_month?: number;
+      price_6_months?: number;
+      price_1_year?: number;
+      is_active?: boolean;
+      is_featured?: boolean;
+      badge?: string;
+      icon_class?: string;
+    }) => {
+      return apiCall('/api/store/admin/pricing', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
   },
 };
 

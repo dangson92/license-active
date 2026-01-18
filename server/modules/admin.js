@@ -1,8 +1,25 @@
 import express from 'express'
 import { query } from '../db.js'
 import { requireAdmin } from './auth.js'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
 
 const router = express.Router()
+
+// Upload config for app icons
+const iconStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = './uploads/icons'
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    cb(null, dir)
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname)
+    cb(null, `app_${req.params.id}_${Date.now()}${ext}`)
+  }
+})
+const uploadIcon = multer({ storage: iconStorage, limits: { fileSize: 500 * 1024 } })
 
 // Generate GUID-style license key
 const genKey = () => {
@@ -65,7 +82,7 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 
 router.get('/apps', requireAdmin, async (req, res) => {
   try {
-    const r = await query('SELECT id,code,name,created_at FROM apps ORDER BY id DESC')
+    const r = await query('SELECT id,code,name,description,icon_url,is_active,created_at FROM apps ORDER BY id DESC')
     res.json({ items: r.rows })
   } catch (e) {
     console.error('Error getting apps:', e)
@@ -73,17 +90,75 @@ router.get('/apps', requireAdmin, async (req, res) => {
   }
 })
 
+router.get('/apps/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const r = await query('SELECT id,code,name,description,icon_url,is_active,created_at FROM apps WHERE id=?', [id])
+    if (!r.rows.length) return res.status(404).json({ error: 'not_found' })
+    res.json(r.rows[0])
+  } catch (e) {
+    console.error('Error getting app:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
 router.post('/apps', requireAdmin, async (req, res) => {
   try {
-    const { code, name } = req.body
+    const { code, name, description } = req.body
     console.log('Create app request:', { code, name })
     if (!code || !name) return res.status(400).json({ error: 'invalid_input' })
-    await query('INSERT INTO apps(code,name,created_at) VALUES(?,?,NOW())', [code, name])
+    await query('INSERT INTO apps(code,name,description,is_active,created_at) VALUES(?,?,?,TRUE,NOW())', [code, name, description || null])
     const r = await query('SELECT id FROM apps WHERE code=?', [code])
     console.log('App created successfully:', r.rows[0].id)
     res.json({ id: r.rows[0].id })
   } catch (e) {
     console.error('Error creating app:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+router.patch('/apps/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const { name, description, is_active } = req.body
+    const updates = []
+    const params = []
+
+    if (name !== undefined) { params.push(name); updates.push('name=?') }
+    if (description !== undefined) { params.push(description); updates.push('description=?') }
+    if (is_active !== undefined) { params.push(is_active); updates.push('is_active=?') }
+
+    if (!updates.length) return res.status(400).json({ error: 'no_updates' })
+    params.push(id)
+    await query(`UPDATE apps SET ${updates.join(',')} WHERE id=?`, params)
+    res.json({ id, updated: true })
+  } catch (e) {
+    console.error('Error updating app:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+router.post('/apps/:id/icon', requireAdmin, uploadIcon.single('icon'), async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!req.file) return res.status(400).json({ error: 'no_file' })
+
+    const iconUrl = `/api/uploads/icons/${req.file.filename}`
+    await query('UPDATE apps SET icon_url=? WHERE id=?', [iconUrl, id])
+    res.json({ id, icon_url: iconUrl })
+  } catch (e) {
+    console.error('Error uploading icon:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+router.delete('/apps/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    await query('DELETE FROM apps WHERE id=?', [id])
+    res.json({ id, deleted: true })
+  } catch (e) {
+    console.error('Error deleting app:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
   }
 })

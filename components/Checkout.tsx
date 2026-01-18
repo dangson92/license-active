@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +10,11 @@ import {
     ArrowRight,
     Info,
     Shield,
-    QrCode
+    QrCode,
+    Loader2,
+    Check
 } from 'lucide-react';
+import api from '../services/api';
 
 interface CheckoutProps {
     appId?: string;
@@ -24,19 +27,45 @@ interface CheckoutProps {
 
 export const Checkout: React.FC<CheckoutProps> = ({
     appId,
-    appName = 'SD Automation Pro',
+    appName = 'Application',
     duration = '12 Tháng',
-    price = 1200000,
+    price = 0,
     onSuccess,
     onBack
 }) => {
     const [quantity, setQuantity] = useState(1);
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [appDetails, setAppDetails] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [orderCode, setOrderCode] = useState<string | null>(null);
+    const [copied, setCopied] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadAppDetails();
+    }, [appId]);
+
+    const loadAppDetails = async () => {
+        if (!appId) {
+            setLoading(false);
+            return;
+        }
+        try {
+            const response = await api.store.getApp(parseInt(appId));
+            setAppDetails(response);
+        } catch (error) {
+            console.error('Failed to load app:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const totalPrice = price * quantity;
 
-    const copyToClipboard = (text: string) => {
+    const copyToClipboard = (text: string, field: string) => {
         navigator.clipboard.writeText(text);
+        setCopied(field);
+        setTimeout(() => setCopied(null), 2000);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,15 +74,46 @@ export const Checkout: React.FC<CheckoutProps> = ({
         }
     };
 
-    const handleSubmit = () => {
-        // TODO: API call to submit order
-        console.log('Submitting order:', { quantity, receiptFile });
-        onSuccess?.();
+    const getDurationMonths = (): number => {
+        if (duration.includes('1 Tháng') || duration.includes('1m')) return 1;
+        if (duration.includes('6 Tháng') || duration.includes('6m')) return 6;
+        if (duration.includes('12 Tháng') || duration.includes('1 Năm') || duration.includes('1y')) return 12;
+        return parseInt(duration) || 1;
+    };
+
+    const handleSubmit = async () => {
+        if (!appId || !receiptFile) return;
+
+        setSubmitting(true);
+        try {
+            // Create order
+            const orderResponse = await api.store.createOrder({
+                app_id: parseInt(appId),
+                quantity,
+                duration_months: getDurationMonths(),
+                unit_price: price
+            });
+
+            setOrderCode(orderResponse.order_code);
+
+            // Upload receipt
+            await api.store.uploadReceipt(orderResponse.id, receiptFile);
+
+            // Navigate to success
+            onSuccess?.();
+        } catch (error) {
+            console.error('Failed to submit order:', error);
+            alert('Có lỗi xảy ra. Vui lòng thử lại.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
     };
+
+    const displayAppName = appDetails?.name || appName;
 
     return (
         <div className="min-h-screen bg-muted/30">
@@ -129,17 +189,27 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Số tài khoản</p>
                                                     <div className="flex items-center gap-2">
                                                         <p className="font-bold text-lg tracking-tight">1903 4567 8901 23</p>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard('19034567890123')}>
-                                                            <Copy className="w-3 h-3" />
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6"
+                                                            onClick={() => copyToClipboard('19034567890123', 'account')}
+                                                        >
+                                                            {copied === 'account' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                                         </Button>
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Nội dung chuyển khoản</p>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-primary">SDA_LICENSE_8829</p>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard('SDA_LICENSE_8829')}>
-                                                            <Copy className="w-3 h-3" />
+                                                        <p className="font-bold text-primary">SDA_{appId}_{quantity}L</p>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6"
+                                                            onClick={() => copyToClipboard(`SDA_${appId}_${quantity}L`, 'content')}
+                                                        >
+                                                            {copied === 'content' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -213,8 +283,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                         <Zap className="w-5 h-5 text-background" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate">{appName}</p>
-                                        <p className="text-xs text-muted-foreground">Bản quyền vĩnh viễn</p>
+                                        <p className="text-sm font-bold truncate">{displayAppName}</p>
+                                        <p className="text-xs text-muted-foreground">Bản quyền {duration}</p>
                                     </div>
                                 </div>
 
@@ -252,10 +322,14 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                         className="w-full shadow-lg shadow-primary/20 group"
                                         size="lg"
                                         onClick={handleSubmit}
-                                        disabled={!receiptFile}
+                                        disabled={!receiptFile || submitting || !appId}
                                     >
-                                        <span>Gửi đăng ký</span>
-                                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                                        {submitting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <span>Gửi đăng ký</span>
+                                        )}
+                                        {!submitting && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                                     </Button>
 
                                     <div className="mt-6 space-y-3">
@@ -282,7 +356,6 @@ export const Checkout: React.FC<CheckoutProps> = ({
                     <div className="flex gap-6">
                         <a href="#" className="text-xs text-muted-foreground hover:text-foreground font-medium">Hỗ trợ</a>
                         <a href="#" className="text-xs text-muted-foreground hover:text-foreground font-medium">Hướng dẫn sử dụng</a>
-                        <a href="#" className="text-xs text-muted-foreground hover:text-foreground font-medium">Liên hệ</a>
                     </div>
                 </div>
             </footer>

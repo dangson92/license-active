@@ -14,6 +14,8 @@ import checkInRouter from './modules/check-in.js'
 import versionRouter from './modules/version.js'
 import appVersionsRouter from './modules/app-versions.js'
 import settingsRouter from './modules/settings.js'
+import supportRouter from './modules/support.js'
+import storeRouter from './modules/store.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -86,6 +88,8 @@ app.use('/api/activate', activateRouter)
 app.use('/api/check-in', checkInRouter)
 app.use('/api/version', versionRouter)
 app.use('/api/admin/app-versions', appVersionsRouter)
+app.use('/api/support', supportRouter)
+app.use('/api/store', storeRouter)
 
 // Serve static files từ uploads folder
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')))
