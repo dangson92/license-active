@@ -19,6 +19,10 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +49,16 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         await api.auth.login(email, password);
+        onAuthSuccess();
       } else {
-        await api.auth.register(email, password, fullName);
+        const response = await api.auth.register(email, password, fullName);
+        if (response.requiresVerification) {
+          setRegisteredEmail(email);
+          setRegistrationSuccess(true);
+        } else if (response.token) {
+          onAuthSuccess();
+        }
       }
-      onAuthSuccess();
     } catch (err: any) {
       console.error('Auth error:', err);
 
@@ -56,11 +66,27 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         setError('Email hoặc mật khẩu không đúng');
       } else if (err.message === 'email_exists') {
         setError('Email đã được đăng ký');
+      } else if (err.message === 'email_not_verified') {
+        setError('Email chưa được xác thực. Vui lòng kiểm tra hộp thư.');
       } else {
         setError('Đã xảy ra lỗi. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail) return;
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      await api.auth.resendVerification(registeredEmail);
+      setResendMessage('Email xác thực đã được gửi lại thành công!');
+    } catch (err: any) {
+      setResendMessage('Không thể gửi lại email. Vui lòng thử lại sau.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -89,143 +115,198 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 min-h-[calc(100vh-73px)]">
-        <Card className="w-full max-w-[480px] shadow-sm">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
-              <ShieldCheck className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              {isLogin ? 'Đăng nhập tài khoản' : 'Tạo tài khoản mới'}
-            </CardTitle>
-            <CardDescription className="text-base">
-              {isLogin
-                ? 'Chào mừng trở lại! Vui lòng nhập thông tin để truy cập.'
-                : 'Bắt đầu quản lý phần mềm của bạn một cách hiệu quả.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name - only for register */}
-              {!isLogin && (
+        {registrationSuccess ? (
+          /* Registration Success - Email Verification Required */
+          <Card className="w-full max-w-[480px] shadow-sm">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4 p-3 bg-emerald-100 rounded-full w-fit">
+                <Mail className="w-8 h-8 text-emerald-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold tracking-tight text-emerald-700">
+                Đăng ký thành công!
+              </CardTitle>
+              <CardDescription className="text-base">
+                Chúng tôi đã gửi email xác thực đến <strong>{registeredEmail}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Vui lòng kiểm tra hộp thư (và thư mục spam) để nhấn vào link xác thực tài khoản.
+                </p>
+              </div>
+
+              {resendMessage && (
+                <div className={`p-3 rounded-md text-sm ${resendMessage.includes('thành công') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {resendMessage}
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+              >
+                {resendLoading ? 'Đang gửi...' : 'Gửi lại email xác thực'}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  onClick={() => {
+                    setRegistrationSuccess(false);
+                    setIsLogin(true);
+                    setEmail('');
+                    setPassword('');
+                    setFullName('');
+                    setConfirmPassword('');
+                  }}
+                  className="text-primary font-semibold hover:underline text-sm"
+                >
+                  ← Quay về đăng nhập
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="w-full max-w-[480px] shadow-sm">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
+                <ShieldCheck className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                {isLogin ? 'Đăng nhập tài khoản' : 'Tạo tài khoản mới'}
+              </CardTitle>
+              <CardDescription className="text-base">
+                {isLogin
+                  ? 'Chào mừng trở lại! Vui lòng nhập thông tin để truy cập.'
+                  : 'Bắt đầu quản lý phần mềm của bạn một cách hiệu quả.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Full Name - only for register */}
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Họ và tên</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="fullName"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Nguyễn Văn A"
+                        className="pl-11"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Họ và tên</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="fullName"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
                       className="pl-11"
                       disabled={loading}
                     />
                   </div>
                 </div>
-              )}
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="pl-11"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-11"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              {/* Confirm Password - only for register */}
-              {!isLogin && (
+                {/* Password */}
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                  <Label htmlFor="password">Mật khẩu</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="confirmPassword"
+                      id="password"
                       type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       className="pl-11"
                       disabled={loading}
                     />
                   </div>
                 </div>
-              )}
 
-              {/* Remember me & Forgot password - only for login */}
-              {isLogin && (
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" />
-                    <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                      Ghi nhớ đăng nhập
-                    </Label>
+                {/* Confirm Password - only for register */}
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pl-11"
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
-                  <a href="#" className="text-sm font-semibold text-primary hover:underline">
-                    Quên mật khẩu?
-                  </a>
-                </div>
-              )}
+                )}
 
-              {/* Error message */}
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
+                {/* Remember me & Forgot password - only for login */}
+                {isLogin && (
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="remember" />
+                      <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                        Ghi nhớ đăng nhập
+                      </Label>
+                    </div>
+                    <a href="#" className="text-sm font-semibold text-primary hover:underline">
+                      Quên mật khẩu?
+                    </a>
+                  </div>
+                )}
 
-              {/* Submit button */}
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={loading}
-              >
-                {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập' : 'Tạo tài khoản')}
-              </Button>
-            </form>
+                {/* Error message */}
+                {error && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
 
-            {/* Switch mode */}
-            <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-muted-foreground text-sm">
-                {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
-                <button
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setError('');
-                  }}
-                  className="text-primary font-bold hover:underline ml-1 cursor-pointer"
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={loading}
                 >
-                  {isLogin ? 'Đăng ký' : 'Đăng nhập'}
-                </button>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+                  {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập' : 'Tạo tài khoản')}
+                </Button>
+              </form>
+
+              {/* Switch mode */}
+              <div className="mt-6 pt-6 border-t border-border text-center">
+                <p className="text-muted-foreground text-sm">
+                  {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
+                  <button
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setError('');
+                    }}
+                    className="text-primary font-bold hover:underline ml-1 cursor-pointer"
+                  >
+                    {isLogin ? 'Đăng ký' : 'Đăng nhập'}
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

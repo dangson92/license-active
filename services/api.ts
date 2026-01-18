@@ -5,7 +5,9 @@ interface LoginResponse {
 }
 
 interface RegisterResponse {
-  token: string;
+  token?: string;
+  requiresVerification?: boolean;
+  message?: string;
 }
 
 interface DecodedToken {
@@ -178,6 +180,19 @@ export const api = {
     // Users
     getUsers: async () => {
       return apiCall('/api/admin/users');
+    },
+
+    updateUser: async (id: number, data: { full_name?: string; role?: string; email_verified?: boolean }) => {
+      return apiCall(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteUser: async (id: number) => {
+      return apiCall(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+      });
     },
 
     // Licenses

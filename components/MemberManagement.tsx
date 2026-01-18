@@ -4,12 +4,32 @@ import api from '../services/api';
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 
 // Icons
 import {
@@ -17,7 +37,6 @@ import {
     CheckCircle,
     Download,
     UserPlus,
-    MoreHorizontal,
     Edit,
     Ban,
     Trash2
@@ -28,7 +47,7 @@ interface Member {
     email: string;
     full_name: string;
     role: string;
-    status?: string;
+    email_verified?: boolean;
     created_at?: string;
     licenses_count?: number;
 }
@@ -38,6 +57,17 @@ export const MemberManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [roleFilter, setRoleFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
+
+    // Edit dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [editForm, setEditForm] = useState({ full_name: '', role: '', email_verified: false });
+    const [editLoading, setEditLoading] = useState(false);
+
+    // Delete dialog state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingMember, setDeletingMember] = useState<Member | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         loadMembers();
@@ -77,11 +107,64 @@ export const MemberManagement: React.FC = () => {
         return <Badge variant="secondary">User</Badge>;
     };
 
-    const getStatusBadge = (status?: string) => {
-        if (status === 'active') {
+    const getStatusBadge = (emailVerified?: boolean) => {
+        if (emailVerified) {
             return <Badge variant="success"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Active</Badge>;
         }
         return <Badge variant="outline"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>Inactive</Badge>;
+    };
+
+    // Handlers
+    const handleEdit = (member: Member) => {
+        setEditingMember(member);
+        setEditForm({
+            full_name: member.full_name,
+            role: member.role,
+            email_verified: member.email_verified || false
+        });
+        setEditDialogOpen(true);
+    };
+
+    const handleEditSave = async () => {
+        if (!editingMember) return;
+        setEditLoading(true);
+        try {
+            await api.admin.updateUser(editingMember.id, editForm);
+            await loadMembers();
+            setEditDialogOpen(false);
+        } catch (error) {
+            console.error('Failed to update member:', error);
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (member: Member) => {
+        try {
+            await api.admin.updateUser(member.id, { email_verified: !member.email_verified });
+            await loadMembers();
+        } catch (error) {
+            console.error('Failed to toggle status:', error);
+        }
+    };
+
+    const handleDelete = (member: Member) => {
+        setDeletingMember(member);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingMember) return;
+        setDeleteLoading(true);
+        try {
+            await api.admin.deleteUser(deletingMember.id);
+            await loadMembers();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            console.error('Failed to delete member:', error);
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     const filteredMembers = members.filter(member => {
@@ -224,13 +307,13 @@ export const MemberManagement: React.FC = () => {
                                                 <span className="font-medium">{member.licenses_count || 0}</span>
                                             </TableCell>
                                             <TableCell>
-                                                {getStatusBadge(member.status)}
+                                                {getStatusBadge(member.email_verified)}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center justify-end gap-1">
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(member)}>
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -238,11 +321,11 @@ export const MemberManagement: React.FC = () => {
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(member)}>
                                                                 <Ban className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent>Vô hiệu hóa</TooltipContent>
+                                                        <TooltipContent>{member.email_verified ? 'Vô hiệu hóa' : 'Kích hoạt'}</TooltipContent>
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
@@ -250,6 +333,7 @@ export const MemberManagement: React.FC = () => {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                onClick={() => handleDelete(member)}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
@@ -266,6 +350,77 @@ export const MemberManagement: React.FC = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Chỉnh sửa thành viên</DialogTitle>
+                        <DialogDescription>
+                            Cập nhật thông tin cho {editingMember?.email}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-name">Họ và tên</Label>
+                            <Input
+                                id="edit-name"
+                                value={editForm.full_name}
+                                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-role">Vai trò</Label>
+                            <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v })}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="user">User</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="edit-verified">Email đã xác thực</Label>
+                            <Switch
+                                id="edit-verified"
+                                checked={editForm.email_verified}
+                                onCheckedChange={(v) => setEditForm({ ...editForm, email_verified: v })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Hủy</Button>
+                        <Button onClick={handleEditSave} disabled={editLoading}>
+                            {editLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bạn có chắc chắn muốn xóa thành viên <strong>{deletingMember?.full_name}</strong> ({deletingMember?.email})?
+                            Hành động này không thể hoàn tác.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleteLoading}>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={deleteLoading}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {deleteLoading ? 'Đang xóa...' : 'Xóa'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </TooltipProvider>
     );
 };

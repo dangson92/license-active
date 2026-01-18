@@ -7,7 +7,7 @@ const router = express.Router()
 // Generate GUID-style license key
 const genKey = () => {
   // Generate a UUID v4 style GUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -16,10 +16,49 @@ const genKey = () => {
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const r = await query('SELECT id,email,full_name,role,created_at,last_login_at FROM users ORDER BY id DESC')
+    const r = await query('SELECT id,email,full_name,role,email_verified,created_at,last_login_at FROM users ORDER BY id DESC')
     res.json({ items: r.rows })
   } catch (e) {
     console.error('Error getting users:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+// Update user
+router.patch('/users/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const fields = ['full_name', 'role', 'email_verified']
+    const updates = []
+    const params = []
+    fields.forEach((f) => {
+      if (f in req.body) {
+        params.push(req.body[f])
+        updates.push(`${f}=?`)
+      }
+    })
+    if (!updates.length) return res.status(400).json({ error: 'no_updates' })
+    params.push(id)
+    await query(`UPDATE users SET ${updates.join(',')} WHERE id=?`, params)
+    res.json({ id })
+  } catch (e) {
+    console.error('Error updating user:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+// Delete user
+router.delete('/users/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    // Prevent deleting self
+    if (id === req.user.id) {
+      return res.status(400).json({ error: 'cannot_delete_self' })
+    }
+    await query('DELETE FROM users WHERE id=?', [id])
+    res.json({ id, deleted: true })
+  } catch (e) {
+    console.error('Error deleting user:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
