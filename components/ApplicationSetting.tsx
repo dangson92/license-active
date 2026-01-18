@@ -141,9 +141,10 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             if (targetAppId) {
                 await api.store.savePricing({
                     app_id: targetAppId,
-                    price_1_month: formData.price1Month || null,
-                    price_6_months: formData.price6Months || null,
-                    price_1_year: formData.price1Year || null,
+                    description: formData.description || '',
+                    price_1_month: formData.price1Month || 0,
+                    price_6_months: formData.price6Months || 0,
+                    price_1_year: formData.price1Year || 0,
                 });
             }
 
@@ -320,15 +321,15 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                             </CardContent>
                         </Card>
 
-                        {/* 1 N\u0103m */}
+                        {/* 1 Năm */}
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="mb-4">
-                                    <Label className="font-bold">1 N\u0103m</Label>
-                                    <p className="text-xs text-muted-foreground">G\u00f3i d\u00e0i h\u1ea1n</p>
+                                    <Label className="font-bold">1 Năm</Label>
+                                    <p className="text-xs text-muted-foreground">Gói dài hạn</p>
                                 </div>
                                 <div className="relative">
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">\u20ab</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
                                     <Input
                                         type="text"
                                         value={formData.price1Year ? formData.price1Year.toLocaleString('vi-VN') : ''}
