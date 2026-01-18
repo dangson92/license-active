@@ -27,12 +27,14 @@ interface ApplicationManagementProps {
     onManageVersions?: (appId: number, appName: string) => void;
     onAddVersion?: (appId: number, appName: string) => void;
     onEditApp?: (appId: number, appName: string) => void;
+    onAddApp?: () => void;
 }
 
 export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
     onManageVersions,
     onAddVersion,
-    onEditApp
+    onEditApp,
+    onAddApp
 }) => {
     const [apps, setApps] = useState<AppType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -109,7 +111,7 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                     </div>
                     <Button
                         className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => setShowCreateDialog(true)}
+                        onClick={() => onAddApp ? onAddApp() : setShowCreateDialog(true)}
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Application

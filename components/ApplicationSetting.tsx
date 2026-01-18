@@ -46,14 +46,27 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             return;
         }
         try {
+            // Load app basic info
             const app = await api.admin.getApp(parseInt(appId));
+
+            // Load pricing info
+            let pricing = { price_1_month: 0, price_6_months: 0, price_1_year: 0 };
+            try {
+                const pricingRes = await api.store.getApp(parseInt(appId));
+                if (pricingRes) {
+                    pricing = pricingRes;
+                }
+            } catch (e) {
+                // No pricing yet, use defaults
+            }
+
             setFormData({
                 name: app.name || '',
                 description: app.description || '',
                 iconUrl: app.icon_url || '',
-                price1Month: 0,
-                price6Months: 0,
-                price1Year: 0,
+                price1Month: pricing.price_1_month || 0,
+                price6Months: pricing.price_6_months || 0,
+                price1Year: pricing.price_1_year || 0,
                 isActive: app.is_active ?? true,
                 isPublic: false,
             });
@@ -98,6 +111,14 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             if (iconFile) {
                 await api.admin.uploadAppIcon(parseInt(appId), iconFile);
             }
+
+            // Save pricing
+            await api.store.savePricing({
+                app_id: parseInt(appId),
+                price_1_month: formData.price1Month || null,
+                price_6_months: formData.price6Months || null,
+                price_1_year: formData.price1Year || null,
+            });
 
             onSave?.(formData);
         } catch (error) {
@@ -194,6 +215,84 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                                 className="min-h-[120px] resize-none"
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-border w-full"></div>
+
+                {/* Pricing Tiers */}
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="text-lg font-semibold">Pricing Tiers</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Define the subscription costs for different duration options.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* 1 Month */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <div className="mb-4">
+                                    <Label className="font-bold">1 Month</Label>
+                                    <p className="text-xs text-muted-foreground">Short-term access tier</p>
+                                </div>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        type="number"
+                                        value={formData.price1Month || ''}
+                                        onChange={(e) => handleInputChange('price1Month', parseFloat(e.target.value) || 0)}
+                                        className="pl-8"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 6 Months - Popular */}
+                        <Card className="border-primary ring-1 ring-primary relative">
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight">
+                                Most Popular
+                            </div>
+                            <CardContent className="pt-6">
+                                <div className="mb-4">
+                                    <Label className="font-bold">6 Months</Label>
+                                    <p className="text-xs text-muted-foreground">Standard business cycle</p>
+                                </div>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        type="number"
+                                        value={formData.price6Months || ''}
+                                        onChange={(e) => handleInputChange('price6Months', parseFloat(e.target.value) || 0)}
+                                        className="pl-8"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 1 Year */}
+                        <Card>
+                            <CardContent className="pt-6">
+                                <div className="mb-4">
+                                    <Label className="font-bold">1 Year</Label>
+                                    <p className="text-xs text-muted-foreground">Annual commitment rate</p>
+                                </div>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        type="number"
+                                        value={formData.price1Year || ''}
+                                        onChange={(e) => handleInputChange('price1Year', parseFloat(e.target.value) || 0)}
+                                        className="pl-8"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
 
