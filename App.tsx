@@ -220,88 +220,15 @@ const ApplicationSettingWrapper: React.FC = () => {
 
 const NewApplicationWrapper: React.FC = () => {
   const navigate = useNavigate();
-  const [saving, setSaving] = React.useState(false);
-  const [formData, setFormData] = React.useState({ code: '', name: '', description: '' });
-
-  const handleSave = async () => {
-    if (!formData.code || !formData.name) {
-      alert('Vui lòng nhập mã và tên ứng dụng!');
-      return;
-    }
-    setSaving(true);
-    try {
-      const result = await api.admin.createApp(formData);
-      navigate(`/admin/applications/${result.id}/settings`);
-    } catch (error) {
-      console.error('Failed to create app:', error);
-      alert('Không thể tạo ứng dụng. Vui lòng thử lại.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/admin/applications')}
-          className="p-2 rounded-md border hover:bg-muted"
-        >
-          ←
-        </button>
-        <div>
-          <h2 className="text-lg font-semibold">Create New Application</h2>
-          <p className="text-sm text-muted-foreground">Thêm ứng dụng mới vào hệ thống</p>
-        </div>
-      </div>
-
-      <div className="max-w-xl space-y-4 p-6 border rounded-lg bg-card">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Mã ứng dụng (Code)</label>
-          <input
-            type="text"
-            placeholder="VD: APP001"
-            value={formData.code}
-            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Tên ứng dụng</label>
-          <input
-            type="text"
-            placeholder="VD: CloudSuite Pro"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Mô tả (tùy chọn)</label>
-          <textarea
-            placeholder="Mô tả ngắn về ứng dụng..."
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md min-h-[100px]"
-          />
-        </div>
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={() => navigate('/admin/applications')}
-            className="px-4 py-2 border rounded-md hover:bg-muted"
-          >
-            Hủy
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? 'Đang tạo...' : 'Tạo ứng dụng'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ApplicationSetting
+      isNew={true}
+      onBack={() => navigate('/admin/applications')}
+      onSave={() => {
+        navigate('/admin/applications');
+      }}
+    />
   );
 };
 

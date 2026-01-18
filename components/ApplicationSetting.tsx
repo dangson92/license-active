@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, DollarSign, Upload, Image, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, Image, Loader2 } from 'lucide-react';
 import api from '../services/api';
 
 interface ApplicationSettingProps {
     appId?: string;
     appName?: string;
+    isNew?: boolean;
     onBack: () => void;
     onSave?: (data: any) => void;
 }
@@ -18,12 +19,14 @@ interface ApplicationSettingProps {
 export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     appId,
     appName = 'Application',
+    isNew = false,
     onBack,
     onSave
 }) => {
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
+        code: '',
         name: '',
         description: '',
         iconUrl: '',
@@ -37,8 +40,10 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     const [iconPreview, setIconPreview] = useState<string | null>(null);
 
     useEffect(() => {
-        loadAppData();
-    }, [appId]);
+        if (!isNew && appId) {
+            loadAppData();
+        }
+    }, [appId, isNew]);
 
     const loadAppData = async () => {
         if (!appId) {
@@ -46,10 +51,8 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             return;
         }
         try {
-            // Load app basic info
             const app = await api.admin.getApp(parseInt(appId));
 
-            // Load pricing info
             let pricing = { price_1_month: 0, price_6_months: 0, price_1_year: 0 };
             try {
                 const pricingRes = await api.store.getApp(parseInt(appId));
@@ -57,10 +60,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     pricing = pricingRes;
                 }
             } catch (e) {
-                // No pricing yet, use defaults
+                // No pricing yet
             }
 
             setFormData({
+                code: app.code || '',
                 name: app.name || '',
                 description: app.description || '',
                 iconUrl: app.icon_url || '',
@@ -97,28 +101,51 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     };
 
     const handleSave = async () => {
-        if (!appId) return;
+        // Validation
+        if (isNew && (!formData.code || !formData.name)) {
+            alert('Vui lòng nhập mã và tên ứng dụng!');
+            return;
+        }
+        if (!isNew && !formData.name) {
+            alert('Vui lòng nhập tên ứng dụng!');
+            return;
+        }
+
         setSaving(true);
         try {
-            // Update app basic info
-            await api.admin.updateApp(parseInt(appId), {
-                name: formData.name,
-                description: formData.description,
-                is_active: formData.isActive
-            });
+            let targetAppId = appId ? parseInt(appId) : 0;
+
+            if (isNew) {
+                // Create new app
+                const result = await api.admin.createApp({
+                    code: formData.code,
+                    name: formData.name,
+                    description: formData.description,
+                });
+                targetAppId = result.id;
+            } else {
+                // Update existing app
+                await api.admin.updateApp(targetAppId, {
+                    name: formData.name,
+                    description: formData.description,
+                    is_active: formData.isActive
+                });
+            }
 
             // Upload icon if changed
-            if (iconFile) {
-                await api.admin.uploadAppIcon(parseInt(appId), iconFile);
+            if (iconFile && targetAppId) {
+                await api.admin.uploadAppIcon(targetAppId, iconFile);
             }
 
             // Save pricing
-            await api.store.savePricing({
-                app_id: parseInt(appId),
-                price_1_month: formData.price1Month || null,
-                price_6_months: formData.price6Months || null,
-                price_1_year: formData.price1Year || null,
-            });
+            if (targetAppId) {
+                await api.store.savePricing({
+                    app_id: targetAppId,
+                    price_1_month: formData.price1Month || null,
+                    price_6_months: formData.price6Months || null,
+                    price_1_year: formData.price1Year || null,
+                });
+            }
 
             onSave?.(formData);
         } catch (error) {
@@ -145,14 +172,14 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                    <h2 className="text-sm font-semibold">Edit Application</h2>
-                    <p className="text-xs text-muted-foreground">{formData.name || appName}</p>
+                    <h2 className="text-sm font-semibold">{isNew ? 'Create Application' : 'Edit Application'}</h2>
+                    <p className="text-xs text-muted-foreground">{formData.name || appName || 'New Application'}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
                     <Button variant="outline" onClick={onBack}>Cancel</Button>
                     <Button onClick={handleSave} disabled={saving}>
                         {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Save Changes
+                        {isNew ? 'Create Application' : 'Save Changes'}
                     </Button>
                 </div>
             </div>
@@ -168,6 +195,19 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* App Code - only for new apps */}
+                        {isNew && (
+                            <div className="space-y-2">
+                                <Label htmlFor="code">Application Code</Label>
+                                <Input
+                                    id="code"
+                                    value={formData.code}
+                                    onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+                                    placeholder="APP001"
+                                />
+                                <p className="text-xs text-muted-foreground">Mã định danh (không thể thay đổi sau khi tạo)</p>
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="name">Application Name</Label>
                             <Input
@@ -231,63 +271,72 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* 1 Month */}
+                        {/* 1 Tháng */}
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="mb-4">
-                                    <Label className="font-bold">1 Month</Label>
-                                    <p className="text-xs text-muted-foreground">Short-term access tier</p>
+                                    <Label className="font-bold">1 Tháng</Label>
+                                    <p className="text-xs text-muted-foreground">Gói ngắn hạn</p>
                                 </div>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
                                     <Input
-                                        type="number"
-                                        value={formData.price1Month || ''}
-                                        onChange={(e) => handleInputChange('price1Month', parseFloat(e.target.value) || 0)}
-                                        className="pl-8"
+                                        type="text"
+                                        value={formData.price1Month ? formData.price1Month.toLocaleString('vi-VN') : ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('price1Month', parseInt(value) || 0);
+                                        }}
+                                        className="pr-8"
                                         placeholder="0"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* 6 Months - Popular */}
+                        {/* 6 Tháng - Phổ biến */}
                         <Card className="border-primary ring-1 ring-primary relative">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight">
-                                Most Popular
+                                Phổ biến nhất
                             </div>
                             <CardContent className="pt-6">
                                 <div className="mb-4">
-                                    <Label className="font-bold">6 Months</Label>
-                                    <p className="text-xs text-muted-foreground">Standard business cycle</p>
+                                    <Label className="font-bold">6 Tháng</Label>
+                                    <p className="text-xs text-muted-foreground">Gói tiêu chuẩn</p>
                                 </div>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
                                     <Input
-                                        type="number"
-                                        value={formData.price6Months || ''}
-                                        onChange={(e) => handleInputChange('price6Months', parseFloat(e.target.value) || 0)}
-                                        className="pl-8"
+                                        type="text"
+                                        value={formData.price6Months ? formData.price6Months.toLocaleString('vi-VN') : ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('price6Months', parseInt(value) || 0);
+                                        }}
+                                        className="pr-8"
                                         placeholder="0"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* 1 Year */}
+                        {/* 1 N\u0103m */}
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="mb-4">
-                                    <Label className="font-bold">1 Year</Label>
-                                    <p className="text-xs text-muted-foreground">Annual commitment rate</p>
+                                    <Label className="font-bold">1 N\u0103m</Label>
+                                    <p className="text-xs text-muted-foreground">G\u00f3i d\u00e0i h\u1ea1n</p>
                                 </div>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">\u20ab</span>
                                     <Input
-                                        type="number"
-                                        value={formData.price1Year || ''}
-                                        onChange={(e) => handleInputChange('price1Year', parseFloat(e.target.value) || 0)}
-                                        className="pl-8"
+                                        type="text"
+                                        value={formData.price1Year ? formData.price1Year.toLocaleString('vi-VN') : ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            handleInputChange('price1Year', parseInt(value) || 0);
+                                        }}
+                                        className="pr-8"
                                         placeholder="0"
                                     />
                                 </div>
@@ -343,7 +392,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     </Button>
                     <Button onClick={handleSave} disabled={saving}>
                         {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Save Application
+                        {isNew ? 'Create Application' : 'Save Application'}
                     </Button>
                 </div>
             </div>
