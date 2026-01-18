@@ -26,11 +26,13 @@ import {
 interface ApplicationManagementProps {
     onManageVersions?: (appId: number, appName: string) => void;
     onAddVersion?: (appId: number, appName: string) => void;
+    onEditApp?: (appId: number, appName: string) => void;
 }
 
 export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
     onManageVersions,
-    onAddVersion
+    onAddVersion,
+    onEditApp
 }) => {
     const [apps, setApps] = useState<AppType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -215,7 +217,12 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                                     </Tooltip>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                onClick={() => onEditApp?.(app.id, app.name)}
+                                                            >
                                                                 <Edit className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>

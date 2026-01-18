@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, DollarSign, Upload, Image } from 'lucide-react';
+import { ArrowLeft, DollarSign, Upload, Image, Loader2 } from 'lucide-react';
+import api from '../services/api';
 
 interface ApplicationSettingProps {
     appId?: string;
@@ -16,22 +17,55 @@ interface ApplicationSettingProps {
 
 export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     appId,
-    appName = 'Cloud Suite Pro',
+    appName = 'Application',
     onBack,
     onSave
 }) => {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
-        name: appName,
-        description: 'Cloud Suite Pro is an enterprise-grade solution designed to streamline workflow orchestration.',
+        name: '',
+        description: '',
         iconUrl: '',
-        price1Month: 29,
-        price6Months: 149,
-        price1Year: 249,
+        price1Month: 0,
+        price6Months: 0,
+        price1Year: 0,
         isActive: true,
         isPublic: false,
     });
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadAppData();
+    }, [appId]);
+
+    const loadAppData = async () => {
+        if (!appId) {
+            setLoading(false);
+            return;
+        }
+        try {
+            const app = await api.admin.getApp(parseInt(appId));
+            setFormData({
+                name: app.name || '',
+                description: app.description || '',
+                iconUrl: app.icon_url || '',
+                price1Month: 0,
+                price6Months: 0,
+                price1Year: 0,
+                isActive: app.is_active ?? true,
+                isPublic: false,
+            });
+            if (app.icon_url) {
+                setIconPreview(app.icon_url);
+            }
+        } catch (error) {
+            console.error('Failed to load app:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleInputChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -49,9 +83,38 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
         }
     };
 
-    const handleSave = () => {
-        onSave?.({ ...formData, iconFile });
+    const handleSave = async () => {
+        if (!appId) return;
+        setSaving(true);
+        try {
+            // Update app basic info
+            await api.admin.updateApp(parseInt(appId), {
+                name: formData.name,
+                description: formData.description,
+                is_active: formData.isActive
+            });
+
+            // Upload icon if changed
+            if (iconFile) {
+                await api.admin.uploadAppIcon(parseInt(appId), iconFile);
+            }
+
+            onSave?.(formData);
+        } catch (error) {
+            console.error('Failed to save app:', error);
+            alert('Có lỗi khi lưu. Vui lòng thử lại.');
+        } finally {
+            setSaving(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -62,11 +125,14 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 </Button>
                 <div>
                     <h2 className="text-sm font-semibold">Edit Application</h2>
-                    <p className="text-xs text-muted-foreground">{formData.name}</p>
+                    <p className="text-xs text-muted-foreground">{formData.name || appName}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
                     <Button variant="outline" onClick={onBack}>Cancel</Button>
-                    <Button onClick={handleSave}>Save Changes</Button>
+                    <Button onClick={handleSave} disabled={saving}>
+                        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Save Changes
+                    </Button>
                 </div>
             </div>
 
@@ -134,84 +200,6 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 {/* Divider */}
                 <div className="h-px bg-border w-full"></div>
 
-                {/* Pricing Tiers */}
-                <div className="space-y-6">
-                    <div>
-                        <h3 className="text-lg font-semibold">Pricing Tiers</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Define the subscription costs for different duration options.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* 1 Month */}
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">1 Month</Label>
-                                    <p className="text-xs text-muted-foreground">Short-term access tier</p>
-                                </div>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                        type="number"
-                                        value={formData.price1Month}
-                                        onChange={(e) => handleInputChange('price1Month', parseFloat(e.target.value))}
-                                        className="pl-8"
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* 6 Months - Popular */}
-                        <Card className="border-primary ring-1 ring-primary relative">
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight">
-                                Most Popular
-                            </div>
-                            <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">6 Months</Label>
-                                    <p className="text-xs text-muted-foreground">Standard business cycle</p>
-                                </div>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                        type="number"
-                                        value={formData.price6Months}
-                                        onChange={(e) => handleInputChange('price6Months', parseFloat(e.target.value))}
-                                        className="pl-8"
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* 1 Year */}
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">1 Year</Label>
-                                    <p className="text-xs text-muted-foreground">Annual commitment rate</p>
-                                </div>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                        type="number"
-                                        value={formData.price1Year}
-                                        onChange={(e) => handleInputChange('price1Year', parseFloat(e.target.value))}
-                                        className="pl-8"
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                {/* Divider */}
-                <div className="h-px bg-border w-full"></div>
-
                 {/* Advanced Settings */}
                 <div className="space-y-6">
                     <div>
@@ -254,7 +242,8 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     <Button variant="outline" onClick={onBack}>
                         Discard Changes
                     </Button>
-                    <Button onClick={handleSave}>
+                    <Button onClick={handleSave} disabled={saving}>
+                        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                         Save Application
                     </Button>
                 </div>

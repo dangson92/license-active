@@ -120,6 +120,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           <ApplicationManagement
             onManageVersions={(appId, appName) => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
             onAddVersion={(appId, appName) => navigate(`/admin/applications/${appId}/add-version`, { state: { appName } })}
+            onEditApp={(appId, appName) => navigate(`/admin/applications/${appId}/settings`, { state: { appName } })}
           />
         } />
         <Route path="applications/:appId/versions" element={
