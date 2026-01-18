@@ -6,6 +6,7 @@ import { VersionManagement } from './VersionManagement';
 import { MemberManagement } from './MemberManagement';
 import { CreateLicense } from './CreateLicense';
 import { AppLayout } from './layout/AppLayout';
+import { OrderManagement } from './OrderManagement';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -358,6 +359,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {/* Render content based on activeSection */}
         {activeSection === 'members' ? (
           <MemberManagement />
+        ) : activeSection === 'orders' ? (
+          <OrderManagement />
         ) : activeSection === 'create-license' ? (
           <CreateLicense
             apps={apps}

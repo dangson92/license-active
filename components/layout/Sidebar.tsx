@@ -42,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const adminNavItems: NavItem[] = [
         { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+        { icon: ShoppingBag, label: 'Orders', id: 'orders' },
         { icon: Key, label: 'Licenses', id: 'licenses' },
         { icon: AppWindow, label: 'Applications', id: 'applications' },
         { icon: Users, label: 'Members', id: 'members' },
