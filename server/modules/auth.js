@@ -199,4 +199,7 @@ export const requireAdmin = (req, res, next) => {
   })
 }
 
+// Alias for compatibility
+export const requireAuth = requireUser
+
 export default router
