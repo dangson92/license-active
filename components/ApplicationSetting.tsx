@@ -85,11 +85,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 description: app.description || '',
                 iconUrl: app.icon_url || '',
                 price1Month: pricing.price_1_month || 0,
-                price1MonthEnabled: pricing.price_1_month_enabled !== false,
+                price1MonthEnabled: pricing.price_1_month_enabled !== 0 && pricing.price_1_month_enabled !== false,
                 price6Months: pricing.price_6_months || 0,
-                price6MonthsEnabled: pricing.price_6_months_enabled !== false,
+                price6MonthsEnabled: pricing.price_6_months_enabled !== 0 && pricing.price_6_months_enabled !== false,
                 price1Year: pricing.price_1_year || 0,
-                price1YearEnabled: pricing.price_1_year_enabled !== false,
+                price1YearEnabled: pricing.price_1_year_enabled !== 0 && pricing.price_1_year_enabled !== false,
                 isActive: app.is_active ?? true,
                 isPublic: false,
             });
@@ -122,11 +122,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     const handleSave = async () => {
         // Validation
         if (isNew && (!formData.code || !formData.name)) {
-            alert('Vui lòng nhập mã và tên ứng dụng!');
+            setMessage({ type: 'error', text: 'Vui lòng nhập mã và tên ứng dụng!' });
             return;
         }
         if (!isNew && !formData.name) {
-            alert('Vui lòng nhập tên ứng dụng!');
+            setMessage({ type: 'error', text: 'Vui lòng nhập tên ứng dụng!' });
             return;
         }
 
@@ -171,7 +171,9 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             }
 
             onSave?.(formData);
+            console.log('Save successful, setting message...');
             setMessage({ type: 'success', text: '✓ Đã lưu ứng dụng thành công!' });
+            console.log('Message set!');
         } catch (error) {
             console.error('Failed to save app:', error);
             setMessage({ type: 'error', text: '✕ Có lỗi khi lưu. Vui lòng thử lại.' });

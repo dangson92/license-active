@@ -200,9 +200,9 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                     {hasPricing && (
                                         <div className="space-y-2 mb-6 flex-1">
                                             {[
-                                                { key: '1m', label: '1 Tháng', price: app.price_1_month, enabled: app.price_1_month_enabled !== false },
-                                                { key: '6m', label: '6 Tháng', price: app.price_6_months, enabled: app.price_6_months_enabled !== false },
-                                                { key: '1y', label: '1 Năm', price: app.price_1_year, enabled: app.price_1_year_enabled !== false }
+                                                { key: '1m', label: '1 Tháng', price: app.price_1_month, enabled: app.price_1_month_enabled !== 0 && app.price_1_month_enabled !== false },
+                                                { key: '6m', label: '6 Tháng', price: app.price_6_months, enabled: app.price_6_months_enabled !== 0 && app.price_6_months_enabled !== false },
+                                                { key: '1y', label: '1 Năm', price: app.price_1_year, enabled: app.price_1_year_enabled !== 0 && app.price_1_year_enabled !== false }
                                             ].filter(opt => opt.price && opt.enabled).map((option) => (
                                                 <label
                                                     key={option.key}
