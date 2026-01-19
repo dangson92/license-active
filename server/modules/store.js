@@ -401,17 +401,19 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
             is_featured, badge, icon_class
         } = req.body
 
-        // Convert undefined to null/defaults
+        // Convert undefined to null/defaults - handle boolean correctly
         const desc = description ?? null
         const p1m = price_1_month ?? null
-        const p1mEnabled = price_1_month_enabled !== false
+        const p1mEnabled = price_1_month_enabled === true || price_1_month_enabled === 'true' ? 1 : (price_1_month_enabled === false || price_1_month_enabled === 'false' ? 0 : 1)
         const p6m = price_6_months ?? null
-        const p6mEnabled = price_6_months_enabled !== false
+        const p6mEnabled = price_6_months_enabled === true || price_6_months_enabled === 'true' ? 1 : (price_6_months_enabled === false || price_6_months_enabled === 'false' ? 0 : 1)
         const p1y = price_1_year ?? null
-        const p1yEnabled = price_1_year_enabled !== false
+        const p1yEnabled = price_1_year_enabled === true || price_1_year_enabled === 'true' ? 1 : (price_1_year_enabled === false || price_1_year_enabled === 'false' ? 0 : 1)
         const featured = is_featured ?? false
         const badgeVal = badge ?? null
         const iconVal = icon_class ?? null
+
+        console.log('Saving pricing:', { app_id, p1mEnabled, p6mEnabled, p1yEnabled })
 
         // Check if pricing already exists
         const existing = await query('SELECT id FROM app_pricing WHERE app_id = ?', [app_id])

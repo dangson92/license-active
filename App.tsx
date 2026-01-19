@@ -235,8 +235,8 @@ const ApplicationSettingWrapper: React.FC = () => {
       appName={appName}
       onBack={() => navigate('/admin/applications')}
       onSave={(data) => {
-        console.log('Saving app settings:', data);
-        navigate('/admin/applications');
+        console.log('Saved app settings:', data);
+        // Don't navigate - let user see the success message
       }}
     />
   );
@@ -250,7 +250,8 @@ const NewApplicationWrapper: React.FC = () => {
       isNew={true}
       onBack={() => navigate('/admin/applications')}
       onSave={() => {
-        navigate('/admin/applications');
+        // Don't navigate - let user see the success message
+        // User can click Back to go to applications list
       }}
     />
   );
