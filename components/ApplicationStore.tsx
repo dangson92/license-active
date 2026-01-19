@@ -197,9 +197,16 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
                                     {/* Info */}
                                     <h3 className="text-lg font-bold mb-2">{app.name}</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                                        {app.description || `License cho ${app.name}`}
-                                    </p>
+                                    {app.description ? (
+                                        <div
+                                            className="text-sm text-muted-foreground leading-relaxed mb-6 prose prose-sm max-w-none [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
+                                            dangerouslySetInnerHTML={{ __html: app.description }}
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                                            License cho {app.name}
+                                        </p>
+                                    )}
 
                                     {/* Pricing Options */}
                                     {hasPricing && (
