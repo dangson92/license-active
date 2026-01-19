@@ -19,8 +19,11 @@ interface StoreApp {
     name: string;
     description?: string;
     price_1_month?: number;
+    price_1_month_enabled?: boolean;
     price_6_months?: number;
+    price_6_months_enabled?: boolean;
     price_1_year?: number;
+    price_1_year_enabled?: boolean;
     is_featured?: boolean;
     badge?: string;
     icon_class?: string;
@@ -197,10 +200,10 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                     {hasPricing && (
                                         <div className="space-y-2 mb-6 flex-1">
                                             {[
-                                                { key: '1m', label: '1 Tháng', price: app.price_1_month },
-                                                { key: '6m', label: '6 Tháng', price: app.price_6_months },
-                                                { key: '1y', label: '1 Năm', price: app.price_1_year }
-                                            ].filter(opt => opt.price).map((option) => (
+                                                { key: '1m', label: '1 Tháng', price: app.price_1_month, enabled: app.price_1_month_enabled !== false },
+                                                { key: '6m', label: '6 Tháng', price: app.price_6_months, enabled: app.price_6_months_enabled !== false },
+                                                { key: '1y', label: '1 Năm', price: app.price_1_year, enabled: app.price_1_year_enabled !== false }
+                                            ].filter(opt => opt.price && opt.enabled).map((option) => (
                                                 <label
                                                     key={option.key}
                                                     className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all ${selectedDuration === option.key

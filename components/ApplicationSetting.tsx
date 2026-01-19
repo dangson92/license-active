@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Upload, Image, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, Image, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 interface ApplicationSettingProps {
@@ -41,12 +41,21 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
     });
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
         if (!isNew && appId) {
             loadAppData();
         }
     }, [appId, isNew]);
+
+    // Auto-hide message after 5 seconds
+    useEffect(() => {
+        if (message) {
+            const timer = setTimeout(() => setMessage(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
 
     const loadAppData = async () => {
         if (!appId) {
@@ -162,9 +171,10 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
             }
 
             onSave?.(formData);
+            setMessage({ type: 'success', text: '✓ Đã lưu ứng dụng thành công!' });
         } catch (error) {
             console.error('Failed to save app:', error);
-            alert('Có lỗi khi lưu. Vui lòng thử lại.');
+            setMessage({ type: 'error', text: '✕ Có lỗi khi lưu. Vui lòng thử lại.' });
         } finally {
             setSaving(false);
         }
@@ -197,6 +207,21 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     </Button>
                 </div>
             </div>
+
+            {/* Message */}
+            {message && (
+                <div className={`flex items-center gap-2 p-4 rounded-lg transition-all ${message.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                    {message.type === 'success' ? (
+                        <CheckCircle className="h-5 w-5" />
+                    ) : (
+                        <AlertCircle className="h-5 w-5" />
+                    )}
+                    <span className="font-medium">{message.text}</span>
+                </div>
+            )}
 
             <div className="max-w-4xl space-y-8">
                 {/* Application Details */}

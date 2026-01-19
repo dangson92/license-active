@@ -31,7 +31,9 @@ router.get('/apps', async (req, res) => {
     try {
         const r = await query(`
       SELECT a.id, a.code, a.name, a.description, a.icon_url, a.is_active,
-             p.price_1_month, p.price_6_months, p.price_1_year,
+             p.price_1_month, p.price_1_month_enabled,
+             p.price_6_months, p.price_6_months_enabled,
+             p.price_1_year, p.price_1_year_enabled,
              p.is_featured, p.badge, p.icon_class
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
