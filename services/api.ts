@@ -1,5 +1,17 @@
 import { config } from '../config';
 
+// Helper to get full URL for assets (icons, uploads, etc.)
+// Converts relative path like "/uploads/icons/file.png" to full API URL
+export const getAssetUrl = (relativePath: string | undefined | null): string | null => {
+  if (!relativePath) return null;
+  // If already a full URL, return as-is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // Use API base URL for assets from config (VITE_API_URL)
+  return `${config.assetApiUrl}${relativePath}`;
+};
+
 interface LoginResponse {
   token: string;
 }

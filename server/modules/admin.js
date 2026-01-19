@@ -149,7 +149,7 @@ router.post('/apps/:id/icon', requireAdmin, uploadIcon.single('icon'), async (re
     const id = Number(req.params.id)
     if (!req.file) return res.status(400).json({ error: 'no_file' })
 
-    const iconUrl = `/api/uploads/icons/${req.file.filename}`
+    const iconUrl = `/uploads/icons/${req.file.filename}`
     await query('UPDATE apps SET icon_url=? WHERE id=?', [iconUrl, id])
     res.json({ id, icon_url: iconUrl })
   } catch (e) {

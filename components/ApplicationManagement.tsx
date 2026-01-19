@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { App as AppType } from '../types';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -190,7 +190,7 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden">
                                                         {(app as any).icon_url ? (
-                                                            <img src={(app as any).icon_url} alt={app.name} className="w-full h-full object-cover" />
+                                                            <img src={getAssetUrl((app as any).icon_url) || ''} alt={app.name} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <AppWindow className="w-5 h-5 text-blue-600" />
                                                         )}

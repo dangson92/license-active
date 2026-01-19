@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Upload, Image, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 interface ApplicationSettingProps {
     appId?: string;
@@ -94,7 +94,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 isPublic: false,
             });
             if (app.icon_url) {
-                setIconPreview(app.icon_url);
+                setIconPreview(getAssetUrl(app.icon_url));
             }
         } catch (error) {
             console.error('Failed to load app:', error);
@@ -157,7 +157,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 // Update formData with new icon URL from server
                 if (iconResult.icon_url) {
                     setFormData(prev => ({ ...prev, iconUrl: iconResult.icon_url }));
-                    setIconPreview(iconResult.icon_url);
+                    setIconPreview(getAssetUrl(iconResult.icon_url));
                 }
                 setIconFile(null); // Clear file after successful upload
             }

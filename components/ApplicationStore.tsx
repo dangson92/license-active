@@ -11,7 +11,7 @@ import {
     Loader2,
     Package
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 
 interface StoreApp {
     id: number;
@@ -183,7 +183,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                     <div className="flex justify-between items-start mb-6">
                                         <div className={`size-14 rounded-xl flex items-center justify-center border overflow-hidden ${app.icon_url ? 'bg-white' : color} group-hover:scale-110 transition-transform duration-300`}>
                                             {app.icon_url ? (
-                                                <img src={app.icon_url} alt={app.name} className="w-full h-full object-cover" />
+                                                <img src={getAssetUrl(app.icon_url) || ''} alt={app.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <Icon className="w-8 h-8" />
                                             )}
