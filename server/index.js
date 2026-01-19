@@ -70,7 +70,9 @@ const activateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 })
+// Apply rate limiter to both paths (with and without /api prefix)
 app.use('/activate', activateLimiter)
+app.use('/api/activate', activateLimiter)
 
 app.get('/', (req, res) => {
   res.json({ ok: true, service: 'license-server' })
@@ -80,6 +82,7 @@ app.get('/health', (req, res) => {
   res.json({ ok: true })
 })
 
+// Routes with /api/ prefix (for frontend via nginx proxy)
 app.use('/api/auth', authRouter)
 app.use('/api/user', userRouter)
 app.use('/api/admin', adminRouter)
@@ -91,7 +94,13 @@ app.use('/api/admin/app-versions', appVersionsRouter)
 app.use('/api/support', supportRouter)
 app.use('/api/store', storeRouter)
 
+// Routes WITHOUT /api/ prefix (for client apps calling api.dangthanhson.com directly)
+app.use('/activate', activateRouter)
+app.use('/check-in', checkInRouter)
+app.use('/version', versionRouter)
+
 // Serve static files từ uploads folder
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
