@@ -7,6 +7,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 // Icons
 import {
@@ -16,7 +27,8 @@ import {
     Download,
     Trash2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Loader2
 } from 'lucide-react';
 
 interface AppVersion {
@@ -48,6 +60,17 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [totalVersions, setTotalVersions] = useState(0);
     const itemsPerPage = 10;
+
+    // Edit dialog state
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingVersion, setEditingVersion] = useState<AppVersion | null>(null);
+    const [editForm, setEditForm] = useState({
+        version: '',
+        release_date: '',
+        release_notes: '',
+        download_url: ''
+    });
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         loadVersions();
@@ -140,10 +163,35 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     };
 
     const handleEdit = (version: AppVersion) => {
-        // TODO: Implement edit dialog or navigate to edit page
-        // For now, trigger the onAddVersion callback which will open the version form
-        // The parent component should handle switching to edit mode
-        alert(`Chỉnh sửa version ${version.version} - Tính năng đang được phát triển. Vui lòng sử dụng trang Quản lý Versions để chỉnh sửa.`);
+        setEditingVersion(version);
+        setEditForm({
+            version: version.version,
+            release_date: version.release_date?.split('T')[0] || '',
+            release_notes: version.changelog || '',
+            download_url: version.download_url || ''
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateVersion = async () => {
+        if (!editingVersion) return;
+
+        setIsUpdating(true);
+        try {
+            await api.admin.updateAppVersion(editingVersion.id, {
+                version: editForm.version,
+                release_date: editForm.release_date,
+                release_notes: editForm.release_notes,
+                download_url: editForm.download_url
+            });
+            setIsEditDialogOpen(false);
+            loadVersions();
+        } catch (error) {
+            console.error('Failed to update version:', error);
+            alert('Không thể cập nhật version. Vui lòng thử lại.');
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     const handleDownload = (version: AppVersion) => {
@@ -165,169 +213,227 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     }
 
     return (
-        <TooltipProvider>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-2">
-                        <button
-                            onClick={onBack}
-                            className="flex items-center gap-1 text-sm font-bold text-primary hover:bg-primary/10 px-2 py-1 -ml-2 rounded-lg transition-colors"
+        <>
+            <TooltipProvider>
+                <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-2">
+                            <button
+                                onClick={onBack}
+                                className="flex items-center gap-1 text-sm font-bold text-primary hover:bg-primary/10 px-2 py-1 -ml-2 rounded-lg transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Back to Apps
+                            </button>
+                            <h1 className="text-2xl font-bold tracking-tight">{appName}</h1>
+                            <p className="text-muted-foreground text-sm">Application Version History and Changelogs</p>
+                        </div>
+                        <Button
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={onAddVersion}
                         >
-                            <ArrowLeft className="w-4 h-4" />
-                            Back to Apps
-                        </button>
-                        <h1 className="text-2xl font-bold tracking-tight">{appName}</h1>
-                        <p className="text-muted-foreground text-sm">Application Version History and Changelogs</p>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add New Version
+                        </Button>
                     </div>
-                    <Button
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={onAddVersion}
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add New Version
-                    </Button>
-                </div>
 
-                {/* Version Table */}
-                <Card>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                    <TableHead className="font-bold text-xs uppercase tracking-wider">Version Number</TableHead>
-                                    <TableHead className="font-bold text-xs uppercase tracking-wider">Release Date</TableHead>
-                                    <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
-                                    <TableHead className="font-bold text-xs uppercase tracking-wider hidden lg:table-cell">Changelog</TableHead>
-                                    <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {versions.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-12">
-                                            <p className="text-muted-foreground">Chưa có version nào.</p>
-                                            <Button variant="outline" size="sm" className="mt-4" onClick={onAddVersion}>
-                                                <Plus className="w-4 h-4 mr-2" />
-                                                Tạo version đầu tiên
-                                            </Button>
-                                        </TableCell>
+                    {/* Version Table */}
+                    <Card>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Version Number</TableHead>
+                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Release Date</TableHead>
+                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                                        <TableHead className="font-bold text-xs uppercase tracking-wider hidden lg:table-cell">Changelog</TableHead>
+                                        <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Actions</TableHead>
                                     </TableRow>
-                                ) : (
-                                    versions.map((version) => (
-                                        <TableRow key={version.id} className="group hover:bg-muted/30">
-                                            <TableCell>
-                                                <span className="font-mono font-bold">{version.version}</span>
-                                                {version.build_hash && (
-                                                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                                                        Build hash: {version.build_hash}
-                                                    </p>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {formatDate(version.release_date)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {getStatusBadge(version.status)}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground max-w-xs truncate hidden lg:table-cell">
-                                                {version.changelog || '-'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8"
-                                                                onClick={() => handleEdit(version)}
-                                                            >
-                                                                <Edit className="w-4 h-4" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Chỉnh sửa</TooltipContent>
-                                                    </Tooltip>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8"
-                                                                onClick={() => handleDownload(version)}
-                                                            >
-                                                                <Download className="w-4 h-4" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Download</TooltipContent>
-                                                    </Tooltip>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                onClick={() => handleDelete(version.id)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Xóa</TooltipContent>
-                                                    </Tooltip>
-                                                </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {versions.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-12">
+                                                <p className="text-muted-foreground">Chưa có version nào.</p>
+                                                <Button variant="outline" size="sm" className="mt-4" onClick={onAddVersion}>
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Tạo version đầu tiên
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    ) : (
+                                        versions.map((version) => (
+                                            <TableRow key={version.id} className="group hover:bg-muted/30">
+                                                <TableCell>
+                                                    <span className="font-mono font-bold">{version.version}</span>
+                                                    {version.build_hash && (
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                            Build hash: {version.build_hash}
+                                                        </p>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {formatDate(version.release_date)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getStatusBadge(version.status)}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground max-w-xs truncate hidden lg:table-cell">
+                                                    {version.changelog || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => handleEdit(version)}
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Chỉnh sửa</TooltipContent>
+                                                        </Tooltip>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => handleDownload(version)}
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Download</TooltipContent>
+                                                        </Tooltip>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                    onClick={() => handleDelete(version.id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Xóa</TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
 
-                        {/* Pagination */}
-                        {versions.length > 0 && (
-                            <div className="px-6 py-4 flex items-center justify-between border-t bg-muted/30">
-                                <p className="text-xs text-muted-foreground">
-                                    Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                                    <span className="font-bold">{Math.min(currentPage * itemsPerPage, totalVersions)}</span> of{' '}
-                                    <span className="font-bold">{totalVersions}</span> versions
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        disabled={currentPage === 1}
-                                        onClick={() => setCurrentPage(currentPage - 1)}
-                                    >
-                                        <ChevronLeft className="w-4 h-4" />
-                                    </Button>
-                                    <div className="flex gap-1">
-                                        {Array.from({ length: Math.min(3, totalPages) }, (_, i) => (
-                                            <Button
-                                                key={i + 1}
-                                                variant={currentPage === i + 1 ? 'default' : 'ghost'}
-                                                size="icon"
-                                                className={`h-8 w-8 text-xs font-bold ${currentPage === i + 1 ? 'bg-primary' : ''}`}
-                                                onClick={() => setCurrentPage(i + 1)}
-                                            >
-                                                {i + 1}
-                                            </Button>
-                                        ))}
+                            {/* Pagination */}
+                            {versions.length > 0 && (
+                                <div className="px-6 py-4 flex items-center justify-between border-t bg-muted/30">
+                                    <p className="text-xs text-muted-foreground">
+                                        Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                                        <span className="font-bold">{Math.min(currentPage * itemsPerPage, totalVersions)}</span> of{' '}
+                                        <span className="font-bold">{totalVersions}</span> versions
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            disabled={currentPage === 1}
+                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                        >
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </Button>
+                                        <div className="flex gap-1">
+                                            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => (
+                                                <Button
+                                                    key={i + 1}
+                                                    variant={currentPage === i + 1 ? 'default' : 'ghost'}
+                                                    size="icon"
+                                                    className={`h-8 w-8 text-xs font-bold ${currentPage === i + 1 ? 'bg-primary' : ''}`}
+                                                    onClick={() => setCurrentPage(i + 1)}
+                                                >
+                                                    {i + 1}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            disabled={currentPage === totalPages}
+                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Button>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        disabled={currentPage === totalPages}
-                                        onClick={() => setCurrentPage(currentPage + 1)}
-                                    >
-                                        <ChevronRight className="w-4 h-4" />
-                                    </Button>
                                 </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-        </TooltipProvider>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </TooltipProvider>
+
+            {/* Edit Version Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Chỉnh sửa Version</DialogTitle>
+                        <DialogDescription>
+                            Cập nhật thông tin cho version {editingVersion?.version}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Version Number</Label>
+                            <Input
+                                value={editForm.version}
+                                onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
+                                placeholder="v1.0.0"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Ngày phát hành</Label>
+                            <Input
+                                type="date"
+                                value={editForm.release_date}
+                                onChange={(e) => setEditForm({ ...editForm, release_date: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Changelog</Label>
+                            <Textarea
+                                value={editForm.release_notes}
+                                onChange={(e) => setEditForm({ ...editForm, release_notes: e.target.value })}
+                                placeholder="Mô tả các thay đổi trong version này..."
+                                rows={3}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Download URL</Label>
+                            <Input
+                                value={editForm.download_url}
+                                onChange={(e) => setEditForm({ ...editForm, download_url: e.target.value })}
+                                placeholder="https://..."
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isUpdating}>
+                            Hủy bỏ
+                        </Button>
+                        <Button onClick={handleUpdateVersion} disabled={isUpdating}>
+                            {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Lưu thay đổi
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };

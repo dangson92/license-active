@@ -135,7 +135,9 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                 <p className="text-sm font-medium text-muted-foreground">Total Versions</p>
                                 <Package className="w-5 h-5 text-emerald-500" />
                             </div>
-                            <span className="text-3xl font-bold">12</span>
+                            <span className="text-3xl font-bold">
+                                {apps.reduce((sum, app: any) => sum + (app.version_count || 0), 0)}
+                            </span>
                         </CardContent>
                     </Card>
                     <Card>
@@ -144,7 +146,9 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                 <p className="text-sm font-medium text-muted-foreground">Active Licenses</p>
                                 <Settings className="w-5 h-5 text-amber-500" />
                             </div>
-                            <span className="text-3xl font-bold">156</span>
+                            <span className="text-3xl font-bold">
+                                {apps.reduce((sum, app: any) => sum + (app.license_count || 0), 0)}
+                            </span>
                         </CardContent>
                     </Card>
                 </div>
@@ -194,10 +198,10 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                                 <code className="text-xs bg-muted px-2 py-1 rounded">{app.code}</code>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">3 versions</Badge>
+                                                <Badge variant="secondary">{(app as any).version_count || 0} versions</Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="font-medium">24</span>
+                                                <span className="font-medium">{(app as any).license_count || 0}</span>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {app.created_at ? new Date(app.created_at).toLocaleDateString('vi-VN') : '-'}

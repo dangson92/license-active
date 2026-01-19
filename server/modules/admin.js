@@ -82,7 +82,13 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 
 router.get('/apps', requireAdmin, async (req, res) => {
   try {
-    const r = await query('SELECT id,code,name,description,icon_url,is_active,created_at FROM apps ORDER BY id DESC')
+    const r = await query(`
+      SELECT a.id, a.code, a.name, a.description, a.icon_url, a.is_active, a.created_at,
+        (SELECT COUNT(*) FROM app_versions av WHERE av.app_id = a.id) as version_count,
+        (SELECT COUNT(*) FROM licenses l WHERE l.app_id = a.id) as license_count
+      FROM apps a 
+      ORDER BY id DESC
+    `)
     res.json({ items: r.rows })
   } catch (e) {
     console.error('Error getting apps:', e)

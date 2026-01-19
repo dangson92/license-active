@@ -91,8 +91,10 @@ export const Checkout: React.FC<CheckoutProps> = ({
     }
 
     const totalPrice = price * getQuantityValue();
-    // Generate transfer content for QR code
-    const transferContent = `SDA_${appId}_${getQuantityValue()}D`;
+    // Generate transfer content for QR code - include app code and duration
+    const appCode = appDetails?.code || appName?.toUpperCase().replace(/\s+/g, '') || 'APP';
+    const durationShort = getDurationMonths() === 1 ? '1M' : getDurationMonths() === 6 ? '6M' : '1Y';
+    const transferContent = `SDA_${appCode}_${getQuantityValue()}D_${durationShort}`;
 
     // Generate VietQR URL
     const getVietQRUrl = () => {
