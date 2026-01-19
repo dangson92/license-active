@@ -558,6 +558,13 @@ export const api = {
       });
     },
 
+    // Admin: Delete order (and receipt file)
+    deleteOrder: async (orderId: number) => {
+      return apiCall(`/api/store/admin/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+    },
+
     // Admin: Get pricing
     getAdminPricing: async () => {
       return apiCall('/api/store/admin/pricing');

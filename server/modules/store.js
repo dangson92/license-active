@@ -255,6 +255,39 @@ router.post('/admin/orders/:id/reject', requireAdmin, async (req, res) => {
     }
 })
 
+// Delete order (and receipt file if exists)
+router.delete('/admin/orders/:id', requireAdmin, async (req, res) => {
+    try {
+        const orderId = Number(req.params.id)
+
+        // Get order to check receipt_url
+        const orderRes = await query('SELECT id, receipt_url FROM purchase_orders WHERE id = ?', [orderId])
+        if (orderRes.rows.length === 0) {
+            return res.status(404).json({ error: 'not_found', message: 'Order not found' })
+        }
+
+        const order = orderRes.rows[0]
+
+        // Delete receipt file if exists
+        if (order.receipt_url) {
+            const filePath = path.join(process.cwd(), order.receipt_url)
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath)
+                console.log(`🗑️ Deleted receipt file: ${filePath}`)
+            }
+        }
+
+        // Delete order from database
+        await query('DELETE FROM purchase_orders WHERE id = ?', [orderId])
+
+        console.log(`🗑️ Deleted order #${orderId}`)
+        res.json({ order_id: orderId, deleted: true })
+    } catch (e) {
+        console.error('Error deleting order:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
 // =====================
 // Admin: Manage App Pricing
 // =====================

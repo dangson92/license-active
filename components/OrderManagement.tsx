@@ -19,7 +19,8 @@ import {
     Eye,
     Receipt,
     ListFilter,
-    Loader2
+    Loader2,
+    Trash2
 } from 'lucide-react';
 import {
     Dialog,
@@ -62,6 +63,9 @@ export const OrderManagement: React.FC = () => {
     const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
     const [processNote, setProcessNote] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         loadOrders();
@@ -104,6 +108,28 @@ export const OrderManagement: React.FC = () => {
             alert(`Không thể ${actionType === 'approve' ? 'duyệt' : 'từ chối'} đơn hàng. Vui lòng thử lại.`);
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    const handleDeleteClick = (order: Order) => {
+        setOrderToDelete(order);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteOrder = async () => {
+        if (!orderToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.store.deleteOrder(orderToDelete.id);
+            await loadOrders();
+            setIsDeleteDialogOpen(false);
+            setOrderToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete order:', error);
+            alert('Không thể xóa đơn hàng. Vui lòng thử lại.');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -315,6 +341,17 @@ export const OrderManagement: React.FC = () => {
                                                             </Button>
                                                         </>
                                                     )}
+
+                                                    {/* Delete button - always visible */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                                                        title="Xóa"
+                                                        onClick={() => handleDeleteClick(order)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -397,6 +434,50 @@ export const OrderManagement: React.FC = () => {
                         >
                             {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {actionType === 'approve' ? 'Xác nhận Duyệt' : 'Xác nhận Từ chối'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Xác nhận xóa đơn hàng</DialogTitle>
+                        <DialogDescription>
+                            Bạn có chắc chắn muốn xóa đơn hàng này? Ảnh biên lai (nếu có) cũng sẽ bị xóa. Hành động này không thể hoàn tác.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {orderToDelete && (
+                        <div className="grid grid-cols-2 gap-4 text-sm py-4">
+                            <div className="text-muted-foreground">Mã đơn:</div>
+                            <div className="font-mono font-bold text-right">{orderToDelete.order_code}</div>
+
+                            <div className="text-muted-foreground">Khách hàng:</div>
+                            <div className="font-medium text-right">{orderToDelete.user_name}</div>
+
+                            <div className="text-muted-foreground">Số tiền:</div>
+                            <div className="font-bold text-right text-primary">
+                                {formatCurrency(orderToDelete.total_price)}
+                            </div>
+
+                            <div className="text-muted-foreground">Trạng thái:</div>
+                            <div className="text-right">{getStatusBadge(orderToDelete.status)}</div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteOrder}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Xác nhận Xóa
                         </Button>
                     </DialogFooter>
                 </DialogContent>

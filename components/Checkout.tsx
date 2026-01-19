@@ -13,7 +13,8 @@ import {
     QrCode,
     Loader2,
     Check,
-    XCircle
+    XCircle,
+    X
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -40,13 +41,14 @@ export const Checkout: React.FC<CheckoutProps> = ({
     const [paymentSettings, setPaymentSettings] = useState({
         bank_name: 'Techcombank',
         bank_code: 'TCB',
-        bank_account: '19034567890123',
-        bank_holder: 'SD AUTOMATION CO',
+        bank_account: '678726969',
+        bank_holder: 'Đặng Thanh Sơn',
     });
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [copied, setCopied] = useState<string | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -109,31 +111,50 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setReceiptFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setReceiptFile(file);
+            // Create preview URL
+            const previewUrl = URL.createObjectURL(file);
+            setReceiptPreview(previewUrl);
+            // Clear any previous validation error
+            setValidationError(null);
+        }
+    };
+
+    const removeReceipt = () => {
+        setReceiptFile(null);
+        if (receiptPreview) {
+            URL.revokeObjectURL(receiptPreview);
+            setReceiptPreview(null);
         }
     };
 
     const handleSubmitOrder = async () => {
-        // Clear previous errors
+        // Clear previous errors and start spinning
         setValidationError(null);
+        setSubmitting(true);
+
+        // Add 1s delay to show spinning before validation
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Validate all fields
         if (!appId) {
             setValidationError('Vui lòng chọn ứng dụng.');
+            setSubmitting(false);
             return;
         }
 
         if (getQuantityValue() < 1) {
             setValidationError('Vui lòng nhập số lượng thiết bị (tối thiểu 1).');
+            setSubmitting(false);
             return;
         }
 
         if (!receiptFile) {
             setValidationError('Vui lòng tải lên biên lai chuyển khoản trước khi hoàn tất.');
+            setSubmitting(false);
             return;
         }
-
-        setSubmitting(true);
         try {
             // Step 1: Create order
             const orderResponse = await api.store.createOrder({
@@ -171,10 +192,6 @@ export const Checkout: React.FC<CheckoutProps> = ({
                         <Zap className="w-4 h-4" />
                     </div>
                     <h1 className="text-sm font-bold tracking-tight uppercase">SD Automation</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="size-6 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">3</span>
-                    <span className="text-sm font-medium text-muted-foreground">Hoàn tất đăng ký</span>
                 </div>
             </header>
 
@@ -220,16 +237,6 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                 </div>
                             </CardContent>
                         </Card>
-
-                        {/* Validation Error */}
-                        {validationError && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-800">
-                                <XCircle className="w-5 h-5" />
-                                <div>
-                                    <p className="font-semibold text-sm">{validationError}</p>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Step 2: Bank Transfer Info */}
                         <Card>
@@ -323,29 +330,50 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                     <span className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">3</span>
                                     <h2 className="text-lg font-bold">Xác nhận thanh toán</h2>
                                 </div>
-                                <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group relative">
-                                    <input
-                                        type="file"
-                                        id="receipt-upload"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        accept="image/*"
-                                        onChange={handleFileChange}
-                                    />
-                                    <div className="size-14 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary shadow-sm transition-colors mb-4">
-                                        <Upload className="w-6 h-6" />
+
+                                {receiptPreview ? (
+                                    /* Show preview with remove button */
+                                    <div className="relative">
+                                        <div className="border-2 rounded-xl overflow-hidden bg-muted/30">
+                                            <img
+                                                src={receiptPreview}
+                                                alt="Receipt preview"
+                                                className="w-full h-auto max-h-64 object-contain"
+                                            />
+                                        </div>
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Check className="w-4 h-4 text-emerald-500" />
+                                                <span className="text-sm text-muted-foreground">{receiptFile?.name}</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={removeReceipt}
+                                            >
+                                                <X className="w-4 h-4 mr-1" />
+                                                Xóa ảnh
+                                            </Button>
+                                        </div>
                                     </div>
-                                    {receiptFile ? (
-                                        <>
-                                            <p className="text-sm font-semibold text-primary">{receiptFile.name}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Click để chọn file khác</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="text-sm font-semibold">Tải lên biên lai chuyển khoản</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Kéo thả hoặc click để chọn ảnh (PNG, JPG tối đa 5MB)</p>
-                                        </>
-                                    )}
-                                </div>
+                                ) : (
+                                    /* Show upload dropzone */
+                                    <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group relative">
+                                        <input
+                                            type="file"
+                                            id="receipt-upload"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                        />
+                                        <div className="size-14 rounded-full bg-background flex items-center justify-center text-muted-foreground group-hover:text-primary shadow-sm transition-colors mb-4">
+                                            <Upload className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-sm font-semibold">Tải lên biên lai chuyển khoản</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Kéo thả hoặc click để chọn ảnh (PNG, JPG tối đa 5MB)</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -411,6 +439,14 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                         )}
                                         {!submitting && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
                                     </Button>
+
+                                    {/* Validation Error - Below submit button */}
+                                    {validationError && (
+                                        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-red-800">
+                                            <XCircle className="w-4 h-4 shrink-0" />
+                                            <p className="text-xs font-medium">{validationError}</p>
+                                        </div>
+                                    )}
 
                                     <div className="mt-6 space-y-3">
                                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
