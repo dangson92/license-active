@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import api from '../services/api';
+import { config } from '../config';
 
 interface Order {
     id: number;
@@ -115,6 +116,16 @@ export const OrderManagement: React.FC = () => {
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    // Helper to get full receipt URL (server returns relative path like /uploads/receipts/xxx.jpg)
+    const getReceiptUrl = (receiptUrl: string | null): string | null => {
+        if (!receiptUrl) return null;
+        // If it's already a full URL, return as-is
+        if (receiptUrl.startsWith('http')) return receiptUrl;
+        // Server stores as /uploads/receipts/xxx.jpg, we need to prepend API URL
+        // Route is /api/uploads/... so we add /api prefix
+        return `${config.apiUrl}/api${receiptUrl}`;
     };
 
     const getStatusBadge = (status: string) => {
@@ -272,7 +283,7 @@ export const OrderManagement: React.FC = () => {
                                                 <div className="flex items-center gap-2">
                                                     {order.receipt_url && (
                                                         <a
-                                                            href={order.receipt_url}
+                                                            href={getReceiptUrl(order.receipt_url) || '#'}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="inline-flex items-center justify-center p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
@@ -348,12 +359,12 @@ export const OrderManagement: React.FC = () => {
                                 <p className="text-xs font-semibold mb-2">Biên lai chuyển khoản:</p>
                                 <div className="relative aspect-video bg-black/5 rounded overflow-hidden">
                                     <img
-                                        src={selectedOrder.receipt_url}
+                                        src={getReceiptUrl(selectedOrder.receipt_url) || ''}
                                         alt="Receipt"
                                         className="object-contain w-full h-full"
                                     />
                                     <a
-                                        href={selectedOrder.receipt_url}
+                                        href={getReceiptUrl(selectedOrder.receipt_url) || '#'}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded hover:bg-black/90"

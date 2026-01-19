@@ -132,6 +132,7 @@ const SettingsPlaceholder: React.FC = () => (
 
 // License Content (extracted from UserDashboard)
 const LicenseContent: React.FC = () => {
+    const navigate = useNavigate();
     const [userKeys, setUserKeys] = useState<LicenseKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -239,7 +240,7 @@ const LicenseContent: React.FC = () => {
                         Tổng quan về các license phần mềm và giới hạn thiết bị của bạn.
                     </p>
                 </div>
-                <Button>
+                <Button onClick={() => navigate('/user/store')}>
                     <Plus className="w-4 h-4 mr-2" />
                     Mua License Mới
                 </Button>
@@ -276,7 +277,7 @@ const LicenseContent: React.FC = () => {
                                                 <Key className="w-6 h-6 text-muted-foreground" />
                                             </div>
                                             <p className="text-muted-foreground">Bạn chưa có license key nào.</p>
-                                            <Button variant="outline" size="sm">
+                                            <Button variant="outline" size="sm" onClick={() => navigate('/user/store')}>
                                                 <Plus className="w-4 h-4 mr-2" />
                                                 Mua License đầu tiên
                                             </Button>

@@ -12,7 +12,8 @@ import {
     Shield,
     QrCode,
     Loader2,
-    Check
+    Check,
+    XCircle
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -43,10 +44,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
         bank_holder: 'SD AUTOMATION CO',
     });
     const [loading, setLoading] = useState(true);
-    const [creatingOrder, setCreatingOrder] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [orderInfo, setOrderInfo] = useState<{ id: number; orderCode: string } | null>(null);
     const [copied, setCopied] = useState<string | null>(null);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -89,8 +89,8 @@ export const Checkout: React.FC<CheckoutProps> = ({
     }
 
     const totalPrice = price * getQuantityValue();
-    // Use order code if available, otherwise fallback (though flow ensures order code for payment)
-    const transferContent = orderInfo ? orderInfo.orderCode : `SDA_${appId}_${getQuantityValue()}D`;
+    // Generate transfer content for QR code
+    const transferContent = `SDA_${appId}_${getQuantityValue()}D`;
 
     // Generate VietQR URL
     const getVietQRUrl = () => {
@@ -113,11 +113,29 @@ export const Checkout: React.FC<CheckoutProps> = ({
         }
     };
 
-    const handleCreateOrder = async () => {
-        if (!appId || getQuantityValue() < 1) return;
+    const handleSubmitOrder = async () => {
+        // Clear previous errors
+        setValidationError(null);
 
-        setCreatingOrder(true);
+        // Validate all fields
+        if (!appId) {
+            setValidationError('Vui lòng chọn ứng dụng.');
+            return;
+        }
+
+        if (getQuantityValue() < 1) {
+            setValidationError('Vui lòng nhập số lượng thiết bị (tối thiểu 1).');
+            return;
+        }
+
+        if (!receiptFile) {
+            setValidationError('Vui lòng tải lên biên lai chuyển khoản trước khi hoàn tất.');
+            return;
+        }
+
+        setSubmitting(true);
         try {
+            // Step 1: Create order
             const orderResponse = await api.store.createOrder({
                 app_id: parseInt(appId),
                 quantity: getQuantityValue(),
@@ -125,32 +143,14 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 unit_price: price
             });
 
-            setOrderInfo({
-                id: orderResponse.id,
-                orderCode: orderResponse.order_code
-            });
+            // Step 2: Upload receipt
+            await api.store.uploadReceipt(orderResponse.id, receiptFile);
 
-        } catch (error) {
-            console.error('Failed to create order:', error);
-            alert('Không thể tạo đơn hàng. Vui lòng thử lại.');
-        } finally {
-            setCreatingOrder(false);
-        }
-    };
-
-    const handleConfirmPayment = async () => {
-        if (!orderInfo || !receiptFile) return;
-
-        setSubmitting(true);
-        try {
-            // Upload receipt
-            await api.store.uploadReceipt(orderInfo.id, receiptFile);
-
-            // Navigate to success
+            // Step 3: Navigate to success
             onSuccess?.();
         } catch (error) {
-            console.error('Failed to submit receipt:', error);
-            alert('Có lỗi xảy ra khi gửi xác nhận. Vui lòng thử lại.');
+            console.error('Failed to submit order:', error);
+            alert('Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
         } finally {
             setSubmitting(false);
         }
@@ -221,13 +221,12 @@ export const Checkout: React.FC<CheckoutProps> = ({
                             </CardContent>
                         </Card>
 
-                        {/* Order Created Notification */}
-                        {orderInfo && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 text-green-800">
-                                <Check className="w-5 h-5" />
+                        {/* Validation Error */}
+                        {validationError && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-800">
+                                <XCircle className="w-5 h-5" />
                                 <div>
-                                    <p className="font-semibold text-sm">Đơn hàng đã được tạo thành công!</p>
-                                    <p className="text-xs">Mã đơn hàng: <span className="font-bold">{orderInfo.orderCode}</span>. Vui lòng thực hiện thanh toán bên dưới.</p>
+                                    <p className="font-semibold text-sm">{validationError}</p>
                                 </div>
                             </div>
                         )}
@@ -399,35 +398,19 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                         </div>
                                     </div>
 
-                                    {!orderInfo ? (
-                                        <Button
-                                            className="w-full shadow-lg shadow-primary/20 group"
-                                            size="lg"
-                                            onClick={handleCreateOrder}
-                                            disabled={getQuantityValue() < 1 || creatingOrder || !appId}
-                                        >
-                                            {creatingOrder ? (
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            ) : (
-                                                <span>Tạo đơn hàng</span>
-                                            )}
-                                            {!creatingOrder && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            className="w-full shadow-lg shadow-primary/20 group"
-                                            size="lg"
-                                            onClick={handleConfirmPayment}
-                                            disabled={!receiptFile || submitting}
-                                        >
-                                            {submitting ? (
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            ) : (
-                                                <span>Xác nhận thanh toán</span>
-                                            )}
-                                            {!submitting && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
-                                        </Button>
-                                    )}
+                                    <Button
+                                        className="w-full shadow-lg shadow-primary/20 group"
+                                        size="lg"
+                                        onClick={handleSubmitOrder}
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <span>Hoàn tất đơn hàng</span>
+                                        )}
+                                        {!submitting && <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />}
+                                    </Button>
 
                                     <div className="mt-6 space-y-3">
                                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

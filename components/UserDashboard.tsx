@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LicenseKey, KeyStatus, User } from '../types';
 import api from '../services/api';
 import { AppLayout } from './layout/AppLayout';
@@ -20,6 +21,7 @@ interface UserDashboardProps {
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [userKeys, setUserKeys] = useState<LicenseKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
               Tổng quan về các license phần mềm và giới hạn thiết bị của bạn.
             </p>
           </div>
-          <Button>
+          <Button onClick={() => navigate('/user/store')}>
             <Plus className="w-4 h-4 mr-2" />
             Mua License Mới
           </Button>
@@ -175,7 +177,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
                           <Key className="w-6 h-6 text-muted-foreground" />
                         </div>
                         <p className="text-muted-foreground">Bạn chưa có license key nào.</p>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => navigate('/user/store')}>
                           <Plus className="w-4 h-4 mr-2" />
                           Mua License đầu tiên
                         </Button>
@@ -228,7 +230,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
                         </TableCell>
                         <TableCell>
                           <p className={`text-sm ${key.status === KeyStatus.EXPIRED ? 'text-muted-foreground' :
-                              key.status === KeyStatus.ACTIVE ? 'text-foreground' : 'text-muted-foreground'
+                            key.status === KeyStatus.ACTIVE ? 'text-foreground' : 'text-muted-foreground'
                             }`}>
                             {formatDate(key.expiresAt)}
                           </p>
