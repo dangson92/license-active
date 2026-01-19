@@ -188,8 +188,12 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                         <TableRow key={app.id} className="group hover:bg-muted/50">
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center">
-                                                        <AppWindow className="w-5 h-5 text-blue-600" />
+                                                    <div className="w-10 h-10 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden">
+                                                        {(app as any).icon_url ? (
+                                                            <img src={(app as any).icon_url} alt={app.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <AppWindow className="w-5 h-5 text-blue-600" />
+                                                        )}
                                                     </div>
                                                     <span className="font-medium">{app.name}</span>
                                                 </div>

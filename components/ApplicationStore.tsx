@@ -18,6 +18,7 @@ interface StoreApp {
     code: string;
     name: string;
     description?: string;
+    icon_url?: string;
     price_1_month?: number;
     price_1_month_enabled?: boolean;
     price_6_months?: number;
@@ -180,8 +181,12 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                 <CardContent className="pt-6 flex-1 flex flex-col">
                                     {/* Header */}
                                     <div className="flex justify-between items-start mb-6">
-                                        <div className={`size-14 rounded-xl flex items-center justify-center border ${color} group-hover:scale-110 transition-transform duration-300`}>
-                                            <Icon className="w-8 h-8" />
+                                        <div className={`size-14 rounded-xl flex items-center justify-center border overflow-hidden ${app.icon_url ? 'bg-white' : color} group-hover:scale-110 transition-transform duration-300`}>
+                                            {app.icon_url ? (
+                                                <img src={app.icon_url} alt={app.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Icon className="w-8 h-8" />
+                                            )}
                                         </div>
                                         {app.badge && (
                                             <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${badgeColors[app.badge.toLowerCase()] || badgeColors.popular}`}>

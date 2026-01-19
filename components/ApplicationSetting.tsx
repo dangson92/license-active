@@ -153,7 +153,13 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
 
             // Upload icon if changed
             if (iconFile && targetAppId) {
-                await api.admin.uploadAppIcon(targetAppId, iconFile);
+                const iconResult = await api.admin.uploadAppIcon(targetAppId, iconFile);
+                // Update formData with new icon URL from server
+                if (iconResult.icon_url) {
+                    setFormData(prev => ({ ...prev, iconUrl: iconResult.icon_url }));
+                    setIconPreview(iconResult.icon_url);
+                }
+                setIconFile(null); // Clear file after successful upload
             }
 
             // Save pricing
