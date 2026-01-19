@@ -33,7 +33,12 @@ const genKey = () => {
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const r = await query('SELECT id,email,full_name,role,email_verified,created_at,last_login_at FROM users ORDER BY id DESC')
+    const r = await query(`
+      SELECT u.id, u.email, u.full_name, u.role, u.email_verified, u.created_at, u.last_login_at,
+        (SELECT COUNT(*) FROM licenses l WHERE l.user_id = u.id) as licenses_count
+      FROM users u
+      ORDER BY u.id DESC
+    `)
     res.json({ items: r.rows })
   } catch (e) {
     console.error('Error getting users:', e)
