@@ -26,6 +26,8 @@ interface SettingsData {
     bank_code: string;
     bank_account: string;
     bank_holder: string;
+    // Order notification
+    order_notification_email: string;
 }
 
 export const Settings: React.FC = () => {
@@ -42,6 +44,7 @@ export const Settings: React.FC = () => {
         bank_code: '',
         bank_account: '',
         bank_holder: '',
+        order_notification_email: '',
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -319,6 +322,31 @@ export const Settings: React.FC = () => {
                 </CardContent>
             </Card>
 
+            {/* Order Notification Settings */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Thông báo đơn hàng</CardTitle>
+                    <CardDescription>
+                        Cấu hình email nhận thông báo khi có đơn hàng mới.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="order_notification_email">Email nhận thông báo đơn hàng</Label>
+                        <Input
+                            id="order_notification_email"
+                            type="email"
+                            placeholder="admin@example.com"
+                            value={settings.order_notification_email}
+                            onChange={(e) => updateSetting('order_notification_email', e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Mỗi khi có đơn hàng mới, hệ thống sẽ gửi thông báo đến email này.
+                            Khi đơn hàng được duyệt/từ chối, hệ thống sẽ gửi email đến khách hàng.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
             {/* Test Email */}
             <Card>
                 <CardHeader>

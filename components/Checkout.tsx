@@ -294,10 +294,6 @@ export const Checkout: React.FC<CheckoutProps> = ({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-100">
-                                            <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                                            <p>Vui lòng nhập chính xác nội dung chuyển khoản để đơn hàng được xử lý nhanh chóng.</p>
-                                        </div>
                                     </div>
 
                                     {/* QR Code */}

@@ -53,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: Grid3X3, label: 'Overview', id: 'overview' },
         { icon: Key, label: 'My Licenses', id: 'licenses' },
         { icon: ShoppingBag, label: 'Store', id: 'store' },
+        { icon: Package, label: 'My Orders', id: 'orders' },
         { icon: HelpCircle, label: 'Support', id: 'support' },
     ];
 

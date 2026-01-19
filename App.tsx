@@ -188,6 +188,19 @@ const AppVersionHistoryWrapper: React.FC = () => {
       appName={appName}
       onBack={() => navigate('/admin/applications')}
       onAddVersion={() => navigate(`/admin/applications/${appId}/add-version`, { state: { appName } })}
+      onEditVersion={(version) => navigate(`/admin/applications/${appId}/add-version`, {
+        state: {
+          appName,
+          editVersion: {
+            id: version.id,
+            version: version.version,
+            release_date: version.release_date,
+            release_notes: version.changelog,
+            download_url: version.download_url,
+            platform: version.platform
+          }
+        }
+      })}
     />
   );
 };
@@ -197,11 +210,13 @@ const AddAppVersionWrapper: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const appName = (location.state as any)?.appName || 'Application';
+  const editVersion = (location.state as any)?.editVersion || null;
 
   return (
     <AddAppVersion
       appId={appId}
       appName={appName}
+      editVersion={editVersion}
       onBack={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
       onSuccess={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
     />

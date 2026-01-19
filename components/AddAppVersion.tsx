@@ -21,9 +21,20 @@ import {
     Info
 } from 'lucide-react';
 
+interface EditVersionData {
+    id: number;
+    version: string;
+    release_date: string;
+    release_notes?: string;
+    download_url?: string;
+    platform?: string;
+    file_type?: string;
+}
+
 interface AddAppVersionProps {
     appId?: string;
     appName?: string;
+    editVersion?: EditVersionData | null; // If provided, component is in edit mode
     onBack: () => void;
     onSuccess: () => void;
 }
@@ -31,9 +42,11 @@ interface AddAppVersionProps {
 export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     appId,
     appName = 'Application',
+    editVersion,
     onBack,
     onSuccess
 }) => {
+    const isEditMode = !!editVersion;
     const [versionNumber, setVersionNumber] = useState('');
     const [releaseDate, setReleaseDate] = useState('');
     const [platform, setPlatform] = useState('');
@@ -42,11 +55,21 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [downloadUrl, setDownloadUrl] = useState('');
     const [creating, setCreating] = useState(false);
 
-    // Set default release date (today)
+    // Initialize form with edit data or default values
     useEffect(() => {
-        const today = new Date().toISOString().split('T')[0];
-        setReleaseDate(today);
-    }, []);
+        if (editVersion) {
+            setVersionNumber(editVersion.version || '');
+            setReleaseDate(editVersion.release_date?.split('T')[0] || '');
+            setChangelog(editVersion.release_notes || '');
+            setDownloadUrl(editVersion.download_url || '');
+            setPlatform(editVersion.platform || '');
+            setFileType(editVersion.file_type || '');
+        } else {
+            // Set default release date (today) for new version
+            const today = new Date().toISOString().split('T')[0];
+            setReleaseDate(today);
+        }
+    }, [editVersion]);
 
     const handleSubmit = async () => {
         if (!versionNumber.trim()) {
@@ -57,21 +80,34 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         try {
             setCreating(true);
 
-            // Call API to create version
-            await api.admin.createAppVersion({
-                app_id: parseInt(appId || '0'),
-                version: versionNumber,
-                platform: platform || 'Windows',
-                file_type: fileType || '.exe',
-                release_notes: changelog,
-                download_url: downloadUrl || '',
-                release_date: releaseDate,
-            });
+            if (isEditMode && editVersion) {
+                // Update existing version
+                await api.admin.updateAppVersion(editVersion.id, {
+                    version: versionNumber,
+                    platform: platform || 'Windows',
+                    file_type: fileType || '.exe',
+                    release_notes: changelog,
+                    download_url: downloadUrl || '',
+                    release_date: releaseDate,
+                });
+                alert(`Version ${versionNumber} đã được cập nhật thành công!`);
+            } else {
+                // Create new version
+                await api.admin.createAppVersion({
+                    app_id: parseInt(appId || '0'),
+                    version: versionNumber,
+                    platform: platform || 'Windows',
+                    file_type: fileType || '.exe',
+                    release_notes: changelog,
+                    download_url: downloadUrl || '',
+                    release_date: releaseDate,
+                });
+                alert(`Version ${versionNumber} đã được tạo thành công!`);
+            }
 
-            alert(`Version ${versionNumber} đã được tạo thành công!`);
             onSuccess();
         } catch (error: any) {
-            alert(`Không thể tạo version!\n\nLỗi: ${error.message}`);
+            alert(`Không thể ${isEditMode ? 'cập nhật' : 'tạo'} version!\n\nLỗi: ${error.message}`);
         } finally {
             setCreating(false);
         }
@@ -87,7 +123,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 <span>›</span>
                 <span className="text-foreground font-medium">{appName}</span>
                 <span>›</span>
-                <span className="text-foreground font-medium">Add Version</span>
+                <span className="text-foreground font-medium">{isEditMode ? 'Edit Version' : 'Add Version'}</span>
             </nav>
 
             {/* Header */}
@@ -96,8 +132,15 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Add New App Version</h1>
-                    <p className="text-muted-foreground text-sm">Tạo phiên bản mới cho ứng dụng và thông báo cho người dùng.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">
+                        {isEditMode ? 'Edit App Version' : 'Add New App Version'}
+                    </h1>
+                    <p className="text-muted-foreground text-sm">
+                        {isEditMode
+                            ? 'Cập nhật thông tin phiên bản.'
+                            : 'Tạo phiên bản mới cho ứng dụng và thông báo cho người dùng.'
+                        }
+                    </p>
                 </div>
             </div>
 
@@ -226,7 +269,10 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             disabled={creating || !versionNumber.trim()}
                         >
                             <Upload className="w-4 h-4 mr-2" />
-                            {creating ? 'Đang tạo...' : 'Publish Version'}
+                            {creating
+                                ? (isEditMode ? 'Đang cập nhật...' : 'Đang tạo...')
+                                : (isEditMode ? 'Save Changes' : 'Publish Version')
+                            }
                         </Button>
                     </div>
                 </div>

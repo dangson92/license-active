@@ -19,6 +19,7 @@ import { UserSupport } from './UserSupport';
 import { ApplicationStore } from './ApplicationStore';
 import { Checkout } from './Checkout';
 import { CheckoutSuccess } from './CheckoutSuccess';
+import { UserOrders } from './UserOrders';
 
 interface UserRoutesProps {
     user: User;
@@ -33,6 +34,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
     const getActiveSection = () => {
         const path = location.pathname;
         if (path.includes('/user/store')) return 'store';
+        if (path.includes('/user/orders')) return 'orders';
         if (path.includes('/user/support')) return 'support';
         if (path.includes('/user/checkout')) return 'store';
         if (path.includes('/user/settings')) return 'settings';
@@ -49,6 +51,9 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                 break;
             case 'support':
                 navigate('/user/support');
+                break;
+            case 'orders':
+                navigate('/user/orders');
                 break;
             case 'settings':
                 navigate('/user/settings');
@@ -80,6 +85,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     <Route path="store" element={
                         <ApplicationStore onCheckout={handleCheckout} />
                     } />
+                    <Route path="orders" element={<UserOrders />} />
                     <Route path="support" element={<UserSupport />} />
                     <Route path="checkout/:appId" element={
                         <CheckoutWrapper onSuccess={() => navigate('/user/checkout-success')} />

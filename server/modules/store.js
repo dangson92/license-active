@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from './auth.js'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import { sendNewOrderNotification, sendOrderStatusEmail } from '../services/email.js'
 
 const router = express.Router()
 
@@ -76,6 +77,25 @@ router.get('/apps/:id', async (req, res) => {
 function generateOrderCode() {
     return 'SDA_' + Math.random().toString(36).substring(2, 8).toUpperCase() + '_' + Date.now().toString(36).toUpperCase()
 }
+// Get my orders (user)
+router.get('/orders', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id
+        const r = await query(`
+            SELECT po.id, po.order_code, po.quantity, po.duration_months, 
+                   po.unit_price, po.total_price, po.status, po.created_at, 
+                   po.processed_at, po.admin_note, a.name as app_name
+            FROM purchase_orders po
+            LEFT JOIN apps a ON po.app_id = a.id
+            WHERE po.user_id = ?
+            ORDER BY po.created_at DESC
+        `, [userId])
+        res.json({ items: r.rows })
+    } catch (e) {
+        console.error('Error getting orders:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
 
 // Create purchase order
 router.post('/orders', requireAuth, async (req, res) => {
@@ -96,9 +116,23 @@ router.post('/orders', requireAuth, async (req, res) => {
             [userId, app_id, orderCode, quantity || 1, duration_months, unit_price, totalPrice]
         )
         const r = await query('SELECT LAST_INSERT_ID() as id')
+        const orderId = r.rows[0].id
+
+        // Send email notification to admin (non-blocking)
+        const orderInfo = await query(`
+            SELECT po.*, a.name as app_name, u.email as user_email, u.full_name as user_name
+            FROM purchase_orders po
+            LEFT JOIN apps a ON po.app_id = a.id
+            LEFT JOIN users u ON po.user_id = u.id
+            WHERE po.id = ?
+        `, [orderId])
+
+        if (orderInfo.rows.length > 0) {
+            sendNewOrderNotification(orderInfo.rows[0]).catch(e => console.error('Email error:', e))
+        }
 
         res.json({
-            id: r.rows[0].id,
+            id: orderId,
             order_code: orderCode,
             total_price: totalPrice,
             message: 'Order created successfully'
@@ -229,6 +263,19 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             [adminId, orderId]
         )
 
+        // Send email notification to user (non-blocking)
+        const orderInfo = await query(`
+            SELECT po.*, a.name as app_name, u.email as user_email, u.full_name as user_name
+            FROM purchase_orders po
+            LEFT JOIN apps a ON po.app_id = a.id
+            LEFT JOIN users u ON po.user_id = u.id
+            WHERE po.id = ?
+        `, [orderId])
+
+        if (orderInfo.rows.length > 0) {
+            sendOrderStatusEmail(orderInfo.rows[0], 'approved').catch(e => console.error('Email error:', e))
+        }
+
         res.json({ order_id: orderId, approved: true, licenses_created: order.quantity })
     } catch (e) {
         console.error('Error approving order:', e)
@@ -247,6 +294,20 @@ router.post('/admin/orders/:id/reject', requireAdmin, async (req, res) => {
             `UPDATE purchase_orders SET status = 'cancelled', processed_by_admin_id = ?, notes = ? WHERE id = ?`,
             [adminId, notes || null, orderId]
         )
+
+        // Send email notification to user (non-blocking)
+        const orderInfo = await query(`
+            SELECT po.*, a.name as app_name, u.email as user_email, u.full_name as user_name
+            FROM purchase_orders po
+            LEFT JOIN apps a ON po.app_id = a.id
+            LEFT JOIN users u ON po.user_id = u.id
+            WHERE po.id = ?
+        `, [orderId])
+
+        if (orderInfo.rows.length > 0) {
+            const orderWithNote = { ...orderInfo.rows[0], admin_note: notes }
+            sendOrderStatusEmail(orderWithNote, 'rejected').catch(e => console.error('Email error:', e))
+        }
 
         res.json({ order_id: orderId, rejected: true })
     } catch (e) {

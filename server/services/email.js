@@ -145,5 +145,163 @@ export default {
     getSmtpConfig,
     generateVerificationToken,
     sendVerificationEmail,
-    sendTestEmail
+    sendTestEmail,
+    sendNewOrderNotification,
+    sendOrderStatusEmail
+}
+
+/**
+ * Format currency in Vietnamese format
+ */
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
+}
+
+/**
+ * Send notification to admin when new order is created
+ */
+export async function sendNewOrderNotification(order) {
+    const settings = await getSettings()
+    const adminEmail = settings.order_notification_email
+
+    if (!adminEmail) {
+        console.log('No order notification email configured, skipping email')
+        return false
+    }
+
+    try {
+        const transporter = await createTransporter()
+        const config = await getSmtpConfig()
+
+        await transporter.sendMail({
+            from: config.from,
+            to: adminEmail,
+            subject: `[${settings.app_name || 'License System'}] Đơn hàng mới #${order.order_code}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">🛒 Đơn hàng mới</h2>
+                    <p>Có đơn hàng mới cần xử lý:</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Mã đơn hàng</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.order_code}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Khách hàng</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.user_email} (${order.user_name})</td>
+                        </tr>
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Ứng dụng</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.app_name}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Số lượng thiết bị</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.quantity}</td>
+                        </tr>
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Thời hạn</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.duration_months} tháng</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Tổng tiền</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; color: #2563eb; font-weight: bold;">${formatCurrency(order.total_price)}</td>
+                        </tr>
+                    </table>
+                    
+                    <p>Vui lòng đăng nhập vào hệ thống để duyệt đơn hàng.</p>
+                    
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'License System'}</p>
+                </div>
+            `
+        })
+
+        return true
+    } catch (e) {
+        console.error('Failed to send order notification email:', e)
+        return false
+    }
+}
+
+/**
+ * Send email to user when order status changes
+ */
+export async function sendOrderStatusEmail(order, newStatus) {
+    const settings = await getSettings()
+
+    if (!order.user_email) {
+        console.log('No user email found, skipping status email')
+        return false
+    }
+
+    try {
+        const transporter = await createTransporter()
+        const config = await getSmtpConfig()
+
+        const statusMessages = {
+            approved: {
+                title: '✅ Đơn hàng đã được duyệt',
+                message: 'Đơn hàng của bạn đã được duyệt thành công! License đã được kích hoạt.',
+                color: '#10b981'
+            },
+            rejected: {
+                title: '❌ Đơn hàng bị từ chối',
+                message: order.admin_note ? `Đơn hàng của bạn đã bị từ chối. Lý do: ${order.admin_note}` : 'Đơn hàng của bạn đã bị từ chối. Vui lòng liên hệ admin để biết thêm chi tiết.',
+                color: '#ef4444'
+            }
+        }
+
+        const statusInfo = statusMessages[newStatus]
+        if (!statusInfo) {
+            console.log('Unknown status, skipping email')
+            return false
+        }
+
+        await transporter.sendMail({
+            from: config.from,
+            to: order.user_email,
+            subject: `[${settings.app_name || 'License System'}] ${statusInfo.title} - #${order.order_code}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: ${statusInfo.color};">${statusInfo.title}</h2>
+                    <p>Xin chào ${order.user_name || 'bạn'},</p>
+                    <p>${statusInfo.message}</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Mã đơn hàng</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.order_code}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Ứng dụng</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.app_name}</td>
+                        </tr>
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Số lượng thiết bị</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.quantity}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Thời hạn</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.duration_months} tháng</td>
+                        </tr>
+                        <tr style="background: #f3f4f6;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Tổng tiền</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; color: #2563eb; font-weight: bold;">${formatCurrency(order.total_price)}</td>
+                        </tr>
+                    </table>
+                    
+                    ${newStatus === 'approved' ? '<p style="color: #10b981;">Bạn có thể đăng nhập vào hệ thống để quản lý license của mình.</p>' : ''}
+                    
+                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'License System'}</p>
+                </div>
+            `
+        })
+
+        return true
+    } catch (e) {
+        console.error('Failed to send order status email:', e)
+        return false
+    }
 }

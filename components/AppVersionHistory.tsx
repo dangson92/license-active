@@ -7,17 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 // Icons
 import {
@@ -27,8 +16,7 @@ import {
     Download,
     Trash2,
     ChevronLeft,
-    ChevronRight,
-    Loader2
+    ChevronRight
 } from 'lucide-react';
 
 interface AppVersion {
@@ -47,30 +35,21 @@ interface AppVersionHistoryProps {
     appName: string;
     onBack: () => void;
     onAddVersion: () => void;
+    onEditVersion?: (version: AppVersion) => void;
 }
 
 export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     appId,
     appName,
     onBack,
-    onAddVersion
+    onAddVersion,
+    onEditVersion
 }) => {
     const [versions, setVersions] = useState<AppVersion[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalVersions, setTotalVersions] = useState(0);
     const itemsPerPage = 10;
-
-    // Edit dialog state
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [editingVersion, setEditingVersion] = useState<AppVersion | null>(null);
-    const [editForm, setEditForm] = useState({
-        version: '',
-        release_date: '',
-        release_notes: '',
-        download_url: ''
-    });
-    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         loadVersions();
@@ -163,34 +142,8 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     };
 
     const handleEdit = (version: AppVersion) => {
-        setEditingVersion(version);
-        setEditForm({
-            version: version.version,
-            release_date: version.release_date?.split('T')[0] || '',
-            release_notes: version.changelog || '',
-            download_url: version.download_url || ''
-        });
-        setIsEditDialogOpen(true);
-    };
-
-    const handleUpdateVersion = async () => {
-        if (!editingVersion) return;
-
-        setIsUpdating(true);
-        try {
-            await api.admin.updateAppVersion(editingVersion.id, {
-                version: editForm.version,
-                release_date: editForm.release_date,
-                release_notes: editForm.release_notes,
-                download_url: editForm.download_url
-            });
-            setIsEditDialogOpen(false);
-            loadVersions();
-        } catch (error) {
-            console.error('Failed to update version:', error);
-            alert('Không thể cập nhật version. Vui lòng thử lại.');
-        } finally {
-            setIsUpdating(false);
+        if (onEditVersion) {
+            onEditVersion(version);
         }
     };
 
@@ -378,62 +331,6 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                     </Card>
                 </div>
             </TooltipProvider>
-
-            {/* Edit Version Dialog */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Chỉnh sửa Version</DialogTitle>
-                        <DialogDescription>
-                            Cập nhật thông tin cho version {editingVersion?.version}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Version Number</Label>
-                            <Input
-                                value={editForm.version}
-                                onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
-                                placeholder="v1.0.0"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Ngày phát hành</Label>
-                            <Input
-                                type="date"
-                                value={editForm.release_date}
-                                onChange={(e) => setEditForm({ ...editForm, release_date: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Changelog</Label>
-                            <Textarea
-                                value={editForm.release_notes}
-                                onChange={(e) => setEditForm({ ...editForm, release_notes: e.target.value })}
-                                placeholder="Mô tả các thay đổi trong version này..."
-                                rows={3}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Download URL</Label>
-                            <Input
-                                value={editForm.download_url}
-                                onChange={(e) => setEditForm({ ...editForm, download_url: e.target.value })}
-                                placeholder="https://..."
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isUpdating}>
-                            Hủy bỏ
-                        </Button>
-                        <Button onClick={handleUpdateVersion} disabled={isUpdating}>
-                            {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Lưu thay đổi
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     );
 };
