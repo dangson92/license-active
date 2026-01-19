@@ -54,6 +54,7 @@ export const UserOrders: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
+            case 'paid':
             case 'approved':
                 return (
                     <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
@@ -61,6 +62,7 @@ export const UserOrders: React.FC = () => {
                         Đã duyệt
                     </Badge>
                 );
+            case 'cancelled':
             case 'rejected':
                 return (
                     <Badge className="bg-red-100 text-red-700 border-red-200">

@@ -84,7 +84,7 @@ router.get('/orders', requireAuth, async (req, res) => {
         const r = await query(`
             SELECT po.id, po.order_code, po.quantity, po.duration_months, 
                    po.unit_price, po.total_price, po.status, po.created_at, 
-                   po.processed_at, po.admin_note, a.name as app_name
+                   a.name as app_name
             FROM purchase_orders po
             LEFT JOIN apps a ON po.app_id = a.id
             WHERE po.user_id = ?
