@@ -323,6 +323,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                                 <Editor
                                     value={formData.description}
                                     onEditorChange={(content) => handleInputChange('description', content)}
+                                    licenseKey="gpl"
                                     init={{
                                         height: 300,
                                         menubar: false,
