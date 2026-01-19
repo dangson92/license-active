@@ -575,8 +575,11 @@ export const api = {
       app_id: number;
       description?: string;
       price_1_month?: number;
+      price_1_month_enabled?: boolean;
       price_6_months?: number;
+      price_6_months_enabled?: boolean;
       price_1_year?: number;
+      price_1_year_enabled?: boolean;
       is_active?: boolean;
       is_featured?: boolean;
       badge?: string;

@@ -258,6 +258,25 @@ export async function sendOrderStatusEmail(order, newStatus) {
             return false
         }
 
+        const frontendUrl = process.env.FRONTEND_URL || 'https://license.dangthanhson.com'
+
+        // Format expires date for display
+        const formatDate = (dateStr) => {
+            if (!dateStr) return ''
+            const d = new Date(dateStr)
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        }
+
+        // Build license keys HTML for approved orders
+        const licenseKeysHtml = order.license_keys && order.license_keys.length > 0
+            ? order.license_keys.map((key, i) => `
+                <tr style="background: ${i % 2 === 0 ? '#f0fdf4' : '#ffffff'};">
+                    <td style="padding: 10px; border: 1px solid #e5e7eb;">License ${i + 1}</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb; font-family: monospace; font-weight: bold; color: #059669;">${key}</td>
+                </tr>
+            `).join('')
+            : ''
+
         await transporter.sendMail({
             from: config.from,
             to: order.user_email,
@@ -285,13 +304,22 @@ export async function sendOrderStatusEmail(order, newStatus) {
                             <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Thời hạn</td>
                             <td style="padding: 10px; border: 1px solid #e5e7eb;">${order.duration_months} tháng</td>
                         </tr>
+                        ${newStatus === 'approved' && order.expires_at ? `
                         <tr style="background: #f3f4f6;">
-                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Tổng tiền</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb; color: #2563eb; font-weight: bold;">${formatCurrency(order.total_price)}</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Ngày hết hạn</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; color: #dc2626; font-weight: bold;">${formatDate(order.expires_at)}</td>
                         </tr>
+                        ` : ''}
+                        ${licenseKeysHtml}
                     </table>
                     
-                    ${newStatus === 'approved' ? '<p style="color: #10b981;">Bạn có thể đăng nhập vào hệ thống để quản lý license của mình.</p>' : ''}
+                    ${newStatus === 'approved' ? `
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="color: #166534; margin: 0 0 10px 0; font-weight: bold;">🎉 License đã được kích hoạt!</p>
+                        <p style="color: #166534; margin: 0;">Đăng nhập ngay để quản lý và sử dụng license của bạn.</p>
+                        <a href="${frontendUrl}" style="display: inline-block; margin-top: 12px; padding: 10px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Đăng nhập ngay</a>
+                    </div>
+                    ` : ''}
                     
                     <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
                     <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'License System'}</p>

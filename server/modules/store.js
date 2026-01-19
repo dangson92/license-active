@@ -51,7 +51,9 @@ router.get('/apps/:id', async (req, res) => {
         const id = Number(req.params.id)
         const r = await query(`
       SELECT a.id, a.code, a.name, 
-             p.description, p.price_1_month, p.price_6_months, p.price_1_year,
+             p.description, p.price_1_month, p.price_1_month_enabled,
+             p.price_6_months, p.price_6_months_enabled,
+             p.price_1_year, p.price_1_year_enabled,
              p.is_featured, p.badge, p.icon_class
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
@@ -248,7 +250,8 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
         expiresAt.setMonth(expiresAt.getMonth() + order.duration_months)
         const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' ')
 
-        // Create license(s)
+        // Create license(s) and collect license keys
+        const createdLicenses = []
         for (let i = 0; i < order.quantity; i++) {
             const licenseKey = genKey()
             await query(
@@ -256,6 +259,7 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
          VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
                 [order.user_id, order.app_id, licenseKey, expiresAtStr]
             )
+            createdLicenses.push(licenseKey)
         }
 
         // Update order status
@@ -267,7 +271,7 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
         // Send email notification to user (non-blocking, separate try-catch)
         try {
             const orderInfo = await query(`
-                SELECT po.order_code, po.quantity, po.duration_months, po.total_price,
+                SELECT po.order_code, po.quantity, po.duration_months,
                        a.name as app_name, u.email as user_email, u.full_name as user_name
                 FROM purchase_orders po
                 LEFT JOIN apps a ON po.app_id = a.id
@@ -276,7 +280,12 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             `, [orderId])
 
             if (orderInfo.rows.length > 0) {
-                sendOrderStatusEmail(orderInfo.rows[0], 'approved').catch(e => console.error('Email error:', e))
+                const emailData = {
+                    ...orderInfo.rows[0],
+                    license_keys: createdLicenses,
+                    expires_at: expiresAtStr
+                }
+                sendOrderStatusEmail(emailData, 'approved').catch(e => console.error('Email error:', e))
             }
         } catch (emailErr) {
             console.error('Failed to send email notification:', emailErr)
@@ -382,13 +391,22 @@ router.get('/admin/pricing', requireAdmin, async (req, res) => {
 
 router.post('/admin/pricing', requireAdmin, async (req, res) => {
     try {
-        const { app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class } = req.body
+        const {
+            app_id, description,
+            price_1_month, price_1_month_enabled,
+            price_6_months, price_6_months_enabled,
+            price_1_year, price_1_year_enabled,
+            is_featured, badge, icon_class
+        } = req.body
 
-        // Convert undefined to null
+        // Convert undefined to null/defaults
         const desc = description ?? null
         const p1m = price_1_month ?? null
+        const p1mEnabled = price_1_month_enabled !== false
         const p6m = price_6_months ?? null
+        const p6mEnabled = price_6_months_enabled !== false
         const p1y = price_1_year ?? null
+        const p1yEnabled = price_1_year_enabled !== false
         const featured = is_featured ?? false
         const badgeVal = badge ?? null
         const iconVal = icon_class ?? null
@@ -399,18 +417,21 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
         if (existing.rows.length > 0) {
             // Update existing
             await query(
-                `UPDATE app_pricing SET description = ?, price_1_month = ?, price_6_months = ?, price_1_year = ?,
-         is_featured = ?, badge = ?, icon_class = ?, updated_at = NOW()
-         WHERE app_id = ?`,
-                [desc, p1m, p6m, p1y, featured, badgeVal, iconVal, app_id]
+                `UPDATE app_pricing SET description = ?, 
+                 price_1_month = ?, price_1_month_enabled = ?,
+                 price_6_months = ?, price_6_months_enabled = ?,
+                 price_1_year = ?, price_1_year_enabled = ?,
+                 is_featured = ?, badge = ?, icon_class = ?, updated_at = NOW()
+                 WHERE app_id = ?`,
+                [desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal, app_id]
             )
             res.json({ app_id, updated: true })
         } else {
             // Insert new
             await query(
-                `INSERT INTO app_pricing (app_id, description, price_1_month, price_6_months, price_1_year, is_featured, badge, icon_class, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-                [app_id, desc, p1m, p6m, p1y, featured, badgeVal, iconVal]
+                `INSERT INTO app_pricing (app_id, description, price_1_month, price_1_month_enabled, price_6_months, price_6_months_enabled, price_1_year, price_1_year_enabled, is_featured, badge, icon_class, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+                [app_id, desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal]
             )
             const r = await query('SELECT LAST_INSERT_ID() as id')
             res.json({ id: r.rows[0].id, app_id, created: true })

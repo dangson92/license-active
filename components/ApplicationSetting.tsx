@@ -31,8 +31,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
         description: '',
         iconUrl: '',
         price1Month: 0,
+        price1MonthEnabled: true,
         price6Months: 0,
+        price6MonthsEnabled: true,
         price1Year: 0,
+        price1YearEnabled: true,
         isActive: true,
         isPublic: false,
     });
@@ -53,7 +56,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
         try {
             const app = await api.admin.getApp(parseInt(appId));
 
-            let pricing = { price_1_month: 0, price_6_months: 0, price_1_year: 0 };
+            let pricing: any = {
+                price_1_month: 0, price_1_month_enabled: true,
+                price_6_months: 0, price_6_months_enabled: true,
+                price_1_year: 0, price_1_year_enabled: true
+            };
             try {
                 const pricingRes = await api.store.getApp(parseInt(appId));
                 if (pricingRes) {
@@ -69,8 +76,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 description: app.description || '',
                 iconUrl: app.icon_url || '',
                 price1Month: pricing.price_1_month || 0,
+                price1MonthEnabled: pricing.price_1_month_enabled !== false,
                 price6Months: pricing.price_6_months || 0,
+                price6MonthsEnabled: pricing.price_6_months_enabled !== false,
                 price1Year: pricing.price_1_year || 0,
+                price1YearEnabled: pricing.price_1_year_enabled !== false,
                 isActive: app.is_active ?? true,
                 isPublic: false,
             });
@@ -143,8 +153,11 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     app_id: targetAppId,
                     description: formData.description || '',
                     price_1_month: formData.price1Month || 0,
+                    price_1_month_enabled: formData.price1MonthEnabled,
                     price_6_months: formData.price6Months || 0,
+                    price_6_months_enabled: formData.price6MonthsEnabled,
                     price_1_year: formData.price1Year || 0,
+                    price_1_year_enabled: formData.price1YearEnabled,
                 });
             }
 
@@ -273,11 +286,17 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* 1 Tháng */}
-                        <Card>
+                        <Card className={!formData.price1MonthEnabled ? 'opacity-50' : ''}>
                             <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">1 Tháng</Label>
-                                    <p className="text-xs text-muted-foreground">Gói ngắn hạn</p>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <Label className="font-bold">1 Tháng</Label>
+                                        <p className="text-xs text-muted-foreground">Gói ngắn hạn</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.price1MonthEnabled}
+                                        onCheckedChange={(checked) => handleInputChange('price1MonthEnabled', checked)}
+                                    />
                                 </div>
                                 <div className="relative">
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
@@ -290,20 +309,27 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                                         }}
                                         className="pr-8"
                                         placeholder="0"
+                                        disabled={!formData.price1MonthEnabled}
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* 6 Tháng - Phổ biến */}
-                        <Card className="border-primary ring-1 ring-primary relative">
+                        <Card className={`border-primary ring-1 ring-primary relative ${!formData.price6MonthsEnabled ? 'opacity-50' : ''}`}>
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight">
                                 Phổ biến nhất
                             </div>
                             <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">6 Tháng</Label>
-                                    <p className="text-xs text-muted-foreground">Gói tiêu chuẩn</p>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <Label className="font-bold">6 Tháng</Label>
+                                        <p className="text-xs text-muted-foreground">Gói tiêu chuẩn</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.price6MonthsEnabled}
+                                        onCheckedChange={(checked) => handleInputChange('price6MonthsEnabled', checked)}
+                                    />
                                 </div>
                                 <div className="relative">
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
@@ -316,17 +342,24 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                                         }}
                                         className="pr-8"
                                         placeholder="0"
+                                        disabled={!formData.price6MonthsEnabled}
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* 1 Năm */}
-                        <Card>
+                        <Card className={!formData.price1YearEnabled ? 'opacity-50' : ''}>
                             <CardContent className="pt-6">
-                                <div className="mb-4">
-                                    <Label className="font-bold">1 Năm</Label>
-                                    <p className="text-xs text-muted-foreground">Gói dài hạn</p>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <Label className="font-bold">1 Năm</Label>
+                                        <p className="text-xs text-muted-foreground">Gói dài hạn</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.price1YearEnabled}
+                                        onCheckedChange={(checked) => handleInputChange('price1YearEnabled', checked)}
+                                    />
                                 </div>
                                 <div className="relative">
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₫</span>
@@ -339,6 +372,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                                         }}
                                         className="pr-8"
                                         placeholder="0"
+                                        disabled={!formData.price1YearEnabled}
                                     />
                                 </div>
                             </CardContent>
