@@ -243,9 +243,10 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             return `${seg()}-${seg()}-${seg()}-${seg()}`
         }
 
-        // Calculate expires_at
+        // Calculate expires_at - format for MySQL
         const expiresAt = new Date()
         expiresAt.setMonth(expiresAt.getMonth() + order.duration_months)
+        const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' ')
 
         // Create license(s)
         for (let i = 0; i < order.quantity; i++) {
@@ -253,7 +254,7 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             await query(
                 `INSERT INTO licenses (user_id, app_id, license_key, max_devices, expires_at, status, created_at)
          VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
-                [order.user_id, order.app_id, licenseKey, expiresAt.toISOString()]
+                [order.user_id, order.app_id, licenseKey, expiresAtStr]
             )
         }
 
