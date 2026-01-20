@@ -7,11 +7,21 @@ export const initSocket = (): Socket => {
     if (socket) return socket;
 
     // Connect to the API server with Socket.IO
-    const socketUrl = config.apiUrl.replace('/api', '').replace('http://', 'ws://').replace('https://', 'wss://');
+    // Get the base URL (without /api path if present)
+    let baseUrl = config.apiUrl;
+    if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.slice(0, -4);
+    }
 
-    socket = io(config.apiUrl.replace('/api', ''), {
+    console.log('🔌 Connecting to socket:', baseUrl);
+
+    // Socket.io-client handles ws/wss protocol automatically
+    socket = io(baseUrl, {
         transports: ['websocket', 'polling'],
         autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
     });
 
     socket.on('connect', () => {
