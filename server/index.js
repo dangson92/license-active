@@ -16,6 +16,7 @@ import appVersionsRouter from './modules/app-versions.js'
 import settingsRouter from './modules/settings.js'
 import supportRouter from './modules/support.js'
 import storeRouter from './modules/store.js'
+import notificationsRouter from './modules/notifications.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -93,6 +94,7 @@ app.use('/api/version', versionRouter)
 app.use('/api/admin/app-versions', appVersionsRouter)
 app.use('/api/support', supportRouter)
 app.use('/api/store', storeRouter)
+app.use('/api/notifications', notificationsRouter)
 
 // Routes WITHOUT /api/ prefix (for client apps calling api.dangthanhson.com directly)
 app.use('/activate', activateRouter)

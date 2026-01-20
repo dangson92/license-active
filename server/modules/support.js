@@ -1,6 +1,7 @@
 import express from 'express'
 import { query } from '../db.js'
 import { requireAuth, requireAdmin } from './auth.js'
+import { createNotification } from './notifications.js'
 
 const router = express.Router()
 
@@ -57,8 +58,21 @@ router.post('/tickets', requireAuth, async (req, res) => {
             [userId, subject, category || 'other', message]
         )
         const r = await query('SELECT LAST_INSERT_ID() as id')
+        const ticketId = r.rows[0].id
 
-        res.json({ id: r.rows[0].id, message: 'Ticket created successfully' })
+        // Get user info for notification
+        const userInfo = await query('SELECT email, full_name FROM users WHERE id = ?', [userId])
+        const userName = userInfo.rows[0]?.full_name || userInfo.rows[0]?.email || 'User'
+
+        // Create notification for admin
+        createNotification({
+            type: 'new_ticket',
+            title: 'Ticket hỗ trợ mới',
+            message: `${userName} đã gửi ticket: ${subject}`,
+            link: '/admin/support'
+        })
+
+        res.json({ id: ticketId, message: 'Ticket created successfully' })
     } catch (e) {
         console.error('Error creating ticket:', e)
         res.status(500).json({ error: 'server_error', message: e.message })
@@ -145,7 +159,18 @@ router.delete('/admin/tickets/:id', requireAdmin, async (req, res) => {
 // =====================
 router.get('/admin/faqs', requireAdmin, async (req, res) => {
     try {
-        const r = await query('SELECT * FROM faqs ORDER BY display_order ASC, id ASC')
+        const { category } = req.query
+        let sql = 'SELECT * FROM faqs'
+        const params = []
+
+        if (category) {
+            sql += ' WHERE category = ?'
+            params.push(category)
+        }
+
+        sql += ' ORDER BY display_order ASC, id ASC'
+
+        const r = await query(sql, params)
         res.json({ items: r.rows })
     } catch (e) {
         console.error('Error getting FAQs:', e)
@@ -153,16 +178,35 @@ router.get('/admin/faqs', requireAdmin, async (req, res) => {
     }
 })
 
+// Admin: Get FAQ categories (for filter dropdown)
+router.get('/admin/faq-categories', requireAdmin, async (req, res) => {
+    try {
+        const r = await query('SELECT DISTINCT category FROM faqs WHERE category IS NOT NULL AND category != "" ORDER BY category ASC')
+        res.json({ items: r.rows.map(row => row.category) })
+    } catch (e) {
+        console.error('Error getting FAQ categories:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
 router.post('/admin/faqs', requireAdmin, async (req, res) => {
     try {
         const { question, answer, category, display_order } = req.body
-        await query(
+
+        // Validate required fields
+        if (!question || !question.trim()) {
+            return res.status(400).json({ error: 'validation_error', message: 'Question is required' })
+        }
+        if (!answer || !answer.trim()) {
+            return res.status(400).json({ error: 'validation_error', message: 'Answer is required' })
+        }
+
+        const result = await query(
             `INSERT INTO faqs (question, answer, category, display_order, is_active, created_at)
        VALUES (?, ?, ?, ?, TRUE, NOW())`,
-            [question, answer, category || null, display_order || 0]
+            [question.trim(), answer.trim(), category?.trim() || null, display_order || 0]
         )
-        const r = await query('SELECT LAST_INSERT_ID() as id')
-        res.json({ id: r.rows[0].id })
+        res.json({ id: result.insertId, message: 'FAQ created successfully' })
     } catch (e) {
         console.error('Error creating FAQ:', e)
         res.status(500).json({ error: 'server_error', message: e.message })

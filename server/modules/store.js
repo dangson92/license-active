@@ -5,6 +5,7 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { sendNewOrderNotification, sendOrderStatusEmail } from '../services/email.js'
+import { createNotification } from './notifications.js'
 
 const router = express.Router()
 
@@ -132,7 +133,16 @@ router.post('/orders', requireAuth, async (req, res) => {
         `, [orderId])
 
         if (orderInfo.rows.length > 0) {
-            sendNewOrderNotification(orderInfo.rows[0]).catch(e => console.error('Email error:', e))
+            const order = orderInfo.rows[0]
+            sendNewOrderNotification(order).catch(e => console.error('Email error:', e))
+
+            // Create notification for admin
+            createNotification({
+                type: 'new_order',
+                title: 'Đơn hàng mới',
+                message: `${order.user_name || order.user_email} đã đặt mua ${order.app_name} - ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ`,
+                link: '/admin/orders'
+            })
         }
 
         res.json({

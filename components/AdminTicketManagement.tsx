@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Plus,
     Download,
@@ -22,6 +23,7 @@ import {
     X,
     AlertTriangle,
     Edit,
+    Filter,
     Save
 } from 'lucide-react';
 import api from '../services/api';
@@ -70,6 +72,10 @@ export const AdminTicketManagement: React.FC = () => {
     const [faqs, setFaqs] = useState<FAQ[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // FAQ category filter
+    const [faqCategories, setFaqCategories] = useState<string[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string>('__all__');
+
     // FAQ Dialog state
     const [faqDialogOpen, setFaqDialogOpen] = useState(false);
     const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
@@ -78,7 +84,25 @@ export const AdminTicketManagement: React.FC = () => {
 
     useEffect(() => {
         loadData();
+        if (activeTab === 'faqs') {
+            loadFaqCategories();
+        }
     }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab === 'faqs') {
+            loadData();
+        }
+    }, [selectedCategory]);
+
+    const loadFaqCategories = async () => {
+        try {
+            const response = await api.support.getFaqCategories();
+            setFaqCategories(response.items || []);
+        } catch (error) {
+            console.error('Failed to load FAQ categories:', error);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -87,7 +111,8 @@ export const AdminTicketManagement: React.FC = () => {
                 const response = await api.support.getAdminTickets();
                 setTickets(response.items || []);
             } else {
-                const response = await api.support.getAdminFaqs();
+                const categoryFilter = selectedCategory === '__all__' ? undefined : selectedCategory;
+                const response = await api.support.getAdminFaqs(categoryFilter);
                 setFaqs(response.items || []);
             }
         } catch (error) {
@@ -178,6 +203,7 @@ export const AdminTicketManagement: React.FC = () => {
             }
             closeFaqDialog();
             loadData();
+            loadFaqCategories(); // Reload categories in case a new one was added
         } catch (error) {
             console.error('Failed to save FAQ:', error);
             alert('Có lỗi xảy ra khi lưu FAQ');
@@ -232,6 +258,22 @@ export const AdminTicketManagement: React.FC = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {activeTab === 'faqs' && faqCategories.length > 0 && (
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <SelectTrigger className="w-[180px]">
+                                <Filter className="w-4 h-4 mr-2" />
+                                <SelectValue placeholder="Lọc theo danh mục" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__all__">Tất cả danh mục</SelectItem>
+                                {faqCategories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                        {cat}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                     <Button variant="outline" onClick={loadData}>
                         <History className="w-4 h-4 mr-2" />
                         Refresh

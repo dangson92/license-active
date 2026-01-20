@@ -471,8 +471,14 @@ export const api = {
     },
 
     // Admin: Get all FAQs
-    getAdminFaqs: async () => {
-      return apiCall('/api/support/admin/faqs');
+    getAdminFaqs: async (category?: string) => {
+      const query = category ? `?category=${encodeURIComponent(category)}` : '';
+      return apiCall(`/api/support/admin/faqs${query}`);
+    },
+
+    // Admin: Get FAQ categories (for filter)
+    getFaqCategories: async () => {
+      return apiCall('/api/support/admin/faq-categories');
     },
 
     // Admin: Create FAQ
@@ -600,6 +606,41 @@ export const api = {
       return apiCall('/api/store/admin/pricing', {
         method: 'POST',
         body: JSON.stringify(data),
+      });
+    },
+  },
+
+  // Notifications endpoints
+  notifications: {
+    // Get all notifications
+    getAll: async (unreadOnly = false) => {
+      const query = unreadOnly ? '?unread_only=true' : '';
+      return apiCall(`/api/notifications${query}`);
+    },
+
+    // Get unread count
+    getUnreadCount: async () => {
+      return apiCall('/api/notifications/unread-count');
+    },
+
+    // Mark all as read
+    markAllRead: async () => {
+      return apiCall('/api/notifications/mark-all-read', {
+        method: 'POST',
+      });
+    },
+
+    // Mark one as read
+    markRead: async (id: number) => {
+      return apiCall(`/api/notifications/${id}/read`, {
+        method: 'PATCH',
+      });
+    },
+
+    // Delete notification
+    delete: async (id: number) => {
+      return apiCall(`/api/notifications/${id}`, {
+        method: 'DELETE',
       });
     },
   },
