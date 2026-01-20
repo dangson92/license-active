@@ -34,10 +34,19 @@ export const getSocket = (): Socket | null => {
 };
 
 export const joinAdminRoom = (): void => {
-    if (socket && socket.connected) {
-        socket.emit('join-admin');
-        console.log('👑 Joining admin room');
+    if (!socket) {
+        console.warn('👑 Cannot join admin room: socket not initialized');
+        return;
     }
+
+    if (!socket.connected) {
+        console.warn('👑 Socket not connected yet, will join admin room when connected');
+        // Socket will auto-join when connected via 'connect' event handler
+        return;
+    }
+
+    socket.emit('join-admin');
+    console.log('👑 Joined admin room, socket id:', socket.id);
 };
 
 export const disconnectSocket = (): void => {

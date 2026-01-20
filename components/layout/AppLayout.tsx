@@ -50,18 +50,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         const socket = initSocket();
         socketInitialized.current = true;
 
-        // Join admin room when connected
-        socket.on('connect', () => {
-            joinAdminRoom();
-        });
-
-        // If already connected, join immediately
-        if (socket.connected) {
-            joinAdminRoom();
-        }
-
-        // Listen for new notifications
-        socket.on('new-notification', (notification: Notification) => {
+        // Handler for new notifications - register FIRST
+        const handleNotification = (notification: Notification) => {
             console.log('📬 New notification received:', notification);
 
             // Show toast
@@ -74,11 +64,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             window.dispatchEvent(new CustomEvent('notification-received', {
                 detail: notification
             }));
-        });
+        };
+
+        // Handler for connection - join admin room
+        const handleConnect = () => {
+            console.log('🔌 Socket connected, joining admin room...');
+            // Small delay to ensure socket is fully ready
+            setTimeout(() => {
+                joinAdminRoom();
+            }, 100);
+        };
+
+        // Listen for new notifications
+        socket.on('new-notification', handleNotification);
+
+        // Join admin room when connected
+        socket.on('connect', handleConnect);
+
+        // If already connected, join immediately
+        if (socket.connected) {
+            handleConnect();
+        }
 
         // Cleanup on unmount
         return () => {
-            socket.off('new-notification');
+            socket.off('new-notification', handleNotification);
+            socket.off('connect', handleConnect);
         };
     }, [isAdmin]);
 
