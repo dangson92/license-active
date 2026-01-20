@@ -24,7 +24,10 @@ import {
     AlertTriangle,
     Edit,
     Filter,
-    Save
+    Save,
+    MessageSquare,
+    Send,
+    Eye
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -48,6 +51,14 @@ interface FAQ {
     category?: string;
     display_order: number;
     is_active: boolean;
+}
+
+interface TicketReply {
+    id: number;
+    message: string;
+    created_at: string;
+    admin_name?: string;
+    admin_email?: string;
 }
 
 interface FaqFormData {
@@ -81,6 +92,14 @@ export const AdminTicketManagement: React.FC = () => {
     const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
     const [faqForm, setFaqForm] = useState<FaqFormData>(initialFaqForm);
     const [savingFaq, setSavingFaq] = useState(false);
+
+    // Ticket detail dialog state
+    const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+    const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+    const [ticketReplies, setTicketReplies] = useState<TicketReply[]>([]);
+    const [replyMessage, setReplyMessage] = useState('');
+    const [sendingReply, setSendingReply] = useState(false);
+    const [loadingReplies, setLoadingReplies] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -138,6 +157,46 @@ export const AdminTicketManagement: React.FC = () => {
             loadData();
         } catch (error) {
             console.error('Failed to delete ticket:', error);
+        }
+    };
+
+    // Open ticket detail dialog
+    const openTicketDialog = async (ticket: Ticket) => {
+        setSelectedTicket(ticket);
+        setTicketDialogOpen(true);
+        setReplyMessage('');
+        await loadTicketReplies(ticket.id);
+    };
+
+    // Load ticket replies
+    const loadTicketReplies = async (ticketId: number) => {
+        setLoadingReplies(true);
+        try {
+            const response = await api.support.getTicketReplies(ticketId);
+            setTicketReplies(response.items || []);
+        } catch (error) {
+            console.error('Failed to load replies:', error);
+            setTicketReplies([]);
+        } finally {
+            setLoadingReplies(false);
+        }
+    };
+
+    // Send reply
+    const handleSendReply = async () => {
+        if (!selectedTicket || !replyMessage.trim()) return;
+
+        setSendingReply(true);
+        try {
+            await api.support.replyTicket(selectedTicket.id, replyMessage.trim());
+            setReplyMessage('');
+            await loadTicketReplies(selectedTicket.id);
+            loadData(); // Refresh ticket list to update status
+        } catch (error) {
+            console.error('Failed to send reply:', error);
+            alert('Có lỗi xảy ra khi gửi phản hồi');
+        } finally {
+            setSendingReply(false);
         }
     };
 
@@ -359,6 +418,15 @@ export const AdminTicketManagement: React.FC = () => {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-blue-600"
+                                                        title="Xem chi tiết & Trả lời"
+                                                        onClick={() => openTicketDialog(ticket)}
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </Button>
                                                     {ticket.status === 'pending' && (
                                                         <Button
                                                             variant="ghost"
@@ -601,6 +669,112 @@ export const AdminTicketManagement: React.FC = () => {
                             )}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Ticket Detail Dialog */}
+            <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
+                <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5" />
+                            Ticket #{selectedTicket?.id} - {selectedTicket?.subject}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Từ: {selectedTicket?.user_name || selectedTicket?.user_email}
+                            {selectedTicket && (
+                                <span className="ml-2">
+                                    {getStatusBadge(selectedTicket.status)}
+                                </span>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 py-4">
+                        {/* Original message */}
+                        <div className="rounded-lg border p-4 bg-muted/30">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium">Tin nhắn gốc</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {selectedTicket?.created_at && new Date(selectedTicket.created_at).toLocaleString('vi-VN')}
+                                </span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{selectedTicket?.message}</p>
+                        </div>
+
+                        {/* Replies */}
+                        <div className="space-y-3">
+                            <h4 className="text-sm font-medium text-muted-foreground">
+                                Lịch sử phản hồi ({ticketReplies.length})
+                            </h4>
+
+                            {loadingReplies ? (
+                                <div className="text-center text-muted-foreground py-4">Đang tải...</div>
+                            ) : ticketReplies.length === 0 ? (
+                                <div className="text-center text-muted-foreground py-4 text-sm">
+                                    Chưa có phản hồi nào
+                                </div>
+                            ) : (
+                                ticketReplies.map((reply) => (
+                                    <div key={reply.id} className="rounded-lg border p-3 bg-blue-50/50 border-blue-200">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-medium text-blue-700">
+                                                Admin: {reply.admin_name || reply.admin_email}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {new Date(reply.created_at).toLocaleString('vi-VN')}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Reply form */}
+                    {selectedTicket?.status !== 'closed' && (
+                        <div className="border-t pt-4">
+                            <div className="flex gap-2">
+                                <Textarea
+                                    placeholder="Nhập phản hồi..."
+                                    className="flex-1 min-h-[80px]"
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-3">
+                                <Button variant="outline" onClick={() => setTicketDialogOpen(false)}>
+                                    Đóng
+                                </Button>
+                                <Button
+                                    onClick={handleSendReply}
+                                    disabled={sendingReply || !replyMessage.trim()}
+                                >
+                                    {sendingReply ? (
+                                        <>
+                                            <span className="animate-spin mr-2">⏳</span>
+                                            Đang gửi...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-4 h-4 mr-2" />
+                                            Gửi phản hồi
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedTicket?.status === 'closed' && (
+                        <DialogFooter>
+                            <p className="text-sm text-muted-foreground mr-auto">Ticket đã đóng, không thể phản hồi.</p>
+                            <Button variant="outline" onClick={() => setTicketDialogOpen(false)}>
+                                Đóng
+                            </Button>
+                        </DialogFooter>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

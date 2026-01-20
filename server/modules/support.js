@@ -79,6 +79,65 @@ router.post('/tickets', requireAuth, async (req, res) => {
     }
 })
 
+// User reply to ticket
+router.post('/tickets/:id/reply', requireAuth, async (req, res) => {
+    try {
+        const ticketId = Number(req.params.id)
+        const userId = req.user.id
+        const { message } = req.body
+
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'validation_error', message: 'Message is required' })
+        }
+
+        // Check ownership
+        const ticketInfo = await query(
+            'SELECT id, subject, status FROM support_tickets WHERE id = ? AND user_id = ?',
+            [ticketId, userId]
+        )
+        if (ticketInfo.rows.length === 0) {
+            return res.status(404).json({ error: 'not_found', message: 'Ticket not found' })
+        }
+        const ticket = ticketInfo.rows[0]
+
+        if (ticket.status === 'closed') {
+            return res.status(400).json({ error: 'ticket_closed', message: 'Cannot reply to closed ticket' })
+        }
+
+        // Insert reply (user_id instead of admin_id)
+        await query(
+            `INSERT INTO ticket_replies (ticket_id, user_id, message, created_at)
+             VALUES (?, ?, ?, NOW())`,
+            [ticketId, userId, message.trim()]
+        )
+        const replyResult = await query('SELECT LAST_INSERT_ID() as id')
+        const replyId = replyResult.rows[0].id
+
+        // Update ticket status to pending (waiting for admin)
+        await query(
+            `UPDATE support_tickets SET status = 'pending', updated_at = NOW() WHERE id = ?`,
+            [ticketId]
+        )
+
+        // Get user info for notification
+        const userInfo = await query('SELECT email, full_name FROM users WHERE id = ?', [userId])
+        const userName = userInfo.rows[0]?.full_name || userInfo.rows[0]?.email || 'User'
+
+        // Notify admin about user reply
+        createNotification({
+            type: 'ticket_reply',
+            title: 'Phản hồi ticket từ user',
+            message: `${userName} đã trả lời ticket: "${ticket.subject}"`,
+            link: '/admin/support'
+        })
+
+        res.json({ id: replyId, ticket_id: ticketId, message: 'Reply sent successfully' })
+    } catch (e) {
+        console.error('Error replying to ticket:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
 // =====================
 // Admin: Manage Tickets
 // =====================
@@ -240,10 +299,12 @@ router.get('/tickets/:id/replies', requireAuth, async (req, res) => {
         }
 
         const replies = await query(
-            `SELECT tr.id, tr.message, tr.created_at,
-                    u.full_name as admin_name, u.email as admin_email
+            `SELECT tr.id, tr.message, tr.created_at, tr.admin_id, tr.user_id,
+                    admin.full_name as admin_name, admin.email as admin_email,
+                    user.full_name as user_name, user.email as user_email
              FROM ticket_replies tr
-             LEFT JOIN users u ON tr.admin_id = u.id
+             LEFT JOIN users admin ON tr.admin_id = admin.id
+             LEFT JOIN users user ON tr.user_id = user.id
              WHERE tr.ticket_id = ?
              ORDER BY tr.created_at ASC`,
             [ticketId]

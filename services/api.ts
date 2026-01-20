@@ -503,6 +503,27 @@ export const api = {
         method: 'DELETE',
       });
     },
+
+    // Admin: Reply to ticket
+    replyTicket: async (ticketId: number, message: string) => {
+      return apiCall(`/api/support/admin/tickets/${ticketId}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+    },
+
+    // Get ticket replies (user or admin)
+    getTicketReplies: async (ticketId: number) => {
+      return apiCall(`/api/support/tickets/${ticketId}/replies`);
+    },
+
+    // User: Reply to own ticket
+    userReplyTicket: async (ticketId: number, message: string) => {
+      return apiCall(`/api/support/tickets/${ticketId}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+    },
   },
 
   // Store endpoints
