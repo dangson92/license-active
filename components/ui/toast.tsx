@@ -141,7 +141,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
             {children}
             {/* Toast Container */}
-            <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+            <div className="fixed bottom-4 right-4 z-[100] flex flex-col-reverse gap-2 max-w-sm w-full pointer-events-none">
                 {toasts.map((t) => (
                     <div key={t.id} className="pointer-events-auto">
                         <ToastItem toast={t} onRemove={() => removeToast(t.id)} />

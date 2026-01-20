@@ -66,4 +66,19 @@ export const disconnectSocket = (): void => {
     }
 };
 
-export default { initSocket, getSocket, joinAdminRoom, disconnectSocket };
+export const joinUserRoom = (userId: number): void => {
+    if (!socket) {
+        console.warn('👤 Cannot join user room: socket not initialized');
+        return;
+    }
+
+    if (!socket.connected) {
+        console.warn('👤 Socket not connected yet, will join user room when connected');
+        return;
+    }
+
+    socket.emit('join-user', userId);
+    console.log(`👤 Joined user room ${userId}, socket id:`, socket.id);
+};
+
+export default { initSocket, getSocket, joinAdminRoom, joinUserRoom, disconnectSocket };

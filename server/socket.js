@@ -24,6 +24,14 @@ export const initSocket = (httpServer) => {
             console.log('👑 Admin joined:', socket.id)
         })
 
+        // Join user room for personal notifications
+        socket.on('join-user', (userId) => {
+            if (userId) {
+                socket.join(`user:${userId}`)
+                console.log(`👤 User ${userId} joined their room:`, socket.id)
+            }
+        })
+
         socket.on('disconnect', () => {
             console.log('🔌 Client disconnected:', socket.id)
         })
@@ -48,4 +56,13 @@ export const emitToAdmins = (event, data) => {
     }
 }
 
-export default { initSocket, getIO, emitToAdmins }
+// Emit notification to a specific user
+export const emitToUser = (userId, event, data) => {
+    if (io && userId) {
+        io.to(`user:${userId}`).emit(event, data)
+        console.log(`📤 Emitted ${event} to user ${userId}:`, data.title || data)
+    }
+}
+
+export default { initSocket, getIO, emitToAdmins, emitToUser }
+

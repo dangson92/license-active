@@ -303,6 +303,15 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             console.error('Failed to send email notification:', emailErr)
         }
 
+        // Create notification for user
+        createNotification({
+            type: 'order_approved',
+            title: 'Đơn hàng đã được duyệt',
+            message: `Đơn hàng #${order.order_code} đã được duyệt. License của bạn đã sẵn sàng!`,
+            link: '/my-licenses',
+            userId: order.user_id
+        })
+
         res.json({ order_id: orderId, approved: true, licenses_created: order.quantity })
     } catch (e) {
         console.error('Error approving order:', e)
@@ -339,6 +348,19 @@ router.post('/admin/orders/:id/reject', requireAdmin, async (req, res) => {
             }
         } catch (emailErr) {
             console.error('Failed to send email notification:', emailErr)
+        }
+
+        // Get order info to get user_id and order_code
+        const orderData = await query('SELECT user_id, order_code FROM purchase_orders WHERE id = ?', [orderId])
+        if (orderData.rows.length > 0) {
+            const order = orderData.rows[0]
+            createNotification({
+                type: 'order_rejected',
+                title: 'Đơn hàng bị từ chối',
+                message: `Đơn hàng #${order.order_code} đã bị từ chối.${notes ? ' Lý do: ' + notes : ''}`,
+                link: '/my-orders',
+                userId: order.user_id
+            })
         }
 
         res.json({ order_id: orderId, rejected: true })

@@ -115,6 +115,16 @@ router.patch('/admin/tickets/:id', requireAdmin, async (req, res) => {
         const { status, priority } = req.body
         const adminId = req.user.id
 
+        // Get ticket info first for notification
+        const ticketInfo = await query(
+            'SELECT user_id, subject FROM support_tickets WHERE id = ?',
+            [id]
+        )
+        if (ticketInfo.rows.length === 0) {
+            return res.status(404).json({ error: 'not_found' })
+        }
+        const ticket = ticketInfo.rows[0]
+
         const updates = ['updated_at = NOW()']
         const params = []
 
@@ -135,9 +145,113 @@ router.patch('/admin/tickets/:id', requireAdmin, async (req, res) => {
         params.push(id)
         await query(`UPDATE support_tickets SET ${updates.join(', ')} WHERE id = ?`, params)
 
+        // Notify user about status change
+        if (status) {
+            const statusLabels = {
+                'pending': 'Đang chờ',
+                'in_progress': 'Đang xử lý',
+                'resolved': 'Đã giải quyết',
+                'closed': 'Đã đóng'
+            }
+            createNotification({
+                type: 'ticket_status',
+                title: 'Cập nhật ticket hỗ trợ',
+                message: `Ticket "${ticket.subject}" đã chuyển sang trạng thái: ${statusLabels[status] || status}`,
+                link: '/support',
+                userId: ticket.user_id
+            })
+        }
+
         res.json({ id, updated: true })
     } catch (e) {
         console.error('Error updating ticket:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// Admin reply to ticket
+router.post('/admin/tickets/:id/reply', requireAdmin, async (req, res) => {
+    try {
+        const ticketId = Number(req.params.id)
+        const adminId = req.user.id
+        const { message } = req.body
+
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'validation_error', message: 'Message is required' })
+        }
+
+        // Get ticket info
+        const ticketInfo = await query(
+            'SELECT user_id, subject FROM support_tickets WHERE id = ?',
+            [ticketId]
+        )
+        if (ticketInfo.rows.length === 0) {
+            return res.status(404).json({ error: 'not_found', message: 'Ticket not found' })
+        }
+        const ticket = ticketInfo.rows[0]
+
+        // Insert reply
+        await query(
+            `INSERT INTO ticket_replies (ticket_id, admin_id, message, created_at)
+             VALUES (?, ?, ?, NOW())`,
+            [ticketId, adminId, message.trim()]
+        )
+        const replyResult = await query('SELECT LAST_INSERT_ID() as id')
+        const replyId = replyResult.rows[0].id
+
+        // Update ticket status to in_progress if pending
+        await query(
+            `UPDATE support_tickets SET status = 'in_progress', updated_at = NOW() WHERE id = ? AND status = 'pending'`,
+            [ticketId]
+        )
+
+        // Notify user about admin reply
+        createNotification({
+            type: 'ticket_reply',
+            title: 'Phản hồi từ hỗ trợ',
+            message: `Admin đã trả lời ticket "${ticket.subject}"`,
+            link: '/support',
+            userId: ticket.user_id
+        })
+
+        res.json({ id: replyId, ticket_id: ticketId, message: 'Reply sent successfully' })
+    } catch (e) {
+        console.error('Error replying to ticket:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// Get ticket replies
+router.get('/tickets/:id/replies', requireAuth, async (req, res) => {
+    try {
+        const ticketId = Number(req.params.id)
+        const userId = req.user.id
+        const isAdmin = req.user.role === 'admin'
+
+        // Check ownership or admin
+        if (!isAdmin) {
+            const ownership = await query(
+                'SELECT id FROM support_tickets WHERE id = ? AND user_id = ?',
+                [ticketId, userId]
+            )
+            if (ownership.rows.length === 0) {
+                return res.status(403).json({ error: 'forbidden' })
+            }
+        }
+
+        const replies = await query(
+            `SELECT tr.id, tr.message, tr.created_at,
+                    u.full_name as admin_name, u.email as admin_email
+             FROM ticket_replies tr
+             LEFT JOIN users u ON tr.admin_id = u.id
+             WHERE tr.ticket_id = ?
+             ORDER BY tr.created_at ASC`,
+            [ticketId]
+        )
+
+        res.json({ items: replies.rows })
+    } catch (e) {
+        console.error('Error getting ticket replies:', e)
         res.status(500).json({ error: 'server_error', message: e.message })
     }
 })
@@ -146,6 +260,8 @@ router.patch('/admin/tickets/:id', requireAdmin, async (req, res) => {
 router.delete('/admin/tickets/:id', requireAdmin, async (req, res) => {
     try {
         const id = Number(req.params.id)
+        // Delete replies first
+        await query('DELETE FROM ticket_replies WHERE ticket_id = ?', [id])
         await query('DELETE FROM support_tickets WHERE id = ?', [id])
         res.json({ id, deleted: true })
     } catch (e) {

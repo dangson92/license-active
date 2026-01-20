@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import api, { getCurrentUser } from '../../services/api';
 import { toast } from '../ui/toast';
-import { initSocket, joinAdminRoom, getSocket, disconnectSocket } from '../../services/socket';
+import { initSocket, joinAdminRoom, joinUserRoom, getSocket, disconnectSocket } from '../../services/socket';
 
 interface Notification {
     id: number;
@@ -43,9 +43,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     const [unreadCount, setUnreadCount] = useState(0);
     const socketInitialized = useRef(false);
 
-    // Initialize Socket.IO for admin users
+    // Initialize Socket.IO for all users (admin and regular users)
     useEffect(() => {
-        if (!isAdmin || socketInitialized.current) return;
+        if (!user || socketInitialized.current) return;
 
         const socket = initSocket();
         socketInitialized.current = true;
@@ -54,11 +54,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         const handleNotification = (notification: Notification) => {
             console.log('📬 New notification received:', notification);
 
-            // Show toast
-            toast.info(notification.title, notification.message);
+            // Show toast based on notification type
+            if (notification.type === 'order_approved') {
+                toast.success(notification.title, notification.message);
+            } else if (notification.type === 'order_rejected') {
+                toast.error(notification.title, notification.message);
+            } else if (notification.type === 'license_expiring') {
+                toast.warning(notification.title, notification.message);
+            } else {
+                toast.info(notification.title, notification.message);
+            }
 
-            // Update unread count
-            setUnreadCount(prev => prev + 1);
+            // Update unread count (for admin)
+            if (isAdmin) {
+                setUnreadCount(prev => prev + 1);
+            }
 
             // Dispatch custom event for Header to update
             window.dispatchEvent(new CustomEvent('notification-received', {
@@ -66,19 +76,25 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             }));
         };
 
-        // Handler for connection - join admin room
+        // Handler for connection - join appropriate room
         const handleConnect = () => {
-            console.log('🔌 Socket connected, joining admin room...');
+            console.log('🔌 Socket connected, joining room...');
             // Small delay to ensure socket is fully ready
             setTimeout(() => {
-                joinAdminRoom();
+                if (isAdmin) {
+                    joinAdminRoom();
+                }
+                // All users (including admin) join their personal room
+                if (user?.id) {
+                    joinUserRoom(Number(user.id));
+                }
             }, 100);
         };
 
         // Listen for new notifications
         socket.on('new-notification', handleNotification);
 
-        // Join admin room when connected
+        // Join room when connected
         socket.on('connect', handleConnect);
 
         // If already connected, join immediately
@@ -91,9 +107,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             socket.off('new-notification', handleNotification);
             socket.off('connect', handleConnect);
         };
-    }, [isAdmin]);
+    }, [user, isAdmin]);
 
-    // Fetch initial unread count
+    // Fetch initial unread count (admin only)
     useEffect(() => {
         if (!isAdmin) return;
 

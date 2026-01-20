@@ -18,6 +18,7 @@ import supportRouter from './modules/support.js'
 import storeRouter from './modules/store.js'
 import notificationsRouter from './modules/notifications.js'
 import { initSocket } from './socket.js'
+import { initLicenseScheduler } from './services/license-scheduler.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -113,6 +114,9 @@ const server = app.listen(port, () => {
 
 // Initialize Socket.IO
 initSocket(server)
+
+// Initialize License Expiring Scheduler (10:00 AM UTC+7 daily)
+initLicenseScheduler()
 
 // Increase timeout for large file uploads (30 minutes)
 server.timeout = 30 * 60 * 1000

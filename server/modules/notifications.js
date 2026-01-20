@@ -1,7 +1,7 @@
 import express from 'express'
 import { query } from '../db.js'
 import { requireAuth, requireAdmin } from './auth.js'
-import { emitToAdmins } from '../socket.js'
+import { emitToAdmins, emitToUser } from '../socket.js'
 
 const router = express.Router()
 
@@ -127,8 +127,7 @@ export const createNotification = async ({ type, title, message, link, userId = 
             [userId, type, title, message, link]
         )
 
-        // Emit real-time notification via Socket.IO
-        emitToAdmins('new-notification', {
+        const notificationData = {
             id: result.insertId,
             type,
             title,
@@ -136,12 +135,24 @@ export const createNotification = async ({ type, title, message, link, userId = 
             link,
             is_read: false,
             created_at: new Date().toISOString()
-        })
+        }
+
+        // Emit real-time notification via Socket.IO
+        if (userId) {
+            // Send to specific user
+            emitToUser(userId, 'new-notification', notificationData)
+        } else {
+            // Send to all admins (system notifications)
+            emitToAdmins('new-notification', notificationData)
+        }
 
         // Trigger cleanup check
         maybeCleanup()
+
+        return result.insertId
     } catch (e) {
         console.error('Error creating notification:', e)
+        return null
     }
 }
 
