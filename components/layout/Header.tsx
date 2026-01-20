@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     // Fetch initial unread count if not controlled
     useEffect(() => {
-        if (!isAdmin || propUnreadCount !== undefined) return;
+        if (!user || propUnreadCount !== undefined) return;
 
         const fetchUnreadCount = async () => {
             try {
@@ -56,13 +56,19 @@ export const Header: React.FC<HeaderProps> = ({
         };
 
         fetchUnreadCount();
-    }, [isAdmin, propUnreadCount]);
+    }, [user, propUnreadCount]);
 
     // Listen for new notifications from Socket.IO via custom event
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!user) return;
 
         const handleNewNotification = (e: CustomEvent<Notification>) => {
+            // Update unread count
+            if (onUnreadCountChange) {
+                onUnreadCountChange((propUnreadCount ?? 0) + 1);
+            } else {
+                setLocalUnreadCount(prev => prev + 1);
+            }
             // Add to notifications list if dropdown is open
             if (showDropdown) {
                 setNotifications(prev => [e.detail, ...prev]);
@@ -73,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
         return () => {
             window.removeEventListener('notification-received', handleNewNotification as EventListener);
         };
-    }, [isAdmin, showDropdown]);
+    }, [user, showDropdown, propUnreadCount, onUnreadCountChange]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -170,8 +176,8 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Actions */}
             <div className="flex items-center gap-2 ml-4">
-                {/* Notification Bell */}
-                {isAdmin && (
+                {/* Notification Bell - for all users */}
+                {user && (
                     <div className="relative" ref={dropdownRef}>
                         <Button
                             variant="outline"
@@ -255,7 +261,7 @@ export const Header: React.FC<HeaderProps> = ({
                                         <button
                                             className="text-sm text-primary hover:underline font-medium"
                                             onClick={() => {
-                                                navigate('/admin/notifications');
+                                                navigate(isAdmin ? '/admin/notifications' : '/notifications');
                                                 setShowDropdown(false);
                                             }}
                                         >

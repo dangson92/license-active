@@ -57,8 +57,12 @@ interface TicketReply {
     id: number;
     message: string;
     created_at: string;
+    admin_id?: number;
+    user_id?: number;
     admin_name?: string;
     admin_email?: string;
+    user_name?: string;
+    user_email?: string;
 }
 
 interface FaqFormData {
@@ -716,10 +720,19 @@ export const AdminTicketManagement: React.FC = () => {
                                 </div>
                             ) : (
                                 ticketReplies.map((reply) => (
-                                    <div key={reply.id} className="rounded-lg border p-3 bg-blue-50/50 border-blue-200">
+                                    <div
+                                        key={reply.id}
+                                        className={`rounded-lg border p-3 ${reply.admin_id
+                                            ? 'bg-blue-50/50 border-blue-200'
+                                            : 'bg-amber-50/50 border-amber-200'
+                                            }`}
+                                    >
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs font-medium text-blue-700">
-                                                Admin: {reply.admin_name || reply.admin_email}
+                                            <span className={`text-xs font-medium ${reply.admin_id ? 'text-blue-700' : 'text-amber-700'}`}>
+                                                {reply.admin_id
+                                                    ? `🛡️ Admin: ${reply.admin_name || reply.admin_email}`
+                                                    : `👤 User: ${reply.user_name || reply.user_email}`
+                                                }
                                             </span>
                                             <span className="text-xs text-muted-foreground">
                                                 {new Date(reply.created_at).toLocaleString('vi-VN')}
