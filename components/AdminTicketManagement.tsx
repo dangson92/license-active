@@ -4,6 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
     Plus,
     Download,
@@ -15,7 +20,9 @@ import {
     ChevronRight,
     Check,
     X,
-    AlertTriangle
+    AlertTriangle,
+    Edit,
+    Save
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -41,11 +48,33 @@ interface FAQ {
     is_active: boolean;
 }
 
+interface FaqFormData {
+    question: string;
+    answer: string;
+    category: string;
+    display_order: number;
+    is_active: boolean;
+}
+
+const initialFaqForm: FaqFormData = {
+    question: '',
+    answer: '',
+    category: '',
+    display_order: 0,
+    is_active: true
+};
+
 export const AdminTicketManagement: React.FC = () => {
     const [activeTab, setActiveTab] = useState('tickets');
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [faqs, setFaqs] = useState<FAQ[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // FAQ Dialog state
+    const [faqDialogOpen, setFaqDialogOpen] = useState(false);
+    const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
+    const [faqForm, setFaqForm] = useState<FaqFormData>(initialFaqForm);
+    const [savingFaq, setSavingFaq] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -97,6 +126,75 @@ export const AdminTicketManagement: React.FC = () => {
         }
     };
 
+    // FAQ CRUD handlers
+    const openFaqDialog = (faq?: FAQ) => {
+        if (faq) {
+            setEditingFaq(faq);
+            setFaqForm({
+                question: faq.question,
+                answer: faq.answer,
+                category: faq.category || '',
+                display_order: faq.display_order,
+                is_active: faq.is_active
+            });
+        } else {
+            setEditingFaq(null);
+            setFaqForm(initialFaqForm);
+        }
+        setFaqDialogOpen(true);
+    };
+
+    const closeFaqDialog = () => {
+        setFaqDialogOpen(false);
+        setEditingFaq(null);
+        setFaqForm(initialFaqForm);
+    };
+
+    const handleSaveFaq = async () => {
+        if (!faqForm.question.trim() || !faqForm.answer.trim()) {
+            alert('Vui lòng nhập câu hỏi và câu trả lời');
+            return;
+        }
+
+        setSavingFaq(true);
+        try {
+            if (editingFaq) {
+                // Update existing FAQ
+                await api.support.updateFaq(editingFaq.id, {
+                    question: faqForm.question,
+                    answer: faqForm.answer,
+                    category: faqForm.category || undefined,
+                    display_order: faqForm.display_order,
+                    is_active: faqForm.is_active
+                });
+            } else {
+                // Create new FAQ
+                await api.support.createFaq({
+                    question: faqForm.question,
+                    answer: faqForm.answer,
+                    category: faqForm.category || undefined,
+                    display_order: faqForm.display_order
+                });
+            }
+            closeFaqDialog();
+            loadData();
+        } catch (error) {
+            console.error('Failed to save FAQ:', error);
+            alert('Có lỗi xảy ra khi lưu FAQ');
+        } finally {
+            setSavingFaq(false);
+        }
+    };
+
+    const handleToggleFaqActive = async (faq: FAQ) => {
+        try {
+            await api.support.updateFaq(faq.id, { is_active: !faq.is_active });
+            loadData();
+        } catch (error) {
+            console.error('Failed to toggle FAQ active:', error);
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'pending':
@@ -138,10 +236,12 @@ export const AdminTicketManagement: React.FC = () => {
                         <History className="w-4 h-4 mr-2" />
                         Refresh
                     </Button>
-                    <Button>
-                        <Plus className="w-4 h-4 mr-2" />
-                        {activeTab === 'tickets' ? 'New Ticket' : 'New FAQ'}
-                    </Button>
+                    {activeTab === 'faqs' && (
+                        <Button onClick={() => openFaqDialog()}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Thêm FAQ
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -272,36 +372,74 @@ export const AdminTicketManagement: React.FC = () => {
                         {loading ? (
                             <div className="p-12 text-center text-muted-foreground">Đang tải...</div>
                         ) : faqs.length === 0 ? (
-                            <div className="p-12 text-center text-muted-foreground">Không có FAQ nào.</div>
+                            <div className="p-12 text-center">
+                                <div className="text-muted-foreground mb-4">Chưa có FAQ nào.</div>
+                                <Button onClick={() => openFaqDialog()}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Thêm FAQ đầu tiên
+                                </Button>
+                            </div>
                         ) : (
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
-                                        <TableHead className="font-semibold">ID</TableHead>
-                                        <TableHead className="font-semibold">Question</TableHead>
-                                        <TableHead className="font-semibold">Answer Preview</TableHead>
-                                        <TableHead className="font-semibold text-right">Actions</TableHead>
+                                        <TableHead className="font-semibold w-20">Thứ tự</TableHead>
+                                        <TableHead className="font-semibold">Câu hỏi</TableHead>
+                                        <TableHead className="font-semibold">Danh mục</TableHead>
+                                        <TableHead className="font-semibold">Trạng thái</TableHead>
+                                        <TableHead className="font-semibold text-right">Thao tác</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {faqs.map((faq) => (
-                                        <TableRow key={faq.id}>
+                                        <TableRow key={faq.id} className={!faq.is_active ? 'opacity-50' : ''}>
                                             <TableCell>
                                                 <code className="text-xs font-mono font-medium bg-muted px-2 py-1 rounded">
-                                                    #{faq.id}
+                                                    #{faq.display_order}
                                                 </code>
                                             </TableCell>
-                                            <TableCell className="font-medium">{faq.question}</TableCell>
-                                            <TableCell className="text-muted-foreground text-sm truncate max-w-xs">
-                                                {faq.answer}
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <p className="font-medium text-sm">{faq.question}</p>
+                                                    <p className="text-xs text-muted-foreground truncate max-w-md mt-1">
+                                                        {faq.answer}
+                                                    </p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {faq.category ? (
+                                                    <Badge variant="outline" className="text-xs">{faq.category}</Badge>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Switch
+                                                        checked={faq.is_active}
+                                                        onCheckedChange={() => handleToggleFaqActive(faq)}
+                                                    />
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {faq.is_active ? 'Hiển thị' : 'Ẩn'}
+                                                    </span>
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="outline" size="sm">Edit</Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        title="Sửa"
+                                                        onClick={() => openFaqDialog(faq)}
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-destructive hover:text-destructive"
+                                                        title="Xóa"
                                                         onClick={() => handleDeleteFaq(faq.id)}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -313,9 +451,116 @@ export const AdminTicketManagement: React.FC = () => {
                                 </TableBody>
                             </Table>
                         )}
+
+                        {/* Pagination for FAQs */}
+                        {faqs.length > 0 && (
+                            <div className="px-6 py-4 flex items-center justify-between bg-muted/30 border-t">
+                                <p className="text-xs text-muted-foreground">
+                                    Tổng: <span className="font-semibold text-foreground">{faqs.length}</span> FAQ
+                                </p>
+                            </div>
+                        )}
                     </TabsContent>
                 </Tabs>
             </Card>
+
+            {/* FAQ Create/Edit Dialog */}
+            <Dialog open={faqDialogOpen} onOpenChange={setFaqDialogOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl">
+                            {editingFaq ? 'Sửa FAQ' : 'Thêm FAQ mới'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingFaq
+                                ? 'Cập nhật thông tin câu hỏi thường gặp.'
+                                : 'Thêm câu hỏi thường gặp mới cho người dùng.'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="question">Câu hỏi <span className="text-destructive">*</span></Label>
+                            <Input
+                                id="question"
+                                placeholder="Ví dụ: Làm thế nào để gia hạn license?"
+                                value={faqForm.question}
+                                onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="answer">Câu trả lời <span className="text-destructive">*</span></Label>
+                            <Textarea
+                                id="answer"
+                                placeholder="Nhập câu trả lời chi tiết..."
+                                className="min-h-[120px]"
+                                value={faqForm.answer}
+                                onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="category">Danh mục</Label>
+                                <Input
+                                    id="category"
+                                    placeholder="Ví dụ: licenses, account, general"
+                                    value={faqForm.category}
+                                    onChange={(e) => setFaqForm({ ...faqForm, category: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="order">Thứ tự hiển thị</Label>
+                                <Input
+                                    id="order"
+                                    type="number"
+                                    min={0}
+                                    placeholder="0"
+                                    value={faqForm.display_order}
+                                    onChange={(e) => setFaqForm({ ...faqForm, display_order: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                        </div>
+
+                        {editingFaq && (
+                            <div className="flex items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="is_active">Hiển thị FAQ</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        FAQ sẽ được hiển thị cho người dùng khi bật
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="is_active"
+                                    checked={faqForm.is_active}
+                                    onCheckedChange={(checked) => setFaqForm({ ...faqForm, is_active: checked })}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closeFaqDialog}>
+                            Hủy
+                        </Button>
+                        <Button onClick={handleSaveFaq} disabled={savingFaq}>
+                            {savingFaq ? (
+                                <>
+                                    <span className="animate-spin mr-2">⏳</span>
+                                    Đang lưu...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    {editingFaq ? 'Cập nhật' : 'Thêm FAQ'}
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

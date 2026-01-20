@@ -7,7 +7,7 @@ const router = express.Router()
 router.get('/licenses', requireUser, async (req, res) => {
   try {
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name,
+      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.user_id=? ORDER BY l.id DESC`,
       [req.user.id]

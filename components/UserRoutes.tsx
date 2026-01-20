@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { User, LicenseKey, KeyStatus } from '../types';
-import api from '../services/api';
+import api, { getAssetUrl } from '../services/api';
 import { AppLayout } from './layout/AppLayout';
 
 // UI Components
@@ -139,7 +139,7 @@ const SettingsPlaceholder: React.FC = () => (
 // License Content (extracted from UserDashboard)
 const LicenseContent: React.FC = () => {
     const navigate = useNavigate();
-    const [userKeys, setUserKeys] = useState<LicenseKey[]>([]);
+    const [userKeys, setUserKeys] = useState<(LicenseKey & { appIcon?: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -151,7 +151,7 @@ const LicenseContent: React.FC = () => {
         try {
             setLoading(true);
             const response = await api.user.getLicenses();
-            const licenses: LicenseKey[] = response.items.map((item: any) => ({
+            const licenses: (LicenseKey & { appIcon?: string })[] = response.items.map((item: any) => ({
                 id: item.id.toString(),
                 key: item.license_key,
                 status: mapStatus(item.status),
@@ -159,6 +159,7 @@ const LicenseContent: React.FC = () => {
                 expiresAt: item.expires_at,
                 appCode: item.app_code,
                 appName: item.app_name,
+                appIcon: item.app_icon,
                 maxDevices: item.max_devices,
                 activeDevices: item.active_devices || 0,
             }));
@@ -299,8 +300,12 @@ const LicenseContent: React.FC = () => {
                                         <TableRow key={key.id} className="group">
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-md flex items-center justify-center border ${getAppIcon(key.appName || '')}`}>
-                                                        <AppWindow className="w-5 h-5" />
+                                                    <div className={`w-10 h-10 rounded-md flex items-center justify-center border overflow-hidden ${key.appIcon ? 'bg-white' : getAppIcon(key.appName || '')}`}>
+                                                        {key.appIcon ? (
+                                                            <img src={getAssetUrl(key.appIcon) || ''} alt={key.appName} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <AppWindow className="w-5 h-5" />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-sm">{key.appName}</p>
