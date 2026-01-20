@@ -19,15 +19,19 @@ interface Notification {
 interface HeaderProps {
     searchPlaceholder?: string;
     onSearch?: (query: string) => void;
+    unreadCount?: number;
+    onUnreadCountChange?: (count: number) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
     searchPlaceholder = "Search...",
-    onSearch
+    onSearch,
+    unreadCount: propUnreadCount,
+    onUnreadCountChange
 }) => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = React.useState('');
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [localUnreadCount, setLocalUnreadCount] = useState(0);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -35,24 +39,41 @@ export const Header: React.FC<HeaderProps> = ({
     const user = getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
-    // Fetch unread count on mount and periodically
+    // Use prop unread count if provided, otherwise use local state
+    const unreadCount = propUnreadCount ?? localUnreadCount;
+
+    // Fetch initial unread count if not controlled
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!isAdmin || propUnreadCount !== undefined) return;
 
         const fetchUnreadCount = async () => {
             try {
                 const response = await api.notifications.getUnreadCount();
-                setUnreadCount(response.count || 0);
+                setLocalUnreadCount(response.count || 0);
             } catch (error) {
                 console.error('Failed to fetch unread count:', error);
             }
         };
 
         fetchUnreadCount();
-        // Poll every 30 seconds
-        const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
-    }, [isAdmin]);
+    }, [isAdmin, propUnreadCount]);
+
+    // Listen for new notifications from Socket.IO via custom event
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        const handleNewNotification = (e: CustomEvent<Notification>) => {
+            // Add to notifications list if dropdown is open
+            if (showDropdown) {
+                setNotifications(prev => [e.detail, ...prev]);
+            }
+        };
+
+        window.addEventListener('notification-received', handleNewNotification as EventListener);
+        return () => {
+            window.removeEventListener('notification-received', handleNewNotification as EventListener);
+        };
+    }, [isAdmin, showDropdown]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -84,7 +105,11 @@ export const Header: React.FC<HeaderProps> = ({
                 // Mark all as read
                 if (unreadCount > 0) {
                     await api.notifications.markAllRead();
-                    setUnreadCount(0);
+                    if (onUnreadCountChange) {
+                        onUnreadCountChange(0);
+                    } else {
+                        setLocalUnreadCount(0);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch notifications:', error);

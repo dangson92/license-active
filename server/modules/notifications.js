@@ -1,6 +1,7 @@
 import express from 'express'
 import { query } from '../db.js'
 import { requireAuth, requireAdmin } from './auth.js'
+import { emitToAdmins } from '../socket.js'
 
 const router = express.Router()
 
@@ -120,11 +121,23 @@ const maybeCleanup = () => {
 // =====================
 export const createNotification = async ({ type, title, message, link, userId = null }) => {
     try {
-        await query(
+        const result = await query(
             `INSERT INTO notifications (user_id, type, title, message, link, created_at)
              VALUES (?, ?, ?, ?, ?, NOW())`,
             [userId, type, title, message, link]
         )
+
+        // Emit real-time notification via Socket.IO
+        emitToAdmins('new-notification', {
+            id: result.insertId,
+            type,
+            title,
+            message,
+            link,
+            is_read: false,
+            created_at: new Date().toISOString()
+        })
+
         // Trigger cleanup check
         maybeCleanup()
     } catch (e) {

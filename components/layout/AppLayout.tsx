@@ -1,8 +1,19 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import api, { getCurrentUser } from '../../services/api';
 import { toast } from '../ui/toast';
+import { initSocket, joinAdminRoom, getSocket, disconnectSocket } from '../../services/socket';
+
+interface Notification {
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    link?: string;
+    is_read: boolean;
+    created_at: string;
+}
 
 interface AppLayoutProps {
     variant: 'admin' | 'user';
@@ -29,40 +40,62 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
     const user = getCurrentUser();
     const isAdmin = user?.role === 'admin';
-    const lastUnreadCountRef = useRef<number>(0);
-    const isFirstCheckRef = useRef(true);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const socketInitialized = useRef(false);
 
-    // Poll for new notifications and show toast
+    // Initialize Socket.IO for admin users
+    useEffect(() => {
+        if (!isAdmin || socketInitialized.current) return;
+
+        const socket = initSocket();
+        socketInitialized.current = true;
+
+        // Join admin room when connected
+        socket.on('connect', () => {
+            joinAdminRoom();
+        });
+
+        // If already connected, join immediately
+        if (socket.connected) {
+            joinAdminRoom();
+        }
+
+        // Listen for new notifications
+        socket.on('new-notification', (notification: Notification) => {
+            console.log('📬 New notification received:', notification);
+
+            // Show toast
+            toast.info(notification.title, notification.message);
+
+            // Update unread count
+            setUnreadCount(prev => prev + 1);
+
+            // Dispatch custom event for Header to update
+            window.dispatchEvent(new CustomEvent('notification-received', {
+                detail: notification
+            }));
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.off('new-notification');
+        };
+    }, [isAdmin]);
+
+    // Fetch initial unread count
     useEffect(() => {
         if (!isAdmin) return;
 
-        const checkForNewNotifications = async () => {
+        const fetchUnreadCount = async () => {
             try {
                 const response = await api.notifications.getUnreadCount();
-                const currentCount = response.count || 0;
-
-                // Show toast only if count increased (not on first load)
-                if (!isFirstCheckRef.current && currentCount > lastUnreadCountRef.current) {
-                    const newCount = currentCount - lastUnreadCountRef.current;
-                    toast.info(
-                        `${newCount} thông báo mới`,
-                        'Nhấn vào biểu tượng chuông để xem chi tiết'
-                    );
-                }
-
-                lastUnreadCountRef.current = currentCount;
-                isFirstCheckRef.current = false;
+                setUnreadCount(response.count || 0);
             } catch (error) {
-                console.error('Failed to check notifications:', error);
+                console.error('Failed to fetch unread count:', error);
             }
         };
 
-        // Check immediately
-        checkForNewNotifications();
-
-        // Then poll every 30 seconds
-        const interval = setInterval(checkForNewNotifications, 30000);
-        return () => clearInterval(interval);
+        fetchUnreadCount();
     }, [isAdmin]);
 
     return (
@@ -79,6 +112,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 <Header
                     searchPlaceholder={searchPlaceholder}
                     onSearch={onSearch}
+                    unreadCount={unreadCount}
+                    onUnreadCountChange={setUnreadCount}
                 />
                 <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     {children}

@@ -30,24 +30,28 @@ export const useToast = () => {
 // Convenience functions
 export const toast = {
     success: (title: string, message?: string) => {
+        console.log('[Toast] Dispatching success:', title);
         const event = new CustomEvent('add-toast', {
             detail: { type: 'success', title, message, duration: 5000 }
         });
         window.dispatchEvent(event);
     },
     error: (title: string, message?: string) => {
+        console.log('[Toast] Dispatching error:', title);
         const event = new CustomEvent('add-toast', {
             detail: { type: 'error', title, message, duration: 7000 }
         });
         window.dispatchEvent(event);
     },
     info: (title: string, message?: string) => {
+        console.log('[Toast] Dispatching info:', title);
         const event = new CustomEvent('add-toast', {
             detail: { type: 'info', title, message, duration: 5000 }
         });
         window.dispatchEvent(event);
     },
     warning: (title: string, message?: string) => {
+        console.log('[Toast] Dispatching warning:', title);
         const event = new CustomEvent('add-toast', {
             detail: { type: 'warning', title, message, duration: 6000 }
         });
@@ -122,10 +126,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Listen for global toast events
     React.useEffect(() => {
         const handler = (e: CustomEvent<Omit<Toast, 'id'>>) => {
+            console.log('[Toast] Received event:', e.detail);
             addToast(e.detail);
         };
         window.addEventListener('add-toast', handler as EventListener);
-        return () => window.removeEventListener('add-toast', handler as EventListener);
+        console.log('[Toast] Event listener attached');
+        return () => {
+            window.removeEventListener('add-toast', handler as EventListener);
+            console.log('[Toast] Event listener removed');
+        };
     }, [addToast]);
 
     return (
