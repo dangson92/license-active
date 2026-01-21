@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
+import { config } from '../config';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [downloadUrl, setDownloadUrl] = useState('');
     const [creating, setCreating] = useState(false);
 
+    // Upload states
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [fileName, setFileName] = useState('');
+    const [fileSize, setFileSize] = useState(0);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     // Initialize form with edit data or default values
     useEffect(() => {
         if (editVersion) {
@@ -70,6 +78,105 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setReleaseDate(today);
         }
     }, [editVersion]);
+
+    // Handle file upload
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validation: cần có version trước khi upload
+        if (!versionNumber.trim()) {
+            alert('Vui lòng nhập Version Number trước khi upload file!');
+            e.target.value = '';
+            return;
+        }
+
+        if (!appId) {
+            alert('Không tìm thấy App ID!');
+            e.target.value = '';
+            return;
+        }
+
+        try {
+            setUploadingFile(true);
+            setUploadProgress(0);
+
+            // Get app code from API
+            const appInfo = await api.admin.getApp(parseInt(appId));
+            const appCode = appInfo.code;
+
+            // Upload with progress
+            const response = await uploadFileWithProgress(file, appCode, versionNumber);
+
+            // Update form with file info
+            setDownloadUrl(`${config.uploadApiUrl}${response.file.path}`);
+            setFileName(response.file.filename);
+            setFileSize(response.file.size);
+
+            alert('Upload file thành công!');
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Upload file thất bại: ' + (error as Error).message);
+        } finally {
+            setUploadingFile(false);
+            setUploadProgress(0);
+        }
+    };
+
+    // Upload file với XMLHttpRequest để track progress
+    const uploadFileWithProgress = (file: File, appCode: string, version: string): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('appCode', appCode);
+            formData.append('version', version);
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.timeout = 30 * 60 * 1000; // 30 minutes
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    setUploadProgress(percentComplete);
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (error) {
+                        reject(new Error('Invalid response from server'));
+                    }
+                } else {
+                    try {
+                        const error = JSON.parse(xhr.responseText);
+                        reject(new Error(error.error || `HTTP ${xhr.status}`));
+                    } catch {
+                        reject(new Error(`Upload failed: HTTP ${xhr.status}`));
+                    }
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Network error occurred')));
+            xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+            xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
+
+            const token = localStorage.getItem('auth_token');
+            xhr.open('POST', `${config.uploadApiUrl}/api/admin/app-versions/upload`);
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+            xhr.send(formData);
+        });
+    };
+
+    const formatFileSize = (bytes: number) => {
+        if (!bytes) return '';
+        const mb = bytes / (1024 * 1024);
+        return `${mb.toFixed(2)} MB`;
+    };
 
     const handleSubmit = async () => {
         if (!versionNumber.trim()) {
@@ -235,19 +342,78 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     {/* Upload Area */}
                     <div className="space-y-2">
                         <Label className="font-semibold">Upload Binary / Package</Label>
-                        <div className="border-2 border-dashed border-border rounded-xl p-10 flex flex-col items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
-                            <div className="bg-primary/10 text-primary p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                                <CloudUpload className="w-8 h-8" />
-                            </div>
-                            <p className="text-sm font-semibold">Click to upload or drag and drop</p>
-                            <p className="text-xs text-muted-foreground mt-1">.zip, .dmg, .exe or .msi (Max 2GB)</p>
+                        <p className="text-xs text-muted-foreground">
+                            ⚠️ Lưu ý: Phải nhập <strong>Version Number</strong> trước khi upload file.
+                        </p>
+
+                        {/* Hidden file input */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".zip,.exe,.msi,.dmg,.deb"
+                            onChange={handleFileUpload}
+                            disabled={uploadingFile || !versionNumber.trim()}
+                            className="hidden"
+                        />
+
+                        {/* Clickable upload area */}
+                        <div
+                            onClick={() => {
+                                if (!versionNumber.trim()) {
+                                    alert('Vui lòng nhập Version Number trước khi upload file!');
+                                    return;
+                                }
+                                if (!uploadingFile) {
+                                    fileInputRef.current?.click();
+                                }
+                            }}
+                            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer group
+                                ${uploadingFile
+                                    ? 'border-blue-400 bg-blue-50/50 cursor-wait'
+                                    : !versionNumber.trim()
+                                        ? 'border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-60'
+                                        : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
+                                }`}
+                        >
+                            {uploadingFile ? (
+                                <>
+                                    <div className="bg-blue-100 text-blue-600 p-4 rounded-full mb-4 animate-pulse">
+                                        <CloudUpload className="w-8 h-8" />
+                                    </div>
+                                    <p className="text-sm font-semibold text-blue-700">Đang upload... {uploadProgress}%</p>
+                                    <div className="w-full max-w-xs mt-4 bg-gray-200 rounded-full h-2.5">
+                                        <div
+                                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
+                                </>
+                            ) : fileName ? (
+                                <>
+                                    <div className="bg-green-100 text-green-600 p-4 rounded-full mb-4">
+                                        <Package className="w-8 h-8" />
+                                    </div>
+                                    <p className="text-sm font-semibold text-green-700">✓ Upload thành công!</p>
+                                    <p className="text-xs text-green-600 mt-1 font-mono">{fileName}</p>
+                                    <p className="text-xs text-green-600">{formatFileSize(fileSize)}</p>
+                                    <p className="text-xs text-muted-foreground mt-2">Click để upload file khác</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="bg-primary/10 text-primary p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                                        <CloudUpload className="w-8 h-8" />
+                                    </div>
+                                    <p className="text-sm font-semibold">Click to upload or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground mt-1">.zip, .dmg, .exe or .msi (Max 2GB)</p>
+                                </>
+                            )}
                         </div>
 
                         {/* Download URL - shown after upload */}
                         {downloadUrl && (
-                            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                                <Label className="text-xs text-muted-foreground">Download URL</Label>
-                                <p className="font-mono text-sm break-all">{downloadUrl}</p>
+                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <Label className="text-xs text-green-700 font-medium">Download URL</Label>
+                                <p className="font-mono text-sm break-all text-green-800">{downloadUrl}</p>
                             </div>
                         )}
                     </div>
