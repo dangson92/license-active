@@ -280,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
                                         <button
                                             className="text-sm text-primary hover:underline font-medium"
                                             onClick={() => {
-                                                navigate(isAdmin ? '/admin/notifications' : '/notifications');
+                                                navigate(isAdmin ? '/admin/notifications' : '/user/notifications');
                                                 setShowDropdown(false);
                                             }}
                                         >
