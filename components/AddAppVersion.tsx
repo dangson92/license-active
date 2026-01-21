@@ -178,6 +178,72 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         return `${mb.toFixed(2)} MB`;
     };
 
+    // Drag and drop state
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Handle drag events
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!uploadingFile && versionNumber.trim()) {
+            setIsDragging(true);
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (uploadingFile) return;
+
+        if (!versionNumber.trim()) {
+            alert('Vui lòng nhập Version Number trước khi upload file!');
+            return;
+        }
+
+        const files = e.dataTransfer.files;
+        if (files.length === 0) return;
+
+        const file = files[0];
+        const allowedExtensions = ['.zip', '.exe', '.msi', '.dmg', '.deb'];
+        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Chỉ chấp nhận file: ' + allowedExtensions.join(', '));
+            return;
+        }
+
+        // Trigger upload
+        try {
+            setUploadingFile(true);
+            setUploadProgress(0);
+
+            const appInfo = await api.admin.getApp(parseInt(appId || '0'));
+            const appCode = appInfo.code;
+
+            const response = await uploadFileWithProgress(file, appCode, versionNumber);
+
+            setDownloadUrl(`${config.uploadApiUrl}${response.file.path}`);
+            setFileName(response.file.filename);
+            setFileSize(response.file.size);
+
+            alert('Upload file thành công!');
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Upload file thất bại: ' + (error as Error).message);
+        } finally {
+            setUploadingFile(false);
+            setUploadProgress(0);
+        }
+    };
+
     const handleSubmit = async () => {
         if (!versionNumber.trim()) {
             alert('Vui lòng nhập Version Number!');
@@ -356,7 +422,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             className="hidden"
                         />
 
-                        {/* Clickable upload area */}
+                        {/* Clickable and Draggable upload area */}
                         <div
                             onClick={() => {
                                 if (!versionNumber.trim()) {
@@ -367,15 +433,28 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                     fileInputRef.current?.click();
                                 }
                             }}
-                            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer group
-                                ${uploadingFile
-                                    ? 'border-blue-400 bg-blue-50/50 cursor-wait'
-                                    : !versionNumber.trim()
-                                        ? 'border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-60'
-                                        : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-all duration-200 cursor-pointer group
+                                ${isDragging
+                                    ? 'border-primary bg-primary/10 scale-[1.02]'
+                                    : uploadingFile
+                                        ? 'border-blue-400 bg-blue-50/50 cursor-wait'
+                                        : !versionNumber.trim()
+                                            ? 'border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-60'
+                                            : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
                                 }`}
                         >
-                            {uploadingFile ? (
+                            {isDragging ? (
+                                <>
+                                    <div className="bg-primary/20 text-primary p-4 rounded-full mb-4 animate-bounce">
+                                        <CloudUpload className="w-8 h-8" />
+                                    </div>
+                                    <p className="text-sm font-semibold text-primary">Thả file vào đây!</p>
+                                    <p className="text-xs text-primary/70 mt-1">.zip, .dmg, .exe or .msi</p>
+                                </>
+                            ) : uploadingFile ? (
                                 <>
                                     <div className="bg-blue-100 text-blue-600 p-4 rounded-full mb-4 animate-pulse">
                                         <CloudUpload className="w-8 h-8" />
@@ -396,14 +475,14 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                     <p className="text-sm font-semibold text-green-700">✓ Upload thành công!</p>
                                     <p className="text-xs text-green-600 mt-1 font-mono">{fileName}</p>
                                     <p className="text-xs text-green-600">{formatFileSize(fileSize)}</p>
-                                    <p className="text-xs text-muted-foreground mt-2">Click để upload file khác</p>
+                                    <p className="text-xs text-muted-foreground mt-2">Click hoặc kéo thả để upload file khác</p>
                                 </>
                             ) : (
                                 <>
                                     <div className="bg-primary/10 text-primary p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
                                         <CloudUpload className="w-8 h-8" />
                                     </div>
-                                    <p className="text-sm font-semibold">Click to upload or drag and drop</p>
+                                    <p className="text-sm font-semibold">Click hoặc kéo thả file vào đây</p>
                                     <p className="text-xs text-muted-foreground mt-1">.zip, .dmg, .exe or .msi (Max 2GB)</p>
                                 </>
                             )}
