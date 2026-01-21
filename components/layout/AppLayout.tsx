@@ -140,7 +140,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                     unreadCount={unreadCount}
                     onUnreadCountChange={setUnreadCount}
                 />
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-0 isolate">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     {children}
                 </div>
             </main>

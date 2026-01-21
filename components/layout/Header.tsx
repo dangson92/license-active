@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
     const user = getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
@@ -99,6 +102,13 @@ export const Header: React.FC<HeaderProps> = ({
     };
 
     const handleBellClick = async () => {
+        if (!showDropdown && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + 8,
+                right: window.innerWidth - rect.right
+            });
+        }
         setShowDropdown(!showDropdown);
 
         if (!showDropdown) {
@@ -180,6 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {user && (
                     <div className="relative" ref={dropdownRef}>
                         <Button
+                            ref={buttonRef}
                             variant="outline"
                             size="icon"
                             className="text-muted-foreground relative"
@@ -194,9 +205,17 @@ export const Header: React.FC<HeaderProps> = ({
                             )}
                         </Button>
 
-                        {/* Dropdown */}
-                        {showDropdown && (
-                            <div className="absolute right-0 mt-2 w-80 rounded-lg shadow-xl border border-gray-200 z-[9999] overflow-hidden" style={{ backgroundColor: '#ffffff' }}>
+                        {/* Dropdown via Portal */}
+                        {showDropdown && createPortal(
+                            <div
+                                className="fixed w-80 rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                                style={{
+                                    backgroundColor: '#ffffff',
+                                    top: dropdownPosition.top,
+                                    right: dropdownPosition.right,
+                                    zIndex: 99999
+                                }}
+                            >
                                 {/* Header */}
                                 <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
                                     <h3 className="font-semibold text-gray-900">Thông báo</h3>
@@ -269,7 +288,8 @@ export const Header: React.FC<HeaderProps> = ({
                                         </button>
                                     </div>
                                 )}
-                            </div>
+                            </div>,
+                            document.body
                         )}
                     </div>
                 )}
