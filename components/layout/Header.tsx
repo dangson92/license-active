@@ -278,10 +278,17 @@ export const Header: React.FC<HeaderProps> = ({
                                 {notifications.length > 0 && (
                                     <div className="px-4 py-3 border-t bg-gray-50 text-center">
                                         <button
+                                            type="button"
                                             className="text-sm text-primary hover:underline font-medium"
-                                            onClick={() => {
-                                                navigate(isAdmin ? '/admin/notifications' : '/user/notifications');
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                const targetUrl = isAdmin ? '/admin/notifications' : '/user/notifications';
                                                 setShowDropdown(false);
+                                                // Use setTimeout to ensure dropdown is closed before navigation
+                                                setTimeout(() => {
+                                                    navigate(targetUrl);
+                                                }, 0);
                                             }}
                                         >
                                             Xem tất cả thông báo
