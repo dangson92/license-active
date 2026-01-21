@@ -19,6 +19,7 @@ import { AdminTicketManagement } from './components/AdminTicketManagement';
 import { AdminTicketDetail } from './components/AdminTicketDetail';
 import { ApplicationSetting } from './components/ApplicationSetting';
 import { OrderManagement } from './components/OrderManagement';
+import { NotificationsPage } from './components/NotificationsPage';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -152,6 +153,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         <Route path="settings" element={<Settings />} />
         <Route path="support" element={<AdminTicketManagement />} />
         <Route path="support/ticket/:ticketId" element={<AdminTicketDetail />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="applications/:appId/settings" element={<ApplicationSettingWrapper />} />
         <Route path="applications/new" element={<NewApplicationWrapper />} />
         <Route path="*" element={<Navigate to="/admin/licenses" replace />} />

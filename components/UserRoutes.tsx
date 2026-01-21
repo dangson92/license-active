@@ -21,6 +21,7 @@ import { ApplicationStore } from './ApplicationStore';
 import { Checkout } from './Checkout';
 import { CheckoutSuccess } from './CheckoutSuccess';
 import { UserOrders } from './UserOrders';
+import { NotificationsPage } from './NotificationsPage';
 
 interface UserRoutesProps {
     user: User;
@@ -99,6 +100,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                         />
                     } />
                     <Route path="settings" element={<SettingsPlaceholder />} />
+                    <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="*" element={<Navigate to="/user/licenses" replace />} />
                 </Routes>
             </AppLayout>
