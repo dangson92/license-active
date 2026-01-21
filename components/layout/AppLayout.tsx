@@ -65,10 +65,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 toast.info(notification.title, notification.message);
             }
 
-            // Update unread count (for admin)
-            if (isAdmin) {
-                setUnreadCount(prev => prev + 1);
-            }
+            // Update unread count (for both admin and user)
+            setUnreadCount(prev => prev + 1);
 
             // Dispatch custom event for Header to update
             window.dispatchEvent(new CustomEvent('notification-received', {
@@ -109,9 +107,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         };
     }, [user, isAdmin]);
 
-    // Fetch initial unread count (admin only)
+    // Fetch initial unread count (for both admin and user)
     useEffect(() => {
-        if (!isAdmin) return;
+        if (!user) return;
 
         const fetchUnreadCount = async () => {
             try {
@@ -123,7 +121,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         };
 
         fetchUnreadCount();
-    }, [isAdmin]);
+    }, [user]);
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">

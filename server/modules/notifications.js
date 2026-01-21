@@ -6,13 +6,25 @@ import { emitToAdmins, emitToUser } from '../socket.js'
 const router = express.Router()
 
 // =====================
-// Admin: Get notifications
+// Get notifications (for both admin and user)
+// Admin: sees system notifications (user_id IS NULL) + their own notifications
+// User: sees only their own notifications (user_id = their id)
 // =====================
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
     try {
         const { unread_only } = req.query
-        let sql = 'SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ?'
-        const params = [req.user.id]
+        const isAdmin = req.user.role === 'admin'
+
+        let sql, params
+        if (isAdmin) {
+            // Admin sees system notifications (user_id IS NULL) and their specific ones
+            sql = 'SELECT * FROM notifications WHERE user_id IS NULL OR user_id = ?'
+            params = [req.user.id]
+        } else {
+            // Regular user only sees their own notifications
+            sql = 'SELECT * FROM notifications WHERE user_id = ?'
+            params = [req.user.id]
+        }
 
         if (unread_only === 'true') {
             sql += ' AND is_read = FALSE'
@@ -29,14 +41,22 @@ router.get('/', requireAdmin, async (req, res) => {
 })
 
 // =====================
-// Admin: Get unread count
+// Get unread count (for both admin and user)
 // =====================
-router.get('/unread-count', requireAdmin, async (req, res) => {
+router.get('/unread-count', requireAuth, async (req, res) => {
     try {
-        const r = await query(
-            'SELECT COUNT(*) as count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND is_read = FALSE',
-            [req.user.id]
-        )
+        const isAdmin = req.user.role === 'admin'
+
+        let sql, params
+        if (isAdmin) {
+            sql = 'SELECT COUNT(*) as count FROM notifications WHERE (user_id IS NULL OR user_id = ?) AND is_read = FALSE'
+            params = [req.user.id]
+        } else {
+            sql = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE'
+            params = [req.user.id]
+        }
+
+        const r = await query(sql, params)
         res.json({ count: r.rows[0].count })
     } catch (e) {
         console.error('Error getting unread count:', e)
@@ -45,14 +65,22 @@ router.get('/unread-count', requireAdmin, async (req, res) => {
 })
 
 // =====================
-// Admin: Mark all as read
+// Mark all as read (for both admin and user)
 // =====================
-router.post('/mark-all-read', requireAdmin, async (req, res) => {
+router.post('/mark-all-read', requireAuth, async (req, res) => {
     try {
-        await query(
-            'UPDATE notifications SET is_read = TRUE WHERE (user_id IS NULL OR user_id = ?) AND is_read = FALSE',
-            [req.user.id]
-        )
+        const isAdmin = req.user.role === 'admin'
+
+        let sql, params
+        if (isAdmin) {
+            sql = 'UPDATE notifications SET is_read = TRUE WHERE (user_id IS NULL OR user_id = ?) AND is_read = FALSE'
+            params = [req.user.id]
+        } else {
+            sql = 'UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE'
+            params = [req.user.id]
+        }
+
+        await query(sql, params)
         res.json({ success: true })
     } catch (e) {
         console.error('Error marking notifications as read:', e)
@@ -61,11 +89,28 @@ router.post('/mark-all-read', requireAdmin, async (req, res) => {
 })
 
 // =====================
-// Admin: Mark one as read
+// Mark one as read (verify ownership)
 // =====================
-router.patch('/:id/read', requireAdmin, async (req, res) => {
+router.patch('/:id/read', requireAuth, async (req, res) => {
     try {
         const id = Number(req.params.id)
+        const isAdmin = req.user.role === 'admin'
+
+        // Verify ownership or admin access
+        let checkSql, checkParams
+        if (isAdmin) {
+            checkSql = 'SELECT id FROM notifications WHERE id = ? AND (user_id IS NULL OR user_id = ?)'
+            checkParams = [id, req.user.id]
+        } else {
+            checkSql = 'SELECT id FROM notifications WHERE id = ? AND user_id = ?'
+            checkParams = [id, req.user.id]
+        }
+
+        const check = await query(checkSql, checkParams)
+        if (check.rows.length === 0) {
+            return res.status(403).json({ error: 'forbidden' })
+        }
+
         await query('UPDATE notifications SET is_read = TRUE WHERE id = ?', [id])
         res.json({ id, updated: true })
     } catch (e) {
@@ -75,11 +120,28 @@ router.patch('/:id/read', requireAdmin, async (req, res) => {
 })
 
 // =====================
-// Admin: Delete notification
+// Delete notification (verify ownership)
 // =====================
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
     try {
         const id = Number(req.params.id)
+        const isAdmin = req.user.role === 'admin'
+
+        // Verify ownership or admin access
+        let checkSql, checkParams
+        if (isAdmin) {
+            checkSql = 'SELECT id FROM notifications WHERE id = ? AND (user_id IS NULL OR user_id = ?)'
+            checkParams = [id, req.user.id]
+        } else {
+            checkSql = 'SELECT id FROM notifications WHERE id = ? AND user_id = ?'
+            checkParams = [id, req.user.id]
+        }
+
+        const check = await query(checkSql, checkParams)
+        if (check.rows.length === 0) {
+            return res.status(403).json({ error: 'forbidden' })
+        }
+
         await query('DELETE FROM notifications WHERE id = ?', [id])
         res.json({ id, deleted: true })
     } catch (e) {
