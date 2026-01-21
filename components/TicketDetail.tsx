@@ -230,8 +230,8 @@ export const TicketDetail: React.FC = () => {
                                 >
                                     <div className="flex gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${reply.admin_id
-                                                ? 'bg-blue-100 text-blue-600'
-                                                : 'bg-gray-100 text-gray-600'
+                                            ? 'bg-blue-100 text-blue-600'
+                                            : 'bg-gray-100 text-gray-600'
                                             }`}>
                                             {reply.admin_id ? (
                                                 <Shield className="w-4 h-4" />
@@ -263,7 +263,7 @@ export const TicketDetail: React.FC = () => {
                     </div>
 
                     {/* Reply Form */}
-                    {ticket.status !== 'closed' ? (
+                    {ticket.status !== 'closed' && ticket.status !== 'resolved' ? (
                         <div className="p-4 border-t bg-muted/10">
                             <Textarea
                                 placeholder="Nhập phản hồi của bạn..."
@@ -294,7 +294,10 @@ export const TicketDetail: React.FC = () => {
                     ) : (
                         <div className="p-4 border-t bg-muted/10 text-center">
                             <p className="text-sm text-muted-foreground">
-                                Ticket này đã được đóng và không thể phản hồi thêm.
+                                {ticket.status === 'resolved'
+                                    ? 'Ticket này đã được giải quyết. Nếu bạn vẫn cần hỗ trợ, vui lòng tạo ticket mới.'
+                                    : 'Ticket này đã được đóng và không thể phản hồi thêm.'
+                                }
                             </p>
                         </div>
                     )}

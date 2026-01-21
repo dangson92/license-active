@@ -133,7 +133,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 activeItem={activeItem}
                 onNavClick={onNavClick}
             />
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
                 <Header
                     searchPlaceholder={searchPlaceholder}
                     onSearch={onSearch}

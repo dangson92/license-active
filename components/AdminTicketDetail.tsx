@@ -191,7 +191,7 @@ export const AdminTicketDetail: React.FC = () => {
 
                 {/* Quick Actions */}
                 <div className="flex items-center gap-2">
-                    {ticket.status !== 'closed' && (
+                    {ticket.status !== 'closed' && ticket.status !== 'resolved' && (
                         <>
                             {ticket.status === 'pending' && (
                                 <Button
@@ -223,6 +223,11 @@ export const AdminTicketDetail: React.FC = () => {
                                 Đóng ticket
                             </Button>
                         </>
+                    )}
+                    {(ticket.status === 'resolved' || ticket.status === 'closed') && (
+                        <Badge variant="secondary" className="text-sm py-1">
+                            Ticket đã {ticket.status === 'resolved' ? 'giải quyết' : 'đóng'}
+                        </Badge>
                     )}
                 </div>
             </div>
@@ -313,8 +318,8 @@ export const AdminTicketDetail: React.FC = () => {
                                 >
                                     <div className="flex gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${reply.admin_id
-                                                ? 'bg-blue-100 text-blue-600'
-                                                : 'bg-amber-100 text-amber-600'
+                                            ? 'bg-blue-100 text-blue-600'
+                                            : 'bg-amber-100 text-amber-600'
                                             }`}>
                                             {reply.admin_id ? (
                                                 <Shield className="w-4 h-4" />
@@ -346,7 +351,7 @@ export const AdminTicketDetail: React.FC = () => {
                     </div>
 
                     {/* Reply Form */}
-                    {ticket.status !== 'closed' ? (
+                    {ticket.status !== 'closed' && ticket.status !== 'resolved' ? (
                         <div className="p-4 border-t bg-muted/10">
                             <Textarea
                                 placeholder="Nhập phản hồi của bạn..."
@@ -380,7 +385,10 @@ export const AdminTicketDetail: React.FC = () => {
                     ) : (
                         <div className="p-4 border-t bg-muted/10 text-center">
                             <p className="text-sm text-muted-foreground">
-                                Ticket này đã được đóng và không thể phản hồi thêm.
+                                {ticket.status === 'resolved'
+                                    ? 'Ticket này đã được giải quyết và không thể phản hồi thêm.'
+                                    : 'Ticket này đã được đóng và không thể phản hồi thêm.'
+                                }
                             </p>
                         </div>
                     )}
