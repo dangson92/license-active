@@ -16,6 +16,7 @@ import { Copy, Check, Plus, Key, AppWindow } from 'lucide-react';
 
 // Page Components
 import { UserSupport } from './UserSupport';
+import { TicketDetail } from './TicketDetail';
 import { ApplicationStore } from './ApplicationStore';
 import { Checkout } from './Checkout';
 import { CheckoutSuccess } from './CheckoutSuccess';
@@ -35,7 +36,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         const path = location.pathname;
         if (path.includes('/user/store')) return 'store';
         if (path.includes('/user/orders')) return 'orders';
-        if (path.includes('/user/support')) return 'support';
+        if (path.includes('/user/support')) return 'support'; // This includes /user/support/ticket/:id
         if (path.includes('/user/checkout')) return 'store';
         if (path.includes('/user/settings')) return 'settings';
         return 'licenses';
@@ -87,6 +88,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     } />
                     <Route path="orders" element={<UserOrders />} />
                     <Route path="support" element={<UserSupport />} />
+                    <Route path="support/ticket/:ticketId" element={<TicketDetail />} />
                     <Route path="checkout/:appId" element={
                         <CheckoutWrapper onSuccess={() => navigate('/user/checkout-success')} />
                     } />
