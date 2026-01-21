@@ -38,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
     const [loading, setLoading] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const portalRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const user = getCurrentUser();
     const isAdmin = user?.role === 'admin';
@@ -87,7 +88,12 @@ export const Header: React.FC<HeaderProps> = ({
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            // Check if click is inside either the button container or the portal content
+            const isInsideButton = dropdownRef.current?.contains(target);
+            const isInsidePortal = portalRef.current?.contains(target);
+
+            if (!isInsideButton && !isInsidePortal) {
                 setShowDropdown(false);
             }
         };
@@ -208,6 +214,7 @@ export const Header: React.FC<HeaderProps> = ({
                         {/* Dropdown via Portal */}
                         {showDropdown && createPortal(
                             <div
+                                ref={portalRef}
                                 className="fixed w-80 rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                                 style={{
                                     backgroundColor: '#ffffff',
