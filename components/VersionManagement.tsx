@@ -185,7 +185,7 @@ export const VersionManagement: React.FC<VersionManagementProps> = ({ apps }) =>
 
       // Open and send request
       // Use upload subdomain to bypass CloudFlare 100MB limit
-      xhr.open('POST', `${config.uploadApiUrl}/admin/app-versions/upload`);
+      xhr.open('POST', `${config.uploadApiUrl}/api/admin/app-versions/upload`);
       if (token) {
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       }
