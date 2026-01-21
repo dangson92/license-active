@@ -54,6 +54,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [fileType, setFileType] = useState('');
     const [changelog, setChangelog] = useState('');
     const [downloadUrl, setDownloadUrl] = useState('');
+    const [mandatory, setMandatory] = useState(false);
     const [creating, setCreating] = useState(false);
 
     // Upload states
@@ -262,6 +263,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     release_notes: changelog,
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
+                    mandatory: mandatory,
                 });
                 alert(`Version ${versionNumber} đã được cập nhật thành công!`);
             } else {
@@ -274,6 +276,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     release_notes: changelog,
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
+                    mandatory: mandatory,
                 });
                 alert(`Version ${versionNumber} đã được tạo thành công!`);
             }
@@ -403,6 +406,27 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             value={changelog}
                             onChange={(e) => setChangelog(e.target.value)}
                         />
+                    </div>
+
+                    {/* Mandatory Update Toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50/50">
+                        <div className="space-y-1">
+                            <Label className="font-semibold text-orange-800">Bắt buộc cập nhật</Label>
+                            <p className="text-xs text-orange-600">
+                                Khi bật, người dùng sẽ phải cập nhật lên phiên bản này để tiếp tục sử dụng.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setMandatory(!mandatory)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${mandatory ? 'bg-orange-500' : 'bg-gray-300'
+                                }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mandatory ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                            />
+                        </button>
                     </div>
 
                     {/* Upload Area */}
