@@ -69,7 +69,7 @@ router.post('/tickets', requireAuth, async (req, res) => {
             type: 'new_ticket',
             title: 'Ticket hỗ trợ mới',
             message: `${userName} đã gửi ticket: ${subject}`,
-            link: '/admin/support'
+            link: `/admin/support/ticket/${ticketId}`
         })
 
         res.json({ id: ticketId, message: 'Ticket created successfully' })
@@ -128,7 +128,7 @@ router.post('/tickets/:id/reply', requireAuth, async (req, res) => {
             type: 'ticket_reply',
             title: 'Phản hồi ticket từ user',
             message: `${userName} đã trả lời ticket: "${ticket.subject}"`,
-            link: '/admin/support'
+            link: `/admin/support/ticket/${ticketId}`
         })
 
         res.json({ id: replyId, ticket_id: ticketId, message: 'Reply sent successfully' })
@@ -216,7 +216,7 @@ router.patch('/admin/tickets/:id', requireAdmin, async (req, res) => {
                 type: 'ticket_status',
                 title: 'Cập nhật ticket hỗ trợ',
                 message: `Ticket "${ticket.subject}" đã chuyển sang trạng thái: ${statusLabels[status] || status}`,
-                link: '/support',
+                link: `/user/support/ticket/${id}`,
                 userId: ticket.user_id
             })
         }
@@ -269,7 +269,7 @@ router.post('/admin/tickets/:id/reply', requireAdmin, async (req, res) => {
             type: 'ticket_reply',
             title: 'Phản hồi từ hỗ trợ',
             message: `Admin đã trả lời ticket "${ticket.subject}"`,
-            link: '/support',
+            link: `/user/support/ticket/${ticketId}`,
             userId: ticket.user_id
         })
 

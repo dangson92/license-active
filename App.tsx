@@ -16,6 +16,7 @@ import { AppVersionHistory } from './components/AppVersionHistory';
 import { Settings } from './components/Settings';
 import { VerifyEmail } from './components/VerifyEmail';
 import { AdminTicketManagement } from './components/AdminTicketManagement';
+import { AdminTicketDetail } from './components/AdminTicketDetail';
 import { ApplicationSetting } from './components/ApplicationSetting';
 import { OrderManagement } from './components/OrderManagement';
 
@@ -150,6 +151,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         <Route path="dashboard" element={<DashboardPlaceholder />} />
         <Route path="settings" element={<Settings />} />
         <Route path="support" element={<AdminTicketManagement />} />
+        <Route path="support/ticket/:ticketId" element={<AdminTicketDetail />} />
         <Route path="applications/:appId/settings" element={<ApplicationSettingWrapper />} />
         <Route path="applications/new" element={<NewApplicationWrapper />} />
         <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
