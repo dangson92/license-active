@@ -10,13 +10,20 @@ import path from 'path'
 
 // Initialize S3 client for iDrive E2
 const getS3Client = () => {
-    const endpoint = process.env.IDRIVE_E2_ENDPOINT
+    let endpoint = process.env.IDRIVE_E2_ENDPOINT
     const accessKey = process.env.IDRIVE_E2_ACCESS_KEY
     const secretKey = process.env.IDRIVE_E2_SECRET_KEY
 
     if (!endpoint || !accessKey || !secretKey) {
         throw new Error('iDrive E2 credentials not configured. Please set IDRIVE_E2_ENDPOINT, IDRIVE_E2_ACCESS_KEY, and IDRIVE_E2_SECRET_KEY environment variables.')
     }
+
+    // Auto-add https:// if missing
+    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+        endpoint = `https://${endpoint}`
+    }
+
+    console.log(`🔗 Connecting to iDrive E2: ${endpoint}`)
 
     return new S3Client({
         endpoint: endpoint,
@@ -46,44 +53,60 @@ export async function uploadToE2({ filePath, key, contentType, onProgress }) {
         throw new Error('iDrive E2 bucket not configured. Please set IDRIVE_E2_BUCKET environment variable.')
     }
 
+    console.log(`📂 Uploading to bucket: ${bucket}, key: ${key}`)
+
     // Read file stream
     const fileStream = fs.createReadStream(filePath)
     const fileStats = fs.statSync(filePath)
 
-    // Use multipart upload for large files
-    const upload = new Upload({
-        client: s3Client,
-        params: {
-            Bucket: bucket,
-            Key: key,
-            Body: fileStream,
-            ContentType: contentType || 'application/octet-stream',
-            ACL: 'public-read', // Make file publicly accessible
-        },
-        queueSize: 4, // Concurrent upload parts
-        partSize: 10 * 1024 * 1024, // 10MB parts
-        leavePartsOnError: false,
-    })
+    console.log(`📁 File size: ${(fileStats.size / 1024 / 1024).toFixed(2)} MB`)
 
-    // Track upload progress
-    upload.on('httpUploadProgress', (progress) => {
-        if (onProgress && progress.total) {
-            const percentage = Math.round((progress.loaded / progress.total) * 100)
-            onProgress(percentage)
+    try {
+        // Use multipart upload for large files
+        const upload = new Upload({
+            client: s3Client,
+            params: {
+                Bucket: bucket,
+                Key: key,
+                Body: fileStream,
+                ContentType: contentType || 'application/octet-stream',
+                // Note: ACL removed - not all S3-compatible services support it
+                // Configure bucket policy for public access instead
+            },
+            queueSize: 4, // Concurrent upload parts
+            partSize: 10 * 1024 * 1024, // 10MB parts
+            leavePartsOnError: false,
+        })
+
+        // Track upload progress
+        upload.on('httpUploadProgress', (progress) => {
+            if (onProgress && progress.total) {
+                const percentage = Math.round((progress.loaded / progress.total) * 100)
+                onProgress(percentage)
+            }
+        })
+
+        await upload.done()
+        console.log(`✅ Upload to E2 completed successfully`)
+
+        // Build public URL
+        const publicUrl = process.env.IDRIVE_E2_PUBLIC_URL
+            ? `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
+            : `${process.env.IDRIVE_E2_ENDPOINT}/${bucket}/${key}`
+
+        return {
+            url: publicUrl,
+            key: key,
+            size: fileStats.size,
         }
-    })
-
-    await upload.done()
-
-    // Build public URL
-    const publicUrl = process.env.IDRIVE_E2_PUBLIC_URL
-        ? `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
-        : `${process.env.IDRIVE_E2_ENDPOINT}/${bucket}/${key}`
-
-    return {
-        url: publicUrl,
-        key: key,
-        size: fileStats.size,
+    } catch (error) {
+        console.error('❌ E2 Upload Error Details:', {
+            name: error.name,
+            message: error.message,
+            code: error.Code || error.code,
+            statusCode: error.$metadata?.httpStatusCode,
+        })
+        throw error
     }
 }
 
