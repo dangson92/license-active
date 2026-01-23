@@ -253,6 +253,61 @@ router.put('/:id', requireAdmin, async (req, res) => {
 })
 
 /**
+ * DELETE /admin/app-versions/cleanup-upload
+ * Xóa file đã upload khi user cancel (chưa tạo version)
+ * Body: { url: string, storage: 'vps' | 'idrive-e2', key?: string }
+ * NOTE: This route MUST be defined BEFORE /:id route to match correctly
+ */
+router.delete('/cleanup-upload', requireAdmin, async (req, res) => {
+  try {
+    const { url, storage, key, filename } = req.body
+
+    if (!url && !key && !filename) {
+      return res.status(400).json({ error: 'invalid_input', message: 'Missing url, key, or filename' })
+    }
+
+    if (storage === 'idrive-e2') {
+      // Delete from iDrive E2
+      try {
+        const e2Service = await import('../services/idrive-e2.js')
+
+        // Use key if provided, otherwise extract from URL
+        let deleteKey = key
+        if (!deleteKey && url) {
+          const urlParts = url.split('/')
+          deleteKey = urlParts.slice(-3).join('/')
+        }
+
+        if (deleteKey) {
+          console.log(`🗑️ Cleanup: Deleting E2 file: ${deleteKey}`)
+          await e2Service.deleteFromE2(deleteKey)
+          console.log(`✅ Cleanup: E2 file deleted`)
+        }
+      } catch (e2Error) {
+        console.error('Error cleaning up E2 file:', e2Error)
+        return res.status(500).json({ error: 'e2_delete_error', message: e2Error.message })
+      }
+    } else {
+      // Delete from VPS local storage
+      const deleteFilename = filename || (url ? url.split('/').pop() : null)
+      if (deleteFilename) {
+        const filePath = path.join(process.cwd(), 'uploads', 'releases', deleteFilename)
+
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          console.log(`🗑️ Cleanup: VPS file deleted: ${filePath}`)
+        }
+      }
+    }
+
+    res.json({ success: true })
+  } catch (e) {
+    console.error('Error cleaning up upload:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
  * DELETE /admin/app-versions/:id
  * Xóa version
  */
@@ -309,60 +364,6 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     res.json({ success: true })
   } catch (e) {
     console.error('Error deleting version:', e)
-    res.status(500).json({ error: 'server_error', message: e.message })
-  }
-})
-
-/**
- * DELETE /admin/app-versions/cleanup-upload
- * Xóa file đã upload khi user cancel (chưa tạo version)
- * Body: { url: string, storage: 'vps' | 'idrive-e2', key?: string }
- */
-router.delete('/cleanup-upload', requireAdmin, async (req, res) => {
-  try {
-    const { url, storage, key, filename } = req.body
-
-    if (!url && !key && !filename) {
-      return res.status(400).json({ error: 'invalid_input', message: 'Missing url, key, or filename' })
-    }
-
-    if (storage === 'idrive-e2') {
-      // Delete from iDrive E2
-      try {
-        const e2Service = await import('../services/idrive-e2.js')
-
-        // Use key if provided, otherwise extract from URL
-        let deleteKey = key
-        if (!deleteKey && url) {
-          const urlParts = url.split('/')
-          deleteKey = urlParts.slice(-3).join('/')
-        }
-
-        if (deleteKey) {
-          console.log(`🗑️ Cleanup: Deleting E2 file: ${deleteKey}`)
-          await e2Service.deleteFromE2(deleteKey)
-          console.log(`✅ Cleanup: E2 file deleted`)
-        }
-      } catch (e2Error) {
-        console.error('Error cleaning up E2 file:', e2Error)
-        return res.status(500).json({ error: 'e2_delete_error', message: e2Error.message })
-      }
-    } else {
-      // Delete from VPS local storage
-      const deleteFilename = filename || (url ? url.split('/').pop() : null)
-      if (deleteFilename) {
-        const filePath = path.join(process.cwd(), 'uploads', 'releases', deleteFilename)
-
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
-          console.log(`🗑️ Cleanup: VPS file deleted: ${filePath}`)
-        }
-      }
-    }
-
-    res.json({ success: true })
-  } catch (e) {
-    console.error('Error cleaning up upload:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
