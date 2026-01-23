@@ -347,14 +347,30 @@ router.delete('/:id', requireAdmin, async (req, res) => {
           console.error('Error deleting E2 file:', e2Error)
           // Continue with version deletion even if E2 delete fails
         }
-      } else if (file_name) {
+      } else {
         // Delete from VPS local storage
-        const filePath = path.join(process.cwd(), 'uploads', 'releases', file_name)
+        // Try to get filename from file_name field, or extract from download_url
+        let fileToDelete = file_name
+        if (!fileToDelete && download_url) {
+          // Extract filename from URL like: http://example.com/uploads/releases/app-1.0.0.zip
+          const urlFilename = download_url.split('/').pop()
+          if (urlFilename && !urlFilename.includes('?')) {
+            fileToDelete = urlFilename
+          }
+        }
 
-        // Xóa file nếu tồn tại
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath)
-          console.log(`🗑️ VPS file deleted: ${filePath}`)
+        if (fileToDelete) {
+          const filePath = path.join(process.cwd(), 'uploads', 'releases', fileToDelete)
+
+          // Xóa file nếu tồn tại
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath)
+            console.log(`🗑️ VPS file deleted: ${filePath}`)
+          } else {
+            console.log(`⚠️ VPS file not found (already deleted?): ${filePath}`)
+          }
+        } else {
+          console.log(`⚠️ No filename to delete for version ${id}`)
         }
       }
     }

@@ -33,6 +33,7 @@ interface EditVersionData {
     download_url?: string;
     platform?: string;
     file_type?: string;
+    mandatory?: boolean;
 }
 
 interface AddAppVersionProps {
@@ -88,7 +89,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setPlatform(editVersion.platform || '');
             setFileType(editVersion.file_type || '');
             // Fix: Load mandatory state from editVersion
-            setMandatory((editVersion as any).mandatory || false);
+            setMandatory(editVersion.mandatory || false);
             // If editing and has download URL, set a default destination
             if (editVersion.download_url) {
                 // Guess destination from URL
@@ -330,6 +331,8 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
                     mandatory: mandatory,
+                    file_name: fileName || undefined,
+                    file_size: fileSize || undefined,
                 });
                 alert(`Version ${versionNumber} đã được cập nhật thành công!`);
             } else {
@@ -343,6 +346,8 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
                     mandatory: mandatory,
+                    file_name: fileName || undefined,
+                    file_size: fileSize || undefined,
                 });
                 alert(`Version ${versionNumber} đã được tạo thành công!`);
             }

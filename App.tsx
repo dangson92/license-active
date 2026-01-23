@@ -201,7 +201,9 @@ const AppVersionHistoryWrapper: React.FC = () => {
             release_date: version.release_date,
             release_notes: version.changelog,
             download_url: version.download_url,
-            platform: version.platform
+            platform: version.platform,
+            file_type: version.file_type,
+            mandatory: version.mandatory
           }
         }
       })}
