@@ -262,16 +262,45 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
     // Get file info before delete để xóa file
     const versionInfo = await query(
-      'SELECT file_name FROM app_versions WHERE id = ?',
+      'SELECT file_name, download_url FROM app_versions WHERE id = ?',
       [id]
     )
 
-    if (versionInfo.rows.length > 0 && versionInfo.rows[0].file_name) {
-      const filePath = path.join(process.cwd(), 'uploads', 'releases', versionInfo.rows[0].file_name)
+    if (versionInfo.rows.length > 0) {
+      const { file_name, download_url } = versionInfo.rows[0]
 
-      // Xóa file nếu tồn tại
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
+      // Check if file is on iDrive E2 (by URL pattern)
+      const isE2File = download_url && (
+        download_url.includes('idrive') ||
+        download_url.includes('e2-') ||
+        download_url.includes('.e2.')
+      )
+
+      if (isE2File) {
+        // Delete from iDrive E2
+        try {
+          const e2Service = await import('../services/idrive-e2.js')
+          // Extract key from URL
+          // URL format: https://xxx.com/releases/appcode/appcode-version.zip
+          const urlParts = download_url.split('/')
+          const key = urlParts.slice(-3).join('/') // Get last 3 parts: releases/appcode/filename
+
+          console.log(`🗑️ Deleting E2 file: ${key}`)
+          await e2Service.deleteFromE2(key)
+          console.log(`✅ E2 file deleted: ${key}`)
+        } catch (e2Error) {
+          console.error('Error deleting E2 file:', e2Error)
+          // Continue with version deletion even if E2 delete fails
+        }
+      } else if (file_name) {
+        // Delete from VPS local storage
+        const filePath = path.join(process.cwd(), 'uploads', 'releases', file_name)
+
+        // Xóa file nếu tồn tại
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          console.log(`🗑️ VPS file deleted: ${filePath}`)
+        }
       }
     }
 
@@ -280,6 +309,60 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     res.json({ success: true })
   } catch (e) {
     console.error('Error deleting version:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
+ * DELETE /admin/app-versions/cleanup-upload
+ * Xóa file đã upload khi user cancel (chưa tạo version)
+ * Body: { url: string, storage: 'vps' | 'idrive-e2', key?: string }
+ */
+router.delete('/cleanup-upload', requireAdmin, async (req, res) => {
+  try {
+    const { url, storage, key, filename } = req.body
+
+    if (!url && !key && !filename) {
+      return res.status(400).json({ error: 'invalid_input', message: 'Missing url, key, or filename' })
+    }
+
+    if (storage === 'idrive-e2') {
+      // Delete from iDrive E2
+      try {
+        const e2Service = await import('../services/idrive-e2.js')
+
+        // Use key if provided, otherwise extract from URL
+        let deleteKey = key
+        if (!deleteKey && url) {
+          const urlParts = url.split('/')
+          deleteKey = urlParts.slice(-3).join('/')
+        }
+
+        if (deleteKey) {
+          console.log(`🗑️ Cleanup: Deleting E2 file: ${deleteKey}`)
+          await e2Service.deleteFromE2(deleteKey)
+          console.log(`✅ Cleanup: E2 file deleted`)
+        }
+      } catch (e2Error) {
+        console.error('Error cleaning up E2 file:', e2Error)
+        return res.status(500).json({ error: 'e2_delete_error', message: e2Error.message })
+      }
+    } else {
+      // Delete from VPS local storage
+      const deleteFilename = filename || (url ? url.split('/').pop() : null)
+      if (deleteFilename) {
+        const filePath = path.join(process.cwd(), 'uploads', 'releases', deleteFilename)
+
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          console.log(`🗑️ Cleanup: VPS file deleted: ${filePath}`)
+        }
+      }
+    }
+
+    res.json({ success: true })
+  } catch (e) {
+    console.error('Error cleaning up upload:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
   }
 })

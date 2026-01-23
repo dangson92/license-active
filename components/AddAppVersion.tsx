@@ -70,6 +70,14 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     // Upload destination: '' | 'vps' | 'idrive-e2'
     const [uploadDestination, setUploadDestination] = useState<'' | 'vps' | 'idrive-e2'>('');
 
+    // Track uploaded file info for cleanup if cancel
+    const [uploadedFileInfo, setUploadedFileInfo] = useState<{
+        url: string;
+        storage: 'vps' | 'idrive-e2';
+        key?: string;
+        filename?: string;
+    } | null>(null);
+
     // Initialize form with edit data or default values
     useEffect(() => {
         if (editVersion) {
@@ -141,6 +149,14 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setDownloadUrl(fileUrl);
             setFileName(response.file.filename);
             setFileSize(response.file.size);
+
+            // Save file info for cleanup if cancel
+            setUploadedFileInfo({
+                url: fileUrl,
+                storage: response.file.storage || uploadDestination as 'vps' | 'idrive-e2',
+                key: response.file.key,
+                filename: response.file.filename,
+            });
 
             alert('Upload file thành công!');
         } catch (error) {
@@ -277,6 +293,14 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setFileName(response.file.filename);
             setFileSize(response.file.size);
 
+            // Save file info for cleanup if cancel
+            setUploadedFileInfo({
+                url: fileUrl,
+                storage: response.file.storage || uploadDestination as 'vps' | 'idrive-e2',
+                key: response.file.key,
+                filename: response.file.filename,
+            });
+
             alert('Upload file thành công!');
         } catch (error) {
             console.error('Upload failed:', error);
@@ -331,11 +355,45 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         }
     };
 
+    // Handle cancel - cleanup uploaded file if any
+    const handleCancel = async () => {
+        // If file was uploaded but version not created, cleanup the orphan file
+        if (uploadedFileInfo && !isEditMode) {
+            const confirmCancel = confirm(
+                'Bạn đã upload file nhưng chưa tạo version.\nFile sẽ bị xóa nếu bạn hủy.\n\nBạn có chắc muốn hủy?'
+            );
+            if (!confirmCancel) return;
+
+            try {
+                // Call cleanup API
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch(`${config.uploadApiUrl}/api/admin/app-versions/cleanup-upload`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(uploadedFileInfo),
+                });
+
+                if (response.ok) {
+                    console.log('Cleanup successful');
+                } else {
+                    console.error('Cleanup failed:', await response.text());
+                }
+            } catch (error) {
+                console.error('Cleanup error:', error);
+            }
+        }
+
+        onBack();
+    };
+
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-                <button onClick={onBack} className="hover:text-primary transition-colors">
+                <button onClick={handleCancel} className="hover:text-primary transition-colors">
                     Applications
                 </button>
                 <span>›</span>
@@ -346,7 +404,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
 
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={onBack}>
+                <Button variant="ghost" size="icon" onClick={handleCancel}>
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
@@ -633,8 +691,8 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                         <span className="text-xs">Version will be visible to all users immediately.</span>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="outline" onClick={onBack}>
-                            Cancel
+                        <Button variant="outline" onClick={handleCancel}>
+                            Hủy
                         </Button>
                         <Button
                             className="bg-blue-600 hover:bg-blue-700"
