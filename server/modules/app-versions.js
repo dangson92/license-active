@@ -37,9 +37,11 @@ const upload = multer({
   storage: storage,
   // No file size limit
   fileFilter: function (req, file, cb) {
-    // Chỉ accept .zip files
-    if (path.extname(file.originalname).toLowerCase() !== '.zip') {
-      return cb(new Error('Only .zip files are allowed'))
+    // Accept common app release file types
+    const allowedExtensions = ['.zip', '.exe', '.msi', '.dmg', '.deb', '.app']
+    const ext = path.extname(file.originalname).toLowerCase()
+    if (!allowedExtensions.includes(ext)) {
+      return cb(new Error('Only .zip, .exe, .msi, .dmg, .deb files are allowed'))
     }
     cb(null, true)
   }
@@ -297,13 +299,14 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
     }
 
     // Extra validation: kiểm tra lại file extension
+    const allowedExtensions = ['.zip', '.exe', '.msi', '.dmg', '.deb', '.app']
     const ext = path.extname(req.file.filename).toLowerCase()
-    if (ext !== '.zip') {
+    if (!allowedExtensions.includes(ext)) {
       // Xóa file đã upload
       fs.unlinkSync(req.file.path)
       return res.status(400).json({
         error: 'invalid_file_type',
-        message: 'Only .zip files are allowed'
+        message: 'Only .zip, .exe, .msi, .dmg, .deb files are allowed'
       })
     }
 
@@ -328,6 +331,105 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
     }
 
     res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
+ * POST /admin/app-versions/upload-e2
+ * Upload file lên iDrive E2 cloud storage
+ * Security: Chỉ admin mới upload được (requireAdmin middleware)
+ */
+router.post('/upload-e2', requireAdmin, upload.single('file'), async (req, res) => {
+  // Import E2 service dynamically
+  let e2Service
+  try {
+    e2Service = await import('../services/idrive-e2.js')
+  } catch (importError) {
+    console.error('Failed to import E2 service:', importError)
+    // Cleanup uploaded temp file
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path)
+    }
+    return res.status(500).json({
+      error: 'e2_service_error',
+      message: 'Failed to load E2 service'
+    })
+  }
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'no_file',
+        message: 'No file uploaded'
+      })
+    }
+
+    // Check if E2 is configured
+    if (!e2Service.isE2Configured()) {
+      // Cleanup temp file
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path)
+      }
+      return res.status(500).json({
+        error: 'e2_not_configured',
+        message: 'iDrive E2 is not configured. Please set environment variables.'
+      })
+    }
+
+    const appCode = req.body.appCode || 'app'
+    const version = req.body.version || 'unknown'
+
+    // Generate S3 key
+    const e2Key = e2Service.generateE2Key(appCode, version, req.file.originalname)
+
+    // Determine content type
+    const ext = path.extname(req.file.originalname).toLowerCase()
+    const contentTypes = {
+      '.zip': 'application/zip',
+      '.exe': 'application/x-msdownload',
+      '.msi': 'application/x-msi',
+      '.dmg': 'application/x-apple-diskimage',
+      '.deb': 'application/x-debian-package',
+    }
+    const contentType = contentTypes[ext] || 'application/octet-stream'
+
+    console.log(`📤 Starting E2 upload: ${e2Key}`)
+
+    // Upload to E2
+    const result = await e2Service.uploadToE2({
+      filePath: req.file.path,
+      key: e2Key,
+      contentType: contentType,
+    })
+
+    console.log(`✅ E2 upload complete: ${result.url}`)
+
+    // Cleanup temp file after successful upload
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path)
+    }
+
+    // Return file info
+    res.json({
+      success: true,
+      file: {
+        filename: path.basename(e2Key),
+        originalname: req.file.originalname,
+        size: result.size,
+        path: result.url, // Full URL for E2
+        storage: 'idrive-e2',
+        key: e2Key,
+      }
+    })
+  } catch (e) {
+    console.error('Error uploading to E2:', e)
+
+    // Cleanup temp file
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path)
+    }
+
+    res.status(500).json({ error: 'e2_upload_error', message: e.message })
   }
 })
 

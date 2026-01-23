@@ -19,7 +19,10 @@ import {
     FileCode,
     Monitor,
     CloudUpload,
-    Info
+    Info,
+    Cloud,
+    Server,
+    AlertCircle
 } from 'lucide-react';
 
 interface EditVersionData {
@@ -64,6 +67,9 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [fileSize, setFileSize] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Upload destination: '' | 'vps' | 'idrive-e2'
+    const [uploadDestination, setUploadDestination] = useState<'' | 'vps' | 'idrive-e2'>('');
+
     // Initialize form with edit data or default values
     useEffect(() => {
         if (editVersion) {
@@ -73,6 +79,17 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setDownloadUrl(editVersion.download_url || '');
             setPlatform(editVersion.platform || '');
             setFileType(editVersion.file_type || '');
+            // Fix: Load mandatory state from editVersion
+            setMandatory((editVersion as any).mandatory || false);
+            // If editing and has download URL, set a default destination
+            if (editVersion.download_url) {
+                // Guess destination from URL
+                if (editVersion.download_url.includes('idrive') || editVersion.download_url.includes('e2')) {
+                    setUploadDestination('idrive-e2');
+                } else {
+                    setUploadDestination('vps');
+                }
+            }
         } else {
             // Set default release date (today) for new version
             const today = new Date().toISOString().split('T')[0];
@@ -84,6 +101,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        // Validation: cần chọn nơi lưu trữ trước
+        if (!uploadDestination) {
+            alert('Vui lòng chọn nơi lưu trữ file trước!');
+            e.target.value = '';
+            return;
+        }
 
         // Validation: cần có version trước khi upload
         if (!versionNumber.trim()) {
@@ -106,11 +130,15 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appInfo = await api.admin.getApp(parseInt(appId));
             const appCode = appInfo.code;
 
-            // Upload with progress
-            const response = await uploadFileWithProgress(file, appCode, versionNumber);
+            // Upload with progress - use selected destination
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2');
 
             // Update form with file info
-            setDownloadUrl(`${config.uploadApiUrl}${response.file.path}`);
+            // For E2, path is already full URL; for VPS, prepend base URL
+            const fileUrl = response.file.storage === 'idrive-e2'
+                ? response.file.path
+                : `${config.uploadApiUrl}${response.file.path}`;
+            setDownloadUrl(fileUrl);
             setFileName(response.file.filename);
             setFileSize(response.file.size);
 
@@ -125,7 +153,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     };
 
     // Upload file với XMLHttpRequest để track progress
-    const uploadFileWithProgress = (file: File, appCode: string, version: string): Promise<any> => {
+    const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: 'vps' | 'idrive-e2'): Promise<any> => {
         return new Promise((resolve, reject) => {
             const formData = new FormData();
             formData.append('appCode', appCode);
@@ -153,7 +181,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 } else {
                     try {
                         const error = JSON.parse(xhr.responseText);
-                        reject(new Error(error.error || `HTTP ${xhr.status}`));
+                        reject(new Error(error.message || error.error || `HTTP ${xhr.status}`));
                     } catch {
                         reject(new Error(`Upload failed: HTTP ${xhr.status}`));
                     }
@@ -164,8 +192,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
             xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
 
+            // Determine upload endpoint based on destination
+            const uploadEndpoint = destination === 'idrive-e2'
+                ? `${config.uploadApiUrl}/api/admin/app-versions/upload-e2`
+                : `${config.uploadApiUrl}/api/admin/app-versions/upload`;
+
             const token = localStorage.getItem('auth_token');
-            xhr.open('POST', `${config.uploadApiUrl}/api/admin/app-versions/upload`);
+            xhr.open('POST', uploadEndpoint);
             if (token) {
                 xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             }
@@ -204,6 +237,11 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
 
         if (uploadingFile) return;
 
+        if (!uploadDestination) {
+            alert('Vui lòng chọn nơi lưu trữ file trước!');
+            return;
+        }
+
         if (!versionNumber.trim()) {
             alert('Vui lòng nhập Version Number trước khi upload file!');
             return;
@@ -229,9 +267,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appInfo = await api.admin.getApp(parseInt(appId || '0'));
             const appCode = appInfo.code;
 
-            const response = await uploadFileWithProgress(file, appCode, versionNumber);
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2');
 
-            setDownloadUrl(`${config.uploadApiUrl}${response.file.path}`);
+            // For E2, path is already full URL; for VPS, prepend base URL
+            const fileUrl = response.file.storage === 'idrive-e2'
+                ? response.file.path
+                : `${config.uploadApiUrl}${response.file.path}`;
+            setDownloadUrl(fileUrl);
             setFileName(response.file.filename);
             setFileSize(response.file.size);
 
@@ -430,87 +472,149 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     </div>
 
                     {/* Upload Area */}
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         <Label className="font-semibold">Upload Binary / Package</Label>
-                        <p className="text-xs text-muted-foreground">
-                            ⚠️ Lưu ý: Phải nhập <strong>Version Number</strong> trước khi upload file.
-                        </p>
 
-                        {/* Hidden file input */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".zip,.exe,.msi,.dmg,.deb"
-                            onChange={handleFileUpload}
-                            disabled={uploadingFile || !versionNumber.trim()}
-                            className="hidden"
-                        />
-
-                        {/* Clickable and Draggable upload area */}
-                        <div
-                            onClick={() => {
-                                if (!versionNumber.trim()) {
-                                    alert('Vui lòng nhập Version Number trước khi upload file!');
-                                    return;
-                                }
-                                if (!uploadingFile) {
-                                    fileInputRef.current?.click();
-                                }
-                            }}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-all duration-200 cursor-pointer group
-                                ${isDragging
-                                    ? 'border-primary bg-primary/10 scale-[1.02]'
-                                    : uploadingFile
-                                        ? 'border-blue-400 bg-blue-50/50 cursor-wait'
-                                        : !versionNumber.trim()
-                                            ? 'border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-60'
-                                            : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
-                                }`}
-                        >
-                            {isDragging ? (
-                                <>
-                                    <div className="bg-primary/20 text-primary p-4 rounded-full mb-4 animate-bounce">
-                                        <CloudUpload className="w-8 h-8" />
+                        {/* Upload Destination Selector */}
+                        <div className="space-y-2">
+                            <Label className="text-sm text-muted-foreground flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4" />
+                                Chọn nơi lưu trữ file <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadDestination('vps')}
+                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${uploadDestination === 'vps'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        }`}
+                                >
+                                    <Server className={`w-6 h-6 ${uploadDestination === 'vps' ? 'text-blue-500' : 'text-gray-400'}`} />
+                                    <div className="text-left">
+                                        <p className="font-semibold">VPS Server</p>
+                                        <p className="text-xs opacity-70">Lưu trên máy chủ riêng</p>
                                     </div>
-                                    <p className="text-sm font-semibold text-primary">Thả file vào đây!</p>
-                                    <p className="text-xs text-primary/70 mt-1">.zip, .dmg, .exe or .msi</p>
-                                </>
-                            ) : uploadingFile ? (
-                                <>
-                                    <div className="bg-blue-100 text-blue-600 p-4 rounded-full mb-4 animate-pulse">
-                                        <CloudUpload className="w-8 h-8" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadDestination('idrive-e2')}
+                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${uploadDestination === 'idrive-e2'
+                                        ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        }`}
+                                >
+                                    <Cloud className={`w-6 h-6 ${uploadDestination === 'idrive-e2' ? 'text-purple-500' : 'text-gray-400'}`} />
+                                    <div className="text-left">
+                                        <p className="font-semibold">iDrive E2</p>
+                                        <p className="text-xs opacity-70">Cloud Storage (S3)</p>
                                     </div>
-                                    <p className="text-sm font-semibold text-blue-700">Đang upload... {uploadProgress}%</p>
-                                    <div className="w-full max-w-xs mt-4 bg-gray-200 rounded-full h-2.5">
-                                        <div
-                                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                                            style={{ width: `${uploadProgress}%` }}
-                                        />
-                                    </div>
-                                </>
-                            ) : fileName ? (
-                                <>
-                                    <div className="bg-green-100 text-green-600 p-4 rounded-full mb-4">
-                                        <Package className="w-8 h-8" />
-                                    </div>
-                                    <p className="text-sm font-semibold text-green-700">✓ Upload thành công!</p>
-                                    <p className="text-xs text-green-600 mt-1 font-mono">{fileName}</p>
-                                    <p className="text-xs text-green-600">{formatFileSize(fileSize)}</p>
-                                    <p className="text-xs text-muted-foreground mt-2">Click hoặc kéo thả để upload file khác</p>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="bg-primary/10 text-primary p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                                        <CloudUpload className="w-8 h-8" />
-                                    </div>
-                                    <p className="text-sm font-semibold">Click hoặc kéo thả file vào đây</p>
-                                    <p className="text-xs text-muted-foreground mt-1">.zip, .dmg, .exe or .msi (Max 2GB)</p>
-                                </>
-                            )}
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Show upload area only when destination is selected */}
+                        {uploadDestination ? (
+                            <>
+                                <p className="text-xs text-muted-foreground">
+                                    ⚠️ Lưu ý: Phải nhập <strong>Version Number</strong> trước khi upload file.
+                                    <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                        {uploadDestination === 'vps' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}">
+                                        {uploadDestination === 'vps' ? '📁 VPS' : '☁️ iDrive E2'}
+                                    </span>
+                                </p>
+
+                                {/* Hidden file input */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".zip,.exe,.msi,.dmg,.deb"
+                                    onChange={handleFileUpload}
+                                    disabled={uploadingFile || !versionNumber.trim()}
+                                    className="hidden"
+                                />
+
+                                {/* Clickable and Draggable upload area */}
+                                <div
+                                    onClick={() => {
+                                        if (!versionNumber.trim()) {
+                                            alert('Vui lòng nhập Version Number trước khi upload file!');
+                                            return;
+                                        }
+                                        if (!uploadingFile) {
+                                            fileInputRef.current?.click();
+                                        }
+                                    }}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-all duration-200 cursor-pointer group
+                                        ${isDragging
+                                            ? 'border-primary bg-primary/10 scale-[1.02]'
+                                            : uploadingFile
+                                                ? 'border-blue-400 bg-blue-50/50 cursor-wait'
+                                                : !versionNumber.trim()
+                                                    ? 'border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-60'
+                                                    : uploadDestination === 'vps'
+                                                        ? 'border-blue-200 bg-blue-50/30 hover:bg-blue-50/50 hover:border-blue-400'
+                                                        : 'border-purple-200 bg-purple-50/30 hover:bg-purple-50/50 hover:border-purple-400'
+                                        }`}
+                                >
+                                    {isDragging ? (
+                                        <>
+                                            <div className="bg-primary/20 text-primary p-4 rounded-full mb-4 animate-bounce">
+                                                <CloudUpload className="w-8 h-8" />
+                                            </div>
+                                            <p className="text-sm font-semibold text-primary">Thả file vào đây!</p>
+                                            <p className="text-xs text-primary/70 mt-1">.zip, .dmg, .exe or .msi</p>
+                                        </>
+                                    ) : uploadingFile ? (
+                                        <>
+                                            <div className={`p-4 rounded-full mb-4 animate-pulse ${uploadDestination === 'vps' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                                                }`}>
+                                                <CloudUpload className="w-8 h-8" />
+                                            </div>
+                                            <p className={`text-sm font-semibold ${uploadDestination === 'vps' ? 'text-blue-700' : 'text-purple-700'
+                                                }`}>
+                                                Đang upload lên {uploadDestination === 'vps' ? 'VPS' : 'iDrive E2'}... {uploadProgress}%
+                                            </p>
+                                            <div className="w-full max-w-xs mt-4 bg-gray-200 rounded-full h-2.5">
+                                                <div
+                                                    className={`h-2.5 rounded-full transition-all duration-300 ${uploadDestination === 'vps' ? 'bg-blue-600' : 'bg-purple-600'
+                                                        }`}
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                        </>
+                                    ) : fileName ? (
+                                        <>
+                                            <div className="bg-green-100 text-green-600 p-4 rounded-full mb-4">
+                                                <Package className="w-8 h-8" />
+                                            </div>
+                                            <p className="text-sm font-semibold text-green-700">✓ Upload thành công!</p>
+                                            <p className="text-xs text-green-600 mt-1 font-mono">{fileName}</p>
+                                            <p className="text-xs text-green-600">{formatFileSize(fileSize)}</p>
+                                            <p className="text-xs text-muted-foreground mt-2">Click hoặc kéo thả để upload file khác</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className={`p-4 rounded-full mb-4 group-hover:scale-110 transition-transform ${uploadDestination === 'vps' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                                                }`}>
+                                                {uploadDestination === 'vps' ? <Server className="w-8 h-8" /> : <Cloud className="w-8 h-8" />}
+                                            </div>
+                                            <p className="text-sm font-semibold">Click hoặc kéo thả file vào đây</p>
+                                            <p className="text-xs text-muted-foreground mt-1">.zip, .dmg, .exe or .msi (Max 2GB)</p>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-10 flex flex-col items-center justify-center bg-gray-50/50">
+                                <AlertCircle className="w-8 h-8 text-gray-400 mb-4" />
+                                <p className="text-sm text-gray-500 font-medium">Vui lòng chọn nơi lưu trữ file</p>
+                                <p className="text-xs text-gray-400 mt-1">Chọn VPS hoặc iDrive E2 ở trên để tiếp tục</p>
+                            </div>
+                        )}
 
                         {/* Download URL - shown after upload */}
                         {downloadUrl && (
