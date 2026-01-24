@@ -20,6 +20,8 @@ import { AdminTicketDetail } from './components/AdminTicketDetail';
 import { ApplicationSetting } from './components/ApplicationSetting';
 import { OrderManagement } from './components/OrderManagement';
 import { NotificationsPage } from './components/NotificationsPage';
+import { AnnouncementManagement } from './components/AnnouncementManagement';
+import { AnnouncementEditor } from './components/AnnouncementEditor';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -78,6 +80,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
     if (path.includes('/admin/settings')) return 'settings';
     if (path.includes('/admin/dashboard')) return 'dashboard';
     if (path.includes('/admin/support')) return 'support';
+    if (path.includes('/admin/announcements')) return 'announcements';
     return 'licenses';
   };
 
@@ -103,6 +106,9 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         break;
       case 'support':
         navigate('/admin/support');
+        break;
+      case 'announcements':
+        navigate('/admin/announcements');
         break;
       default:
         navigate('/admin/licenses');
@@ -156,6 +162,19 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="applications/:appId/settings" element={<ApplicationSettingWrapper />} />
         <Route path="applications/new" element={<NewApplicationWrapper />} />
+        <Route path="announcements" element={
+          <AnnouncementManagement
+            onCreateNew={() => navigate('/admin/announcements/new')}
+            onEdit={(id) => navigate(`/admin/announcements/${id}/edit`)}
+          />
+        } />
+        <Route path="announcements/new" element={
+          <AnnouncementEditor
+            onBack={() => navigate('/admin/announcements')}
+            onSuccess={() => navigate('/admin/announcements')}
+          />
+        } />
+        <Route path="announcements/:id/edit" element={<AnnouncementEditWrapper />} />
         <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
       </Routes>
     </AppLayout>
@@ -259,6 +278,19 @@ const NewApplicationWrapper: React.FC = () => {
         // Don't navigate - let user see the success message
         // User can click Back to go to applications list
       }}
+    />
+  );
+};
+
+const AnnouncementEditWrapper: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <AnnouncementEditor
+      announcementId={id ? parseInt(id) : undefined}
+      onBack={() => navigate('/admin/announcements')}
+      onSuccess={() => navigate('/admin/announcements')}
     />
   );
 };
