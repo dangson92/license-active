@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { App } from '../types';
 import api from '../services/api';
 
@@ -41,6 +41,7 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
     const [generatedKey, setGeneratedKey] = useState<string>('');
     const [copied, setCopied] = useState(false);
     const [creating, setCreating] = useState(false);
+    const dateInputRef = useRef<HTMLInputElement>(null);
 
     // Set default expiration date (1 month from now)
     useEffect(() => {
@@ -240,16 +241,15 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                                     value={expirationDate ? new Date(expirationDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
                                     placeholder="DD/MM/YYYY"
                                     className="cursor-pointer"
-                                    onClick={(e) => {
-                                        const dateInput = e.currentTarget.nextElementSibling as HTMLInputElement;
-                                        dateInput?.showPicker?.();
-                                    }}
+                                    onClick={() => dateInputRef.current?.showPicker()}
                                 />
                                 <input
+                                    ref={dateInputRef}
                                     type="date"
                                     value={expirationDate}
                                     onChange={(e) => setExpirationDate(e.target.value)}
                                     className="absolute inset-0 opacity-0 cursor-pointer"
+                                    style={{ pointerEvents: 'none' }}
                                 />
                             </div>
                         </div>
