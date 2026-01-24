@@ -71,6 +71,12 @@ export const AdminRouter: React.FC<AdminRouterProps> = ({ user, onLogout }) => {
             case 'announcements':
                 navigate('/admin/announcements');
                 break;
+            case 'orders':
+                navigate('/admin/orders');
+                break;
+            case 'support':
+                navigate('/admin/support');
+                break;
             case 'create-license':
                 navigate('/admin/create-license');
                 break;
