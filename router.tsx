@@ -52,6 +52,7 @@ export const AdminRouter: React.FC<AdminRouterProps> = ({ user, onLogout }) => {
     };
 
     const handleNavClick = (itemId: string) => {
+        console.log('Router handleNavClick:', itemId);
         switch (itemId) {
             case 'licenses':
                 navigate('/admin/licenses');
