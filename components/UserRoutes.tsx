@@ -22,6 +22,7 @@ import { Checkout } from './Checkout';
 import { CheckoutSuccess } from './CheckoutSuccess';
 import { UserOrders } from './UserOrders';
 import { NotificationsPage } from './NotificationsPage';
+import { UserAnnouncements } from './UserAnnouncements';
 
 interface UserRoutesProps {
     user: User;
@@ -38,6 +39,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         if (path.includes('/user/store')) return 'store';
         if (path.includes('/user/orders')) return 'orders';
         if (path.includes('/user/support')) return 'support'; // This includes /user/support/ticket/:id
+        if (path.includes('/user/announcements')) return 'announcements';
         if (path.includes('/user/checkout')) return 'store';
         if (path.includes('/user/settings')) return 'settings';
         return 'licenses';
@@ -56,6 +58,9 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                 break;
             case 'orders':
                 navigate('/user/orders');
+                break;
+            case 'announcements':
+                navigate('/user/announcements');
                 break;
             case 'settings':
                 navigate('/user/settings');
@@ -100,6 +105,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                         />
                     } />
                     <Route path="settings" element={<SettingsPlaceholder />} />
+                    <Route path="announcements" element={<UserAnnouncements />} />
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="*" element={<Navigate to="/user/licenses" replace />} />
                 </Routes>

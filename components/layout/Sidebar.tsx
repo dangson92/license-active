@@ -13,7 +13,8 @@ import {
     ShoppingBag,
     HelpCircle,
     Grid3X3,
-    Package
+    Package,
+    Megaphone
 } from 'lucide-react';
 
 interface NavItem {
@@ -46,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: Key, label: 'Licenses', id: 'licenses' },
         { icon: AppWindow, label: 'Applications', id: 'applications' },
         { icon: Users, label: 'Members', id: 'members' },
+        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
         { icon: HelpCircle, label: 'Support', id: 'support' },
     ];
 
@@ -54,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: Key, label: 'My Licenses', id: 'licenses' },
         { icon: ShoppingBag, label: 'Store', id: 'store' },
         { icon: Package, label: 'My Orders', id: 'orders' },
+        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
         { icon: HelpCircle, label: 'Support', id: 'support' },
     ];
 

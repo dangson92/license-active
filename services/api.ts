@@ -665,6 +665,63 @@ export const api = {
       });
     },
   },
+
+  // Announcements endpoints
+  announcements: {
+    // Get published announcements (public)
+    getAll: async (category?: string) => {
+      const query = category && category !== 'all' ? `?category=${category}` : '';
+      return apiCall(`/api/announcements${query}`);
+    },
+
+    // Get single announcement
+    getById: async (id: number) => {
+      return apiCall(`/api/announcements/${id}`);
+    },
+
+    // Admin: Get all announcements with stats
+    adminGetAll: async (status?: string) => {
+      const query = status ? `?status=${status}` : '';
+      return apiCall(`/api/announcements/admin/list${query}`);
+    },
+
+    // Admin: Create announcement
+    create: async (data: { title: string; content: string; category?: string; is_published?: boolean }) => {
+      return apiCall('/api/announcements', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Update announcement
+    update: async (id: number, data: { title?: string; content?: string; category?: string }) => {
+      return apiCall(`/api/announcements/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Toggle publish status
+    togglePublish: async (id: number) => {
+      return apiCall(`/api/announcements/${id}/publish`, {
+        method: 'PATCH',
+      });
+    },
+
+    // Admin: Archive announcement
+    archive: async (id: number) => {
+      return apiCall(`/api/announcements/${id}/archive`, {
+        method: 'PATCH',
+      });
+    },
+
+    // Admin: Delete announcement
+    delete: async (id: number) => {
+      return apiCall(`/api/announcements/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
 };
 
 export default api;

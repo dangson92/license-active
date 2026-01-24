@@ -17,6 +17,7 @@ import settingsRouter from './modules/settings.js'
 import supportRouter from './modules/support.js'
 import storeRouter from './modules/store.js'
 import notificationsRouter from './modules/notifications.js'
+import announcementsRouter from './modules/announcements.js'
 import { initSocket } from './socket.js'
 import { initLicenseScheduler } from './services/license-scheduler.js'
 
@@ -100,6 +101,7 @@ app.use('/api/admin/app-versions', appVersionsRouter)
 app.use('/api/support', supportRouter)
 app.use('/api/store', storeRouter)
 app.use('/api/notifications', notificationsRouter)
+app.use('/api/announcements', announcementsRouter)
 
 // Routes WITHOUT /api/ prefix (for client apps calling api.dangthanhson.com directly)
 app.use('/activate', activateRouter)

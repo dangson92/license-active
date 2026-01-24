@@ -10,6 +10,8 @@ import { MemberManagement } from './components/MemberManagement';
 import { CreateLicense } from './components/CreateLicense';
 import { ApplicationManagement } from './components/ApplicationManagement';
 import { Settings } from './components/Settings';
+import { AnnouncementManagement } from './components/AnnouncementManagement';
+import { AnnouncementEditor } from './components/AnnouncementEditor';
 
 // Components that need to be extracted from AdminDashboard
 // For now, we'll create wrapper components
@@ -42,6 +44,7 @@ export const AdminRouter: React.FC<AdminRouterProps> = ({ user, onLogout }) => {
         const path = location.pathname;
         if (path.includes('/admin/members')) return 'members';
         if (path.includes('/admin/applications')) return 'applications';
+        if (path.includes('/admin/announcements')) return 'announcements';
         if (path.includes('/admin/create-license')) return 'create-license';
         if (path.includes('/admin/settings')) return 'settings';
         if (path.includes('/admin/dashboard')) return 'dashboard';
@@ -64,6 +67,9 @@ export const AdminRouter: React.FC<AdminRouterProps> = ({ user, onLogout }) => {
                 break;
             case 'settings':
                 navigate('/admin/settings');
+                break;
+            case 'announcements':
+                navigate('/admin/announcements');
                 break;
             case 'create-license':
                 navigate('/admin/create-license');
@@ -91,6 +97,19 @@ export const AdminRouter: React.FC<AdminRouterProps> = ({ user, onLogout }) => {
                 } />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="announcements" element={
+                    <AnnouncementManagement
+                        onCreateNew={() => navigate('/admin/announcements/new')}
+                        onEdit={(id) => navigate(`/admin/announcements/${id}/edit`)}
+                    />
+                } />
+                <Route path="announcements/new" element={
+                    <AnnouncementEditor
+                        onBack={() => navigate('/admin/announcements')}
+                        onSuccess={() => navigate('/admin/announcements')}
+                    />
+                } />
+                <Route path="announcements/:id/edit" element={<AnnouncementEditPage />} />
                 <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
             </Routes>
         </AppLayout>
@@ -111,6 +130,23 @@ const DashboardPage: React.FC = () => (
 );
 
 const SettingsPage: React.FC = () => <Settings />;
+
+// Wrapper for AnnouncementEditor with route params
+const AnnouncementEditPage: React.FC = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const pathParts = location.pathname.split('/');
+    const idIndex = pathParts.indexOf('announcements') + 1;
+    const announcementId = idIndex > 0 ? parseInt(pathParts[idIndex]) : undefined;
+
+    return (
+        <AnnouncementEditor
+            announcementId={announcementId}
+            onBack={() => navigate('/admin/announcements')}
+            onSuccess={() => navigate('/admin/announcements')}
+        />
+    );
+};
 
 // Wrapper for CreateLicense to get apps and users
 const CreateLicensePage: React.FC<{ onBack: () => void; onSuccess: () => void }> = ({ onBack, onSuccess }) => {

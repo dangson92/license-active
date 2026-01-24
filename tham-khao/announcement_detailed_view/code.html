@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Announcement Detailed View | SD Automation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ecd3",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#102220",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#0d1b1a] dark:text-white transition-colors duration-200">
+<!-- Scroll Progress Bar -->
+<div class="fixed top-0 left-0 w-full h-1 z-50 bg-[#cfe7e5] dark:bg-emerald-900/30">
+<div class="h-full bg-primary" style="width: 65%;"></div>
+</div>
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e7f3f2] dark:border-white/10 px-6 lg:px-40 py-3 bg-white dark:bg-[#0d1b1a] sticky top-0 z-40">
+<div class="flex items-center gap-4 text-[#0d1b1a] dark:text-white">
+<div class="size-6 text-primary">
+<svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 4H42V17.3333V30.6667H24V44H6V30.6667V17.3333H24V4Z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] font-display">SD Automation</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8 items-center">
+<nav class="hidden md:flex items-center gap-9">
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-bold leading-normal text-primary" href="#">Announcements</a>
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Reports</a>
+<a class="text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">Settings</a>
+</nav>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-[#e7f3f2] dark:border-white/10" data-alt="User profile avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBCyWe5NEPrB6NYH-Al8I2OpdlNSk8oyvz9Er-lpPAwXeyINC0aq847mUjVXHkKeKUrZRA50dhq8eXIrHsvcYkRg72sBys8H_d1F2X9lpGa6kILFzOyLBLqopp827UvplyHO1JvXA1RWIM1G3votGSWL_pFsePvpkfgUYgkP2FwZAPwrI1vPDe1zfD81KE2xpC87W2u0NnEPCBKJuKFWjNzbQqQxb-8IHcOjkZ3pRjFnoDTJkbrBtgOzgOyWjaTgqIpx8sbuFBFa-ee");'>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center">
+<!-- Tool Bar & Navigation -->
+<div class="w-full max-w-[960px] px-6 lg:px-10 py-6">
+<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col gap-2">
+<div class="flex flex-wrap gap-2 items-center">
+<a class="text-[#4c9a91] dark:text-primary/70 text-sm font-medium leading-normal flex items-center gap-1 hover:underline" href="#">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+                                Back to Dashboard
+                            </a>
+<span class="text-[#4c9a91] text-sm font-medium">/</span>
+<span class="text-[#0d1b1a] dark:text-white/60 text-sm font-medium">Announcements</span>
+</div>
+</div>
+<!-- Admin Edit Button -->
+<button class="flex items-center justify-center rounded-lg h-10 border border-[#e7f3f2] dark:border-white/10 bg-white dark:bg-white/5 text-[#0d1b1a] dark:text-white gap-2 text-sm font-bold px-4 hover:bg-background-light dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+<span class="truncate">Edit Post</span>
+</button>
+</div>
+<!-- Announcement Content Header -->
+<article class="bg-white dark:bg-[#0d1b1a] rounded-xl border border-[#e7f3f2] dark:border-white/10 overflow-hidden shadow-sm">
+<div class="p-8 md:p-12 lg:p-16">
+<div class="flex flex-col gap-6">
+<!-- Category Badge -->
+<div class="flex gap-3">
+<div class="flex h-7 items-center justify-center gap-x-2 rounded bg-primary/20 px-3">
+<p class="text-[#0d1b1a] dark:text-primary text-xs font-bold uppercase tracking-wider">Update</p>
+</div>
+<div class="flex h-7 items-center justify-center gap-x-2 rounded bg-[#e7f3f2] dark:bg-white/5 px-3">
+<p class="text-[#4c9a91] dark:text-white/60 text-xs font-bold uppercase tracking-wider">System</p>
+</div>
+</div>
+<h1 class="text-3xl md:text-5xl font-extrabold text-[#0d1b1a] dark:text-white leading-tight font-display">
+                                System Maintenance: Scheduled Downtime for Version 2.4 Update
+                            </h1>
+<div class="flex items-center gap-4 text-[#4c9a91] dark:text-white/40 text-sm">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span>October 24, 2023</span>
+</div>
+<div class="w-1 h-1 rounded-full bg-[#4c9a91]/30"></div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>4 min read</span>
+</div>
+</div>
+<!-- Content Divider -->
+<hr class="border-[#e7f3f2] dark:border-white/10 my-4"/>
+<!-- Main Body -->
+<div class="prose prose-slate dark:prose-invert max-w-none">
+<p class="text-lg leading-relaxed text-[#2d3a39] dark:text-white/80 mb-6">
+                                    We are pleased to announce the upcoming release of SD Automation Version 2.4. To ensure a smooth transition and implement critical infrastructure improvements, we have scheduled a brief period of system maintenance.
+                                </p>
+<h2 class="text-2xl font-bold text-[#0d1b1a] dark:text-white mt-10 mb-4 font-display">What to Expect</h2>
+<p class="text-base leading-relaxed text-[#2d3a39] dark:text-white/80 mb-6">
+                                    During this window, the main dashboard and API services will be temporarily unavailable. Our team will be working to deploy several highly requested features and performance patches designed to optimize your workflow.
+                                </p>
+<div class="bg-background-light dark:bg-white/5 p-6 rounded-lg border-l-4 border-primary my-8">
+<h3 class="font-bold mb-2">Maintenance Window</h3>
+<ul class="space-y-1 text-sm">
+<li><strong>Start:</strong> Saturday, Oct 28, 02:00 AM UTC</li>
+<li><strong>End:</strong> Saturday, Oct 28, 04:00 AM UTC</li>
+<li><strong>Estimated Duration:</strong> 2 Hours</li>
+</ul>
+</div>
+<h2 class="text-2xl font-bold text-[#0d1b1a] dark:text-white mt-10 mb-4 font-display">Key Improvements in v2.4</h2>
+<ul class="list-none space-y-4 text-[#2d3a39] dark:text-white/80">
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span><strong>Enhanced Data Visualization:</strong> New real-time charting engine for the Reports module providing 2x faster load times.</span>
+</li>
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span><strong>Advanced Filtering:</strong> Added multi-select capability for announcement tags and dashboard widgets.</span>
+</li>
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span><strong>Security Patch:</strong> Implementation of OAuth2.1 standards for improved API authentication security.</span>
+</li>
+<li class="flex gap-3">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span><strong>Mobile Responsiveness:</strong> Improved layout stability for tablet and mobile browser views.</span>
+</li>
+</ul>
+<div class="my-10 aspect-video rounded-xl overflow-hidden relative border border-[#e7f3f2] dark:border-white/10" data-alt="Preview of the new data visualization dashboard" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAGvG3NAD1LPKf2N4yQ8qTGj0uNOrBpPkkjmc-VXfPCMr7lLIn7wfnJfpwcOjP-kDWdckJQ0aqcQg0m7X3_Jozvo1x6aezj0dMCsbOWf7mwN21o47-JiHukDKQ6krf0o5nfKe3wiVW1YysJJQ7GpDVvpXw4NZMj8YZS49eXwgF4nhAw1k7h0emwR8ZZHVPBEO5lBWB7Eg3t3UCH1BiT68jiQtT_6cujffTb6MfJ8HLLy4SfgtenIt_No2lEJ3sUC2cBEqlyZ8HNbr6s'); background-size: cover; background-position: center;">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+<p class="text-white text-sm font-medium italic">Preview: The new enhanced analytics engine in Version 2.4</p>
+</div>
+</div>
+<h2 class="text-2xl font-bold text-[#0d1b1a] dark:text-white mt-10 mb-4 font-display">Next Steps</h2>
+<p class="text-base leading-relaxed text-[#2d3a39] dark:text-white/80 mb-6">
+                                    No action is required from your side. Your data will remain safe and secure during the maintenance window. We recommend completing any critical tasks at least 30 minutes before the scheduled downtime.
+                                </p>
+<p class="text-base leading-relaxed text-[#2d3a39] dark:text-white/80">
+                                    If you have any questions or concerns regarding this update, please reach out to our support team at <a class="text-primary hover:underline font-medium" href="#">support@sd-automation.io</a>.
+                                </p>
+</div>
+<div class="mt-12 pt-8 border-t border-[#e7f3f2] dark:border-white/10 flex flex-col md:flex-row justify-between gap-6">
+<a class="group flex flex-col gap-2 max-w-[300px]" href="#">
+<span class="text-xs font-bold text-[#4c9a91] uppercase tracking-widest">Previous Article</span>
+<span class="text-sm font-bold group-hover:text-primary transition-colors">Q3 Performance Summary &amp; Feedback Results</span>
+</a>
+<a class="group flex flex-col gap-2 max-w-[300px] md:text-right" href="#">
+<span class="text-xs font-bold text-[#4c9a91] uppercase tracking-widest">Next Article</span>
+<span class="text-sm font-bold group-hover:text-primary transition-colors">New Integration: Connecting Slack to SD Workflows</span>
+</a>
+</div>
+</div>
+</div>
+</article>
+<!-- Footer Info -->
+<footer class="mt-12 pb-20 text-center">
+<p class="text-sm text-[#4c9a91] dark:text-white/40">
+                        © 2023 SD Automation Inc. All rights reserved.
+                    </p>
+</footer>
+</div>
+</main>
+</div>
+</body></html>
