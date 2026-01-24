@@ -73,6 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const handleNavClick = (e: React.MouseEvent, itemId: string) => {
         e.preventDefault();
+        console.log('Sidebar click:', itemId, 'onNavClick exists:', !!onNavClick);
         onNavClick?.(itemId);
     };
 
