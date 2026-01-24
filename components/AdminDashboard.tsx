@@ -404,16 +404,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
                     <p className="text-muted-foreground text-sm">Quản lý và theo dõi license trong hệ thống.</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Button variant="outline">
-                      <Download className="w-4 h-4 mr-2" />
-                      Export Data
-                    </Button>
                     <Button
                       className="bg-blue-600 hover:bg-blue-700"
                       onClick={() => setActiveSection('create-license')}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Issue License
+                      Add License
                     </Button>
                   </div>
                 </div>

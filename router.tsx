@@ -194,14 +194,11 @@ const LicenseContent: React.FC<{ user: User; onNavigate: (itemId: string) => voi
                     <p className="text-muted-foreground text-sm">Quản lý và theo dõi license trong hệ thống.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                        Export Data
-                    </button>
                     <button
                         className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2"
                         onClick={() => onNavigate('create-license')}
                     >
-                        + Issue License
+                        + Add License
                     </button>
                 </div>
             </div>

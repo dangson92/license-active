@@ -183,11 +183,75 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                                 <Calendar className="w-4 h-4" />
                                 Ngày hết hạn
                             </Label>
-                            <Input
-                                type="date"
-                                value={expirationDate}
-                                onChange={(e) => setExpirationDate(e.target.value)}
-                            />
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const date = new Date();
+                                        date.setMonth(date.getMonth() + 1);
+                                        setExpirationDate(date.toISOString().split('T')[0]);
+                                    }}
+                                >
+                                    1 tháng
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const date = new Date();
+                                        date.setMonth(date.getMonth() + 3);
+                                        setExpirationDate(date.toISOString().split('T')[0]);
+                                    }}
+                                >
+                                    3 tháng
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const date = new Date();
+                                        date.setMonth(date.getMonth() + 6);
+                                        setExpirationDate(date.toISOString().split('T')[0]);
+                                    }}
+                                >
+                                    6 tháng
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const date = new Date();
+                                        date.setFullYear(date.getFullYear() + 1);
+                                        setExpirationDate(date.toISOString().split('T')[0]);
+                                    }}
+                                >
+                                    1 năm
+                                </Button>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    type="text"
+                                    readOnly
+                                    value={expirationDate ? new Date(expirationDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
+                                    placeholder="DD/MM/YYYY"
+                                    className="cursor-pointer"
+                                    onClick={(e) => {
+                                        const dateInput = e.currentTarget.nextElementSibling as HTMLInputElement;
+                                        dateInput?.showPicker?.();
+                                    }}
+                                />
+                                <input
+                                    type="date"
+                                    value={expirationDate}
+                                    onChange={(e) => setExpirationDate(e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                            </div>
                         </div>
 
                         {/* Max Devices */}
