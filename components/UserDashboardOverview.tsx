@@ -83,38 +83,60 @@ export const UserDashboardOverview: React.FC = () => {
             });
 
             // Fetch announcements
-            const announcementsRes = await api.announcements.getAll().catch(() => ({ items: [] }));
-            const announcementItems = (announcementsRes.items || []).slice(0, 3).map((a: any) => ({
-                id: a.id,
-                title: a.title,
-                content: a.content?.substring(0, 150) + '...' || '',
-                type: a.is_pinned ? 'new' : 'notice',
-                date: new Date(a.published_at || a.created_at).toLocaleDateString('vi-VN'),
-            }));
+            console.log('Fetching announcements...');
+            const announcementsRes = await api.announcements.getAll().catch((err) => {
+                console.error('Failed to fetch announcements:', err);
+                return { items: [] };
+            });
+            console.log('Announcements response:', announcementsRes);
 
-            setAnnouncements(announcementItems.length > 0 ? announcementItems : [
-                {
-                    id: 1,
-                    title: 'Cập nhật phiên bản SD Engine v4.2.0',
-                    content: 'Chúng tôi vừa phát hành bản cập nhật lớn tập trung vào hiệu suất xử lý dữ liệu và tích hợp API mới...',
-                    type: 'new',
-                    date: '15/10/2023',
-                },
-                {
-                    id: 2,
-                    title: 'Bảo trì hệ thống định kỳ',
-                    content: 'Hệ thống sẽ tạm ngưng để bảo trì vào rạng sáng Chủ Nhật tuần này để nâng cấp hạ tầng server...',
-                    type: 'notice',
-                    date: '12/10/2023',
-                },
-                {
-                    id: 3,
-                    title: 'Ưu đãi gia hạn năm 2024',
-                    content: 'Nhận ngay ưu đãi 20% khi thực hiện gia hạn bản quyền trước ngày 31/12/2023...',
-                    type: 'promo',
-                    date: '10/10/2023',
-                },
-            ]);
+            const items = announcementsRes.items || announcementsRes || [];
+            const announcementItems = (Array.isArray(items) ? items : []).slice(0, 3).map((a: any) => {
+                // Determine type based on category
+                let type: 'new' | 'notice' | 'promo' = 'notice';
+                if (a.is_pinned || a.category === 'system_update') type = 'new';
+                else if (a.category === 'news' || a.category === 'promotion') type = 'promo';
+
+                return {
+                    id: a.id,
+                    title: a.title,
+                    content: a.content ? (a.content.length > 150 ? a.content.substring(0, 150) + '...' : a.content) : '',
+                    type,
+                    date: new Date(a.published_at || a.created_at).toLocaleDateString('vi-VN'),
+                };
+            });
+
+            console.log('Mapped announcements:', announcementItems);
+
+            // Use real data if available, otherwise show sample data
+            if (announcementItems.length > 0) {
+                setAnnouncements(announcementItems);
+            } else {
+                // Sample data for empty state
+                setAnnouncements([
+                    {
+                        id: 1,
+                        title: 'Cập nhật phiên bản SD Engine v4.2.0',
+                        content: 'Chúng tôi vừa phát hành bản cập nhật lớn tập trung vào hiệu suất xử lý dữ liệu và tích hợp API mới...',
+                        type: 'new',
+                        date: '15/10/2023',
+                    },
+                    {
+                        id: 2,
+                        title: 'Bảo trì hệ thống định kỳ',
+                        content: 'Hệ thống sẽ tạm ngưng để bảo trì vào rạng sáng Chủ Nhật tuần này để nâng cấp hạ tầng server...',
+                        type: 'notice',
+                        date: '12/10/2023',
+                    },
+                    {
+                        id: 3,
+                        title: 'Ưu đãi gia hạn năm 2024',
+                        content: 'Nhận ngay ưu đãi 20% khi thực hiện gia hạn bản quyền trước ngày 31/12/2023...',
+                        type: 'promo',
+                        date: '10/10/2023',
+                    },
+                ]);
+            }
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);

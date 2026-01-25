@@ -23,6 +23,7 @@ import { NotificationsPage } from './components/NotificationsPage';
 import { AnnouncementManagement } from './components/AnnouncementManagement';
 import { AnnouncementEditor } from './components/AnnouncementEditor';
 import { AnnouncementDetailPage } from './components/AnnouncementDetailPage';
+import { AdminDashboardOverview } from './components/AdminDashboardOverview';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -157,7 +158,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           />
         } />
         <Route path="orders" element={<OrderManagement />} />
-        <Route path="dashboard" element={<DashboardPlaceholder />} />
+        <Route path="dashboard" element={<AdminDashboardOverview />} />
         <Route path="settings" element={<Settings />} />
         <Route path="support" element={<AdminTicketManagement />} />
         <Route path="support/ticket/:ticketId" element={<AdminTicketDetail />} />
@@ -360,7 +361,7 @@ const App: React.FC = () => {
       <Routes>
         {/* Auth Routes */}
         <Route path="/login" element={
-          currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/announcements'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
+          currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/dashboard'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
         } />
 
         {/* Email Verification Route */}
@@ -383,7 +384,7 @@ const App: React.FC = () => {
         {/* Default Redirect */}
         <Route path="*" element={
           currentUser
-            ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/announcements'} />
+            ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/dashboard'} />
             : <Navigate to="/login" />
         } />
       </Routes>
