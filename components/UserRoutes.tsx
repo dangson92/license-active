@@ -38,11 +38,12 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         const path = location.pathname;
         if (path.includes('/user/store')) return 'store';
         if (path.includes('/user/orders')) return 'orders';
-        if (path.includes('/user/support')) return 'support'; // This includes /user/support/ticket/:id
+        if (path.includes('/user/support')) return 'support';
+        if (path.includes('/user/licenses')) return 'licenses';
         if (path.includes('/user/announcements')) return 'announcements';
         if (path.includes('/user/checkout')) return 'store';
         if (path.includes('/user/settings')) return 'settings';
-        return 'licenses';
+        return 'announcements';
     };
 
     const handleNavClick = (itemId: string) => {
@@ -65,11 +66,8 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
             case 'settings':
                 navigate('/user/settings');
                 break;
-            case 'overview':
-                navigate('/user/licenses');
-                break;
             default:
-                navigate('/user/licenses');
+                navigate('/user/announcements');
         }
     };
 
@@ -107,7 +105,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     <Route path="settings" element={<SettingsPlaceholder />} />
                     <Route path="announcements" element={<UserAnnouncements />} />
                     <Route path="notifications" element={<NotificationsPage />} />
-                    <Route path="*" element={<Navigate to="/user/licenses" replace />} />
+                    <Route path="*" element={<Navigate to="/user/announcements" replace />} />
                 </Routes>
             </AppLayout>
         </TooltipProvider>

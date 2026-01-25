@@ -1,11 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+
+// TinyMCE Self-hosted imports
+import 'tinymce/tinymce';
+import 'tinymce/models/dom';
+import 'tinymce/themes/silver';
+import 'tinymce/icons/default';
+import 'tinymce/skins/ui/oxide/skin.min.css';
+import 'tinymce/plugins/advlist';
+import 'tinymce/plugins/autolink';
+import 'tinymce/plugins/lists';
+import 'tinymce/plugins/link';
+import 'tinymce/plugins/image';
+import 'tinymce/plugins/charmap';
+import 'tinymce/plugins/anchor';
+import 'tinymce/plugins/searchreplace';
+import 'tinymce/plugins/visualblocks';
+import 'tinymce/plugins/code';
+import 'tinymce/plugins/fullscreen';
+import 'tinymce/plugins/insertdatetime';
+import 'tinymce/plugins/media';
+import 'tinymce/plugins/table';
+import 'tinymce/plugins/preview';
+import 'tinymce/plugins/help';
+import 'tinymce/plugins/wordcount';
+import { Editor } from '@tinymce/tinymce-react';
 
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -181,14 +205,28 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
                     {/* Content */}
                     <div className="space-y-2">
                         <Label>Content</Label>
-                        <Textarea
-                            placeholder="Write your announcement content here... Use Markdown or rich text."
-                            className="min-h-[300px] font-mono text-sm"
+                        <Editor
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            onEditorChange={(newContent) => setContent(newContent)}
+                            init={{
+                                height: 400,
+                                menubar: true,
+                                plugins: [
+                                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
+                                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                                    'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
+                                ],
+                                toolbar: 'undo redo | blocks | ' +
+                                    'bold italic forecolor | alignleft aligncenter ' +
+                                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                                    'removeformat | help',
+                                content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+                                skin: false,
+                                content_css: false,
+                                license_key: 'gpl',
+                            }}
                         />
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>MARKDOWN IS SUPPORTED</span>
+                        <div className="flex items-center justify-end text-xs text-muted-foreground">
                             <span>{wordCount} WORDS</span>
                         </div>
                     </div>

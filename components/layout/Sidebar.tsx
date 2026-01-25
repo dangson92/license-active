@@ -52,11 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     const userNavItems: NavItem[] = [
-        { icon: Grid3X3, label: 'Overview', id: 'overview' },
+        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
         { icon: Key, label: 'My Licenses', id: 'licenses' },
         { icon: ShoppingBag, label: 'Store', id: 'store' },
         { icon: Package, label: 'My Orders', id: 'orders' },
-        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
         { icon: HelpCircle, label: 'Support', id: 'support' },
     ];
 

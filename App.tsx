@@ -77,11 +77,12 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
     if (path.includes('/admin/members')) return 'members';
     if (path.includes('/admin/applications')) return 'applications';
     if (path.includes('/admin/create-license')) return 'licenses';
+    if (path.includes('/admin/licenses')) return 'licenses';
     if (path.includes('/admin/settings')) return 'settings';
     if (path.includes('/admin/dashboard')) return 'dashboard';
     if (path.includes('/admin/support')) return 'support';
     if (path.includes('/admin/announcements')) return 'announcements';
-    return 'licenses';
+    return 'dashboard';
   };
 
   const handleNavClick = (itemId: string) => {
@@ -111,7 +112,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         navigate('/admin/announcements');
         break;
       default:
-        navigate('/admin/licenses');
+        navigate('/admin/dashboard');
     }
   };
 
@@ -175,7 +176,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           />
         } />
         <Route path="announcements/:id/edit" element={<AnnouncementEditWrapper />} />
-        <Route path="*" element={<Navigate to="/admin/licenses" replace />} />
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     </AppLayout>
   );
@@ -357,7 +358,7 @@ const App: React.FC = () => {
       <Routes>
         {/* Auth Routes */}
         <Route path="/login" element={
-          currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/licenses' : '/user/licenses'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
+          currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/announcements'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
         } />
 
         {/* Email Verification Route */}
@@ -380,7 +381,7 @@ const App: React.FC = () => {
         {/* Default Redirect */}
         <Route path="*" element={
           currentUser
-            ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/licenses' : '/user/licenses'} />
+            ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/announcements'} />
             : <Navigate to="/login" />
         } />
       </Routes>
