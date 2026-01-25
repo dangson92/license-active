@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Dialog,
     DialogContent,
@@ -27,9 +28,10 @@ import {
     TrendingUp,
     MessageSquare,
     Edit,
-    ExternalLink,
     Trash2,
-    Archive
+    Archive,
+    Calendar,
+    Clock
 } from 'lucide-react';
 
 interface Announcement {
@@ -68,6 +70,7 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
     const [activeTab, setActiveTab] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
+    const [viewDialog, setViewDialog] = useState<{ open: boolean; item: Announcement | null }>({ open: false, item: null });
 
     useEffect(() => {
         loadData();
@@ -144,6 +147,24 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
         if (!dateStr) return '';
         const date = new Date(dateStr);
         return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatFullDate = (dateStr?: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const stripHtmlForPreview = (html: string, maxLength: number = 100) => {
+        const text = html.replace(/<[^>]*>/g, '');
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
     };
 
     const filteredAnnouncements = announcements.filter(a =>
@@ -250,8 +271,8 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`py-4 border-b-2 text-sm font-medium transition-colors ${activeTab === tab.id
-                                            ? 'border-blue-600 text-blue-600'
-                                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
                                         }`}
                                 >
                                     {tab.label}
@@ -301,7 +322,7 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                                     </div>
                                                     <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
                                                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                                                        {item.content.substring(0, 100)}...
+                                                        {stripHtmlForPreview(item.content)}
                                                     </p>
                                                 </div>
                                             </TableCell>
@@ -343,12 +364,12 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
-                                                                onClick={() => window.open(`/announcements/${item.id}`, '_blank')}
+                                                                onClick={() => setViewDialog({ open: true, item })}
                                                             >
-                                                                <ExternalLink className="w-4 h-4" />
+                                                                <Eye className="w-4 h-4" />
                                                             </Button>
                                                         </TooltipTrigger>
-                                                        <TooltipContent>Preview</TooltipContent>
+                                                        <TooltipContent>Xem chi tiết</TooltipContent>
                                                     </Tooltip>
 
                                                     <Separator orientation="vertical" className="h-4 mx-1" />
@@ -418,6 +439,69 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                 Xóa
                             </Button>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* View Detail Dialog */}
+                <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ ...viewDialog, open })}>
+                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+                        {viewDialog.item && (
+                            <>
+                                {/* Header */}
+                                <div className="p-6 pb-4 border-b bg-muted/30">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        {getCategoryBadge(viewDialog.item.category)}
+                                        {!viewDialog.item.is_published && !viewDialog.item.is_archived && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">
+                                                Draft
+                                            </span>
+                                        )}
+                                        {viewDialog.item.is_archived && (
+                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">
+                                                Archived
+                                            </span>
+                                        )}
+                                    </div>
+                                    <DialogTitle className="text-2xl font-bold leading-tight">
+                                        {viewDialog.item.title}
+                                    </DialogTitle>
+                                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="w-4 h-4" />
+                                            {formatFullDate(viewDialog.item.published_at || viewDialog.item.created_at)}
+                                        </span>
+                                        {viewDialog.item.author_name && (
+                                            <span>Bởi: <span className="font-medium">{viewDialog.item.author_name}</span></span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <ScrollArea className="flex-1 p-6">
+                                    <div
+                                        className="prose prose-sm max-w-none dark:prose-invert
+                                            prose-headings:font-bold prose-headings:text-foreground
+                                            prose-p:text-muted-foreground prose-p:leading-relaxed
+                                            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                                            prose-ul:text-muted-foreground prose-ol:text-muted-foreground
+                                            prose-strong:text-foreground
+                                        "
+                                        dangerouslySetInnerHTML={{ __html: viewDialog.item.content }}
+                                    />
+                                </ScrollArea>
+
+                                {/* Footer */}
+                                <DialogFooter className="p-4 border-t">
+                                    <Button variant="outline" onClick={() => onEdit(viewDialog.item!.id)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Chỉnh sửa
+                                    </Button>
+                                    <Button variant="outline" onClick={() => setViewDialog({ open: false, item: null })}>
+                                        Đóng
+                                    </Button>
+                                </DialogFooter>
+                            </>
+                        )}
                     </DialogContent>
                 </Dialog>
             </div>
