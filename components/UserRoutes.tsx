@@ -23,6 +23,7 @@ import { CheckoutSuccess } from './CheckoutSuccess';
 import { UserOrders } from './UserOrders';
 import { NotificationsPage } from './NotificationsPage';
 import { UserAnnouncements } from './UserAnnouncements';
+import { AnnouncementDetailPage } from './AnnouncementDetailPage';
 import { UserSettings } from './UserSettings';
 
 interface UserRoutesProps {
@@ -105,6 +106,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     } />
                     <Route path="settings" element={<UserSettings />} />
                     <Route path="announcements" element={<UserAnnouncements />} />
+                    <Route path="announcements/:id" element={<AnnouncementDetailPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="*" element={<Navigate to="/user/announcements" replace />} />
                 </Routes>

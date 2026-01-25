@@ -163,7 +163,10 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
     };
 
     const stripHtmlForPreview = (html: string, maxLength: number = 100) => {
-        const text = html.replace(/<[^>]*>/g, '');
+        // Create a temporary element to decode HTML entities
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const text = temp.textContent || temp.innerText || '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
     };
 

@@ -22,6 +22,7 @@ import { OrderManagement } from './components/OrderManagement';
 import { NotificationsPage } from './components/NotificationsPage';
 import { AnnouncementManagement } from './components/AnnouncementManagement';
 import { AnnouncementEditor } from './components/AnnouncementEditor';
+import { AnnouncementDetailPage } from './components/AnnouncementDetailPage';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -176,6 +177,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           />
         } />
         <Route path="announcements/:id/edit" element={<AnnouncementEditWrapper />} />
+        <Route path="announcements/:id" element={<AnnouncementDetailPage />} />
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     </AppLayout>
