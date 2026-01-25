@@ -43,6 +43,11 @@ interface LicenseDistribution {
     color: string;
 }
 
+interface MonthlyRevenue {
+    month: string;
+    amount: number;
+}
+
 export const AdminDashboardOverview: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats>({
         totalMembers: 0,
@@ -57,6 +62,7 @@ export const AdminDashboardOverview: React.FC = () => {
 
     const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
     const [licenseDistribution, setLicenseDistribution] = useState<LicenseDistribution[]>([]);
+    const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<'6months' | '1year'>('6months');
 
@@ -84,39 +90,40 @@ export const AdminDashboardOverview: React.FC = () => {
             // Calculate stats
             const activeLicenses = licenses.filter((l: any) => l.status === 'active').length;
             const pendingTickets = tickets.filter((t: any) => t.status === 'open' || t.status === 'pending').length;
-            const totalRevenue = orders
-                .filter((o: any) => o.status === 'approved' || o.status === 'completed')
-                .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+
+            // Filter approved orders for revenue calculation
+            const approvedOrders = orders.filter((o: any) => o.status === 'approved' || o.status === 'completed');
+            const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
 
             setStats({
                 totalMembers: users.length,
-                totalMembersChange: 5.2,
+                totalMembersChange: 0,
                 activeLicenses,
                 activeLicensesChange: 0,
                 totalRevenue,
-                totalRevenueChange: 8.4,
+                totalRevenueChange: 0,
                 pendingTickets,
-                pendingTicketsChange: -2.1,
+                pendingTicketsChange: 0,
             });
 
-            // Map recent orders to sales
-            const recentOrders = orders
-                .filter((o: any) => o.status === 'approved' || o.status === 'completed')
+            // Map recent approved orders to sales (real data only, no demo)
+            const recentOrders = approvedOrders
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .slice(0, 5)
                 .map((o: any, index: number) => ({
                     id: o.id || index,
-                    userName: o.user_name || o.email?.split('@')[0] || 'Unknown',
-                    email: o.email || '',
+                    userName: o.user_name || o.user_email?.split('@')[0] || 'Unknown',
+                    email: o.user_email || '',
                     tier: o.app_name || 'Standard',
                     amount: o.total_amount || 0,
                     time: getTimeAgo(o.created_at),
                 }));
 
-            setRecentSales(recentOrders.length > 0 ? recentOrders : [
-                { id: 1, userName: 'Jordan Smith', email: 'jordan@example.com', tier: 'Enterprise', amount: 1200000, time: '2m ago' },
-                { id: 2, userName: 'Elena Rossi', email: 'elena@example.com', tier: 'Pro Monthly', amount: 299000, time: '14m ago' },
-                { id: 3, userName: 'Marcus Chen', email: 'marcus@example.com', tier: 'Basic', amount: 49000, time: '1h ago' },
-            ]);
+            setRecentSales(recentOrders);
+
+            // Calculate monthly revenue from orders (real data)
+            const monthlyData = calculateMonthlyRevenue(approvedOrders, timeRange === '6months' ? 6 : 12);
+            setMonthlyRevenue(monthlyData);
 
             // Calculate license distribution by app
             const appCounts: Record<string, number> = {};
@@ -134,17 +141,48 @@ export const AdminDashboardOverview: React.FC = () => {
                 color: colors[index % colors.length],
             }));
 
-            setLicenseDistribution(distribution.length > 0 ? distribution : [
-                { name: 'Automation', count: 4014, percentage: 45, color: '#2b8cee' },
-                { name: 'CRM Connect', count: 2676, percentage: 30, color: '#7dd3fc' },
-                { name: 'Data Analytics', count: 2230, percentage: 25, color: '#1e3a5f' },
-            ]);
+            setLicenseDistribution(distribution);
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Recalculate monthly revenue when time range changes
+    useEffect(() => {
+        if (!loading) {
+            // Re-fetch to recalculate with new time range
+            loadDashboardData();
+        }
+    }, [timeRange]);
+
+    const calculateMonthlyRevenue = (orders: any[], monthsCount: number): MonthlyRevenue[] => {
+        const now = new Date();
+        const months: MonthlyRevenue[] = [];
+
+        // Create array of last N months
+        for (let i = monthsCount - 1; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthName = date.toLocaleDateString('vi-VN', { month: 'short' });
+            months.push({ month: monthName, amount: 0 });
+        }
+
+        // Sum revenue per month
+        orders.forEach((order: any) => {
+            const orderDate = new Date(order.created_at);
+            const monthsDiff = (now.getFullYear() - orderDate.getFullYear()) * 12 + (now.getMonth() - orderDate.getMonth());
+
+            if (monthsDiff >= 0 && monthsDiff < monthsCount) {
+                const index = monthsCount - 1 - monthsDiff;
+                if (months[index]) {
+                    months[index].amount += order.total_amount || 0;
+                }
+            }
+        });
+
+        return months;
     };
 
     const getTimeAgo = (dateStr: string) => {
@@ -197,15 +235,38 @@ export const AdminDashboardOverview: React.FC = () => {
             .slice(0, 2);
     };
 
-    // Calculate pie chart segments
-    const getPieChartPath = () => {
-        let cumulativePercentage = 0;
-        return licenseDistribution.map((item, index) => {
-            const startAngle = (cumulativePercentage / 100) * 360;
-            cumulativePercentage += item.percentage;
-            const endAngle = (cumulativePercentage / 100) * 360;
-            return { ...item, startAngle, endAngle };
+    // Generate SVG path from monthly revenue data
+    const generateChartPath = () => {
+        if (monthlyRevenue.length === 0) return { linePath: '', areaPath: '', points: [] };
+
+        const maxAmount = Math.max(...monthlyRevenue.map(m => m.amount), 1);
+        const width = 500;
+        const height = 130;
+        const padding = 20;
+
+        const points: { x: number; y: number; amount: number }[] = monthlyRevenue.map((data, index) => {
+            const x = padding + (index / (monthlyRevenue.length - 1 || 1)) * (width - padding * 2);
+            const y = height - (data.amount / maxAmount) * (height - padding * 2) - padding;
+            return { x, y: isNaN(y) ? height - padding : y, amount: data.amount };
         });
+
+        if (points.length < 2) {
+            return { linePath: '', areaPath: '', points: [] };
+        }
+
+        // Create smooth curve using quadratic bezier
+        let linePath = `M${points[0].x},${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            const prev = points[i - 1];
+            const curr = points[i];
+            const cpX = (prev.x + curr.x) / 2;
+            linePath += ` Q${cpX},${prev.y} ${cpX},${(prev.y + curr.y) / 2} T${curr.x},${curr.y}`;
+        }
+
+        // Create area path
+        const areaPath = linePath + ` L${points[points.length - 1].x},${height} L${points[0].x},${height} Z`;
+
+        return { linePath, areaPath, points };
     };
 
     if (loading) {
@@ -217,6 +278,7 @@ export const AdminDashboardOverview: React.FC = () => {
     }
 
     const totalLicenses = licenseDistribution.reduce((sum, item) => sum + item.count, 0);
+    const { linePath, areaPath, points } = generateChartPath();
 
     return (
         <div className="space-y-6">
@@ -315,32 +377,41 @@ export const AdminDashboardOverview: React.FC = () => {
                     </CardHeader>
                     <CardContent className="pt-4">
                         <div className="relative h-[240px] w-full">
-                            <svg className="w-full h-full" viewBox="0 0 500 150" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#2b8cee" stopOpacity="0.2" />
-                                        <stop offset="100%" stopColor="#2b8cee" stopOpacity="0" />
-                                    </linearGradient>
-                                </defs>
-                                <path
-                                    d="M0,120 Q50,110 80,70 T160,80 T240,40 T320,60 T400,20 T500,30 L500,150 L0,150 Z"
-                                    fill="url(#chartGradient)"
-                                />
-                                <path
-                                    d="M0,120 Q50,110 80,70 T160,80 T240,40 T320,60 T400,20 T500,30"
-                                    fill="none"
-                                    stroke="#2b8cee"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                />
-                                <circle cx="80" cy="70" r="4" fill="white" stroke="#2b8cee" strokeWidth="2" />
-                                <circle cx="240" cy="40" r="4" fill="white" stroke="#2b8cee" strokeWidth="2" />
-                                <circle cx="400" cy="20" r="4" fill="white" stroke="#2b8cee" strokeWidth="2" />
-                            </svg>
+                            {monthlyRevenue.length > 0 && monthlyRevenue.some(m => m.amount > 0) ? (
+                                <svg className="w-full h-full" viewBox="0 0 500 150" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#2b8cee" stopOpacity="0.2" />
+                                            <stop offset="100%" stopColor="#2b8cee" stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <path
+                                        d={areaPath}
+                                        fill="url(#chartGradient)"
+                                    />
+                                    <path
+                                        d={linePath}
+                                        fill="none"
+                                        stroke="#2b8cee"
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                    />
+                                    {points.map((point, index) => (
+                                        <g key={index}>
+                                            <circle cx={point.x} cy={point.y} r="4" fill="white" stroke="#2b8cee" strokeWidth="2" />
+                                            <title>{formatCurrency(point.amount)}</title>
+                                        </g>
+                                    ))}
+                                </svg>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    <p>Chưa có dữ liệu doanh thu</p>
+                                </div>
+                            )}
                         </div>
                         <div className="flex justify-between mt-4 px-2">
-                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map(month => (
-                                <span key={month} className="text-xs font-bold text-slate-400">{month}</span>
+                            {monthlyRevenue.map((data, index) => (
+                                <span key={index} className="text-xs font-bold text-slate-400">{data.month}</span>
                             ))}
                         </div>
                     </CardContent>
@@ -355,123 +426,103 @@ export const AdminDashboardOverview: React.FC = () => {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-5">
-                            {recentSales.map((sale) => (
-                                <div key={sale.id} className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
-                                            {getInitials(sale.userName)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold truncate">{sale.userName}</p>
-                                        <p className="text-xs text-muted-foreground">{sale.tier}</p>
+                        {recentSales.length > 0 ? (
+                            <div className="space-y-5">
+                                {recentSales.map((sale) => (
+                                    <div key={sale.id} className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
+                                                {getInitials(sale.userName)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold truncate">{sale.userName}</p>
+                                            <p className="text-xs text-muted-foreground">{sale.tier}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-primary">{formatCurrency(sale.amount)}</p>
+                                            <p className="text-[10px] text-muted-foreground">{sale.time}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-primary">{formatCurrency(sale.amount)}</p>
-                                        <p className="text-[10px] text-muted-foreground">{sale.time}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p className="text-sm">Chưa có đơn hàng nào được duyệt</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Bottom Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Bottom Section - License Distribution only */}
+            <div className="grid grid-cols-1 gap-6">
                 {/* License Distribution */}
                 <Card className="bg-white shadow-sm">
                     <CardHeader>
                         <CardTitle className="text-lg">License Distribution</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex items-center gap-12">
-                            {/* Pie Chart */}
-                            <div className="relative w-40 h-40">
-                                <svg className="w-full h-full" viewBox="0 0 36 36">
-                                    <circle
-                                        className="stroke-slate-100"
-                                        cx="18"
-                                        cy="18"
-                                        r="16"
-                                        fill="none"
-                                        strokeWidth="4"
-                                    />
-                                    {licenseDistribution.map((item, index) => {
-                                        const offset = licenseDistribution
-                                            .slice(0, index)
-                                            .reduce((sum, i) => sum + i.percentage, 0);
-                                        return (
-                                            <circle
-                                                key={item.name}
-                                                style={{ stroke: item.color }}
-                                                cx="18"
-                                                cy="18"
-                                                r="16"
-                                                fill="none"
-                                                strokeWidth="4"
-                                                strokeDasharray={`${item.percentage} 100`}
-                                                strokeDashoffset={-offset}
-                                                transform="rotate(-90 18 18)"
-                                            />
-                                        );
-                                    })}
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <p className="text-xs text-muted-foreground font-medium">Total</p>
-                                    <p className="text-lg font-bold">{formatNumber(totalLicenses)}</p>
+                        {licenseDistribution.length > 0 ? (
+                            <div className="flex items-center gap-12">
+                                {/* Pie Chart */}
+                                <div className="relative w-40 h-40">
+                                    <svg className="w-full h-full" viewBox="0 0 36 36">
+                                        <circle
+                                            className="stroke-slate-100"
+                                            cx="18"
+                                            cy="18"
+                                            r="16"
+                                            fill="none"
+                                            strokeWidth="4"
+                                        />
+                                        {licenseDistribution.map((item, index) => {
+                                            const offset = licenseDistribution
+                                                .slice(0, index)
+                                                .reduce((sum, i) => sum + i.percentage, 0);
+                                            return (
+                                                <circle
+                                                    key={item.name}
+                                                    style={{ stroke: item.color }}
+                                                    cx="18"
+                                                    cy="18"
+                                                    r="16"
+                                                    fill="none"
+                                                    strokeWidth="4"
+                                                    strokeDasharray={`${item.percentage} 100`}
+                                                    strokeDashoffset={-offset}
+                                                    transform="rotate(-90 18 18)"
+                                                />
+                                            );
+                                        })}
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <p className="text-xs text-muted-foreground font-medium">Total</p>
+                                        <p className="text-lg font-bold">{formatNumber(totalLicenses)}</p>
+                                    </div>
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex-1 space-y-4">
+                                    {licenseDistribution.map((item) => (
+                                        <div key={item.name} className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: item.color }}
+                                                />
+                                                <p className="text-sm font-medium text-muted-foreground">{item.name}</p>
+                                            </div>
+                                            <p className="text-sm font-bold">{formatNumber(item.count)} ({item.percentage}%)</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-
-                            {/* Legend */}
-                            <div className="flex-1 space-y-4">
-                                {licenseDistribution.map((item) => (
-                                    <div key={item.name} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className="w-3 h-3 rounded-full"
-                                                style={{ backgroundColor: item.color }}
-                                            />
-                                            <p className="text-sm font-medium text-muted-foreground">{item.name}</p>
-                                        </div>
-                                        <p className="text-sm font-bold">{formatNumber(item.count)} ({item.percentage}%)</p>
-                                    </div>
-                                ))}
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p className="text-sm">Chưa có license nào</p>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* System Health */}
-                <Card className="bg-primary/5 border-primary/20 shadow-sm">
-                    <CardContent className="p-6 flex items-center gap-6">
-                        <div className="size-20 rounded-full border-[6px] border-primary/20 flex items-center justify-center relative">
-                            <svg className="absolute inset-0 w-full h-full -rotate-90">
-                                <circle
-                                    cx="40"
-                                    cy="40"
-                                    r="34"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="6"
-                                    className="text-primary"
-                                    strokeDasharray={`${98 * 2.14} 214`}
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                            <span className="text-xl font-bold text-primary">98%</span>
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold mb-1">System Health</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                All servers are operating within normal parameters. 2 updates pending for next maintenance cycle.
-                            </p>
-                            <Button className="bg-primary hover:bg-primary/90">
-                                <Activity className="w-4 h-4 mr-2" />
-                                View Server Status
-                            </Button>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -108,35 +108,8 @@ export const UserDashboardOverview: React.FC = () => {
 
             console.log('Mapped announcements:', announcementItems);
 
-            // Use real data if available, otherwise show sample data
-            if (announcementItems.length > 0) {
-                setAnnouncements(announcementItems);
-            } else {
-                // Sample data for empty state
-                setAnnouncements([
-                    {
-                        id: 1,
-                        title: 'Cập nhật phiên bản SD Engine v4.2.0',
-                        content: 'Chúng tôi vừa phát hành bản cập nhật lớn tập trung vào hiệu suất xử lý dữ liệu và tích hợp API mới...',
-                        type: 'new',
-                        date: '15/10/2023',
-                    },
-                    {
-                        id: 2,
-                        title: 'Bảo trì hệ thống định kỳ',
-                        content: 'Hệ thống sẽ tạm ngưng để bảo trì vào rạng sáng Chủ Nhật tuần này để nâng cấp hạ tầng server...',
-                        type: 'notice',
-                        date: '12/10/2023',
-                    },
-                    {
-                        id: 3,
-                        title: 'Ưu đãi gia hạn năm 2024',
-                        content: 'Nhận ngay ưu đãi 20% khi thực hiện gia hạn bản quyền trước ngày 31/12/2023...',
-                        type: 'promo',
-                        date: '10/10/2023',
-                    },
-                ]);
-            }
+            // Use real data only - no demo data fallback
+            setAnnouncements(announcementItems);
 
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
@@ -239,28 +212,36 @@ export const UserDashboardOverview: React.FC = () => {
                         </button>
                     </div>
                     <div className="space-y-4">
-                        {announcements.map((announcement) => (
-                            <Card
-                                key={announcement.id}
-                                className="bg-white shadow-sm hover:border-primary/50 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/user/announcements/${announcement.id}`)}
-                            >
-                                <CardContent className="p-5">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold group-hover:text-primary transition-colors">
-                                            {announcement.title}
-                                        </h3>
-                                        {getAnnouncementBadge(announcement.type)}
-                                    </div>
-                                    <p className="text-muted-foreground text-sm leading-relaxed mb-3">
-                                        {announcement.content}
-                                    </p>
-                                    <p className="text-muted-foreground text-xs font-medium">
-                                        Đăng ngày: {announcement.date}
-                                    </p>
+                        {announcements.length > 0 ? (
+                            announcements.map((announcement) => (
+                                <Card
+                                    key={announcement.id}
+                                    className="bg-white shadow-sm hover:border-primary/50 transition-all cursor-pointer group"
+                                    onClick={() => navigate(`/user/announcements/${announcement.id}`)}
+                                >
+                                    <CardContent className="p-5">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-bold group-hover:text-primary transition-colors">
+                                                {announcement.title}
+                                            </h3>
+                                            {getAnnouncementBadge(announcement.type)}
+                                        </div>
+                                        <p className="text-muted-foreground text-sm leading-relaxed mb-3">
+                                            {announcement.content}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs font-medium">
+                                            Đăng ngày: {announcement.date}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <Card className="bg-white shadow-sm">
+                                <CardContent className="py-12 text-center">
+                                    <p className="text-muted-foreground">Chưa có thông báo nào.</p>
                                 </CardContent>
                             </Card>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -318,21 +299,6 @@ export const UserDashboardOverview: React.FC = () => {
                                     </a>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Tips Widget */}
-                    <Card className="mt-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 bg-primary/20 rounded-full">
-                                    <Sparkles className="w-5 h-5 text-primary" />
-                                </div>
-                                <p className="text-sm font-bold">SD Automation Tip</p>
-                            </div>
-                            <p className="text-muted-foreground text-xs leading-relaxed">
-                                Sử dụng tính năng 'Auto-Connect' trong cài đặt để tự động hóa việc đồng bộ hóa thiết bị mới.
-                            </p>
                         </CardContent>
                     </Card>
                 </div>
