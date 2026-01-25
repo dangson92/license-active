@@ -147,7 +147,7 @@ export const UserDashboardOverview: React.FC = () => {
             {/* Welcome Section */}
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Chào mừng trở lại, {firstName}!</h1>
-                <p className="text-muted-foreground mt-1">Hôm nay là một ngày tuyệt vời để tối ưu hóa quy trình của bạn.</p>
+                <p className="text-muted-foreground mt-1">Hôm nay là một ngày tuyệt vời để làm việc đúng không?.</p>
             </div>
 
             {/* Stats Cards */}

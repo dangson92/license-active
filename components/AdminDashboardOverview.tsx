@@ -93,7 +93,7 @@ export const AdminDashboardOverview: React.FC = () => {
 
             // Filter approved orders for revenue calculation
             const approvedOrders = orders.filter((o: any) => o.status === 'approved' || o.status === 'completed');
-            const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+            const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (o.total_price || 0), 0);
 
             setStats({
                 totalMembers: users.length,
@@ -112,10 +112,10 @@ export const AdminDashboardOverview: React.FC = () => {
                 .slice(0, 5)
                 .map((o: any, index: number) => ({
                     id: o.id || index,
-                    userName: o.user_name || o.user_email?.split('@')[0] || 'Unknown',
+                    userName: o.user_full_name || o.user_email?.split('@')[0] || 'Unknown',
                     email: o.user_email || '',
                     tier: o.app_name || 'Standard',
-                    amount: o.total_amount || 0,
+                    amount: o.total_price || 0,
                     time: getTimeAgo(o.created_at),
                 }));
 
@@ -177,7 +177,7 @@ export const AdminDashboardOverview: React.FC = () => {
             if (monthsDiff >= 0 && monthsDiff < monthsCount) {
                 const index = monthsCount - 1 - monthsDiff;
                 if (months[index]) {
-                    months[index].amount += order.total_amount || 0;
+                    months[index].amount += order.total_price || 0;
                 }
             }
         });
