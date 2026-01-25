@@ -128,7 +128,7 @@ router.post('/tickets/:id/reply', requireAuth, async (req, res) => {
             type: 'ticket_reply',
             title: 'Phản hồi ticket từ user',
             message: `${userName} đã trả lời ticket: "${ticket.subject}"`,
-            link: `/admin/support/ticket/${ticketId}`
+            link: '/admin/support'
         })
 
         res.json({ id: replyId, ticket_id: ticketId, message: 'Reply sent successfully' })
@@ -269,7 +269,7 @@ router.post('/admin/tickets/:id/reply', requireAdmin, async (req, res) => {
             type: 'ticket_reply',
             title: 'Phản hồi từ hỗ trợ',
             message: `Admin đã trả lời ticket "${ticket.subject}"`,
-            link: `/user/support/ticket/${ticketId}`,
+            link: '/support',
             userId: ticket.user_id
         })
 

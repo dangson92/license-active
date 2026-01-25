@@ -168,10 +168,21 @@ export const Header: React.FC<HeaderProps> = ({
             case 'new_order':
                 return <ShoppingCart className="w-4 h-4 text-emerald-500" />;
             case 'new_ticket':
+            case 'ticket_reply':
                 return <MessageSquare className="w-4 h-4 text-orange-500" />;
+            case 'order_approved':
+                return <ShoppingCart className="w-4 h-4 text-green-500" />;
+            case 'order_rejected':
+                return <ShoppingCart className="w-4 h-4 text-red-500" />;
             default:
                 return <Bell className="w-4 h-4 text-blue-500" />;
         }
+    };
+
+    // Strip HTML tags from message for clean preview
+    const stripHtml = (html: string) => {
+        if (!html) return '';
+        return html.replace(/<[^>]*>/g, '').trim();
     };
 
     return (
@@ -264,7 +275,7 @@ export const Header: React.FC<HeaderProps> = ({
                                                                 {notification.title}
                                                             </p>
                                                             <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
-                                                                {notification.message}
+                                                                {stripHtml(notification.message)}
                                                             </p>
                                                             <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-400">
                                                                 <Clock className="w-3 h-3" />
