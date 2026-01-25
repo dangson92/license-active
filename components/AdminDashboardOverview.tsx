@@ -91,8 +91,8 @@ export const AdminDashboardOverview: React.FC = () => {
             const activeLicenses = licenses.filter((l: any) => l.status === 'active').length;
             const pendingTickets = tickets.filter((t: any) => t.status === 'open' || t.status === 'pending').length;
 
-            // Filter approved orders for revenue calculation
-            const approvedOrders = orders.filter((o: any) => o.status === 'approved' || o.status === 'completed');
+            // Filter paid orders for revenue calculation (status = 'paid' after approval)
+            const approvedOrders = orders.filter((o: any) => o.status === 'paid');
             const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (o.total_price || 0), 0);
 
             setStats({
