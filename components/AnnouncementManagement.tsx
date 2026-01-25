@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 // UI Components
@@ -70,7 +71,7 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
     const [activeTab, setActiveTab] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
-    const [viewDialog, setViewDialog] = useState<{ open: boolean; item: Announcement | null }>({ open: false, item: null });
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadData();
@@ -367,7 +368,7 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
-                                                                onClick={() => setViewDialog({ open: true, item })}
+                                                                onClick={() => navigate(`/admin/announcements/${item.id}`)}
                                                             >
                                                                 <Eye className="w-4 h-4" />
                                                             </Button>
@@ -442,69 +443,6 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                                 Xóa
                             </Button>
                         </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* View Detail Dialog */}
-                <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ ...viewDialog, open })}>
-                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col p-0">
-                        {viewDialog.item && (
-                            <>
-                                {/* Header */}
-                                <div className="p-6 pb-4 border-b bg-muted/30">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        {getCategoryBadge(viewDialog.item.category)}
-                                        {!viewDialog.item.is_published && !viewDialog.item.is_archived && (
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">
-                                                Draft
-                                            </span>
-                                        )}
-                                        {viewDialog.item.is_archived && (
-                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">
-                                                Archived
-                                            </span>
-                                        )}
-                                    </div>
-                                    <DialogTitle className="text-2xl font-bold leading-tight">
-                                        {viewDialog.item.title}
-                                    </DialogTitle>
-                                    <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                                        <span className="flex items-center gap-1">
-                                            <Calendar className="w-4 h-4" />
-                                            {formatFullDate(viewDialog.item.published_at || viewDialog.item.created_at)}
-                                        </span>
-                                        {viewDialog.item.author_name && (
-                                            <span>Bởi: <span className="font-medium">{viewDialog.item.author_name}</span></span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Content */}
-                                <ScrollArea className="flex-1 p-6">
-                                    <div
-                                        className="prose prose-sm max-w-none dark:prose-invert
-                                            prose-headings:font-bold prose-headings:text-foreground
-                                            prose-p:text-muted-foreground prose-p:leading-relaxed
-                                            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                                            prose-ul:text-muted-foreground prose-ol:text-muted-foreground
-                                            prose-strong:text-foreground
-                                        "
-                                        dangerouslySetInnerHTML={{ __html: viewDialog.item.content }}
-                                    />
-                                </ScrollArea>
-
-                                {/* Footer */}
-                                <DialogFooter className="p-4 border-t">
-                                    <Button variant="outline" onClick={() => onEdit(viewDialog.item!.id)}>
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Chỉnh sửa
-                                    </Button>
-                                    <Button variant="outline" onClick={() => setViewDialog({ open: false, item: null })}>
-                                        Đóng
-                                    </Button>
-                                </DialogFooter>
-                            </>
-                        )}
                     </DialogContent>
                 </Dialog>
             </div>

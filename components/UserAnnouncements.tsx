@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 // UI Components
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Icons
-import { Megaphone, Calendar, X, ArrowLeft, Clock } from 'lucide-react';
+import { Megaphone, Calendar } from 'lucide-react';
 
 interface Announcement {
     id: number;
@@ -22,11 +20,10 @@ interface Announcement {
 }
 
 export const UserAnnouncements: React.FC = () => {
+    const navigate = useNavigate();
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState<string>('all');
-    const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
 
     useEffect(() => {
         loadAnnouncements();
@@ -63,37 +60,12 @@ export const UserAnnouncements: React.FC = () => {
         return date.toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
-    const formatFullDate = (dateStr?: string) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('vi-VN', {
-            weekday: 'long',
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const getReadingTime = (content: string) => {
-        const wordsPerMinute = 200;
-        const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
-        const minutes = Math.ceil(wordCount / wordsPerMinute);
-        return `${minutes} phút đọc`;
-    };
-
     const stripHtmlForPreview = (html: string, maxLength: number = 200) => {
         // Create a temporary element to decode HTML entities
         const temp = document.createElement('div');
         temp.innerHTML = html;
         const text = temp.textContent || temp.innerText || '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
-
-    const openDetailDialog = (announcement: Announcement) => {
-        setSelectedAnnouncement(announcement);
-        setDialogOpen(true);
     };
 
     const categories = [
@@ -157,7 +129,7 @@ export const UserAnnouncements: React.FC = () => {
                         <Card
                             key={item.id}
                             className="cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() => openDetailDialog(item)}
+                            onClick={() => navigate(`/user/announcements/${item.id}`)}
                         >
                             <CardContent className="p-6">
                                 <div className="flex items-start gap-4">
@@ -180,60 +152,6 @@ export const UserAnnouncements: React.FC = () => {
                     ))
                 )}
             </div>
-
-            {/* Detail Dialog */}
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col p-0">
-                    {selectedAnnouncement && (
-                        <>
-                            {/* Header */}
-                            <div className="p-6 pb-4 border-b bg-muted/30">
-                                <div className="flex items-center gap-3 mb-4">
-                                    {getCategoryBadge(selectedAnnouncement.category)}
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
-                                        {formatFullDate(selectedAnnouncement.published_at || selectedAnnouncement.created_at)}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {getReadingTime(selectedAnnouncement.content)}
-                                    </span>
-                                </div>
-                                <DialogTitle className="text-2xl font-bold leading-tight">
-                                    {selectedAnnouncement.title}
-                                </DialogTitle>
-                                {selectedAnnouncement.author_name && (
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Đăng bởi: <span className="font-medium">{selectedAnnouncement.author_name}</span>
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Content */}
-                            <ScrollArea className="flex-1 p-6">
-                                <div
-                                    className="prose prose-sm max-w-none dark:prose-invert
-                                        prose-headings:font-bold prose-headings:text-foreground
-                                        prose-p:text-muted-foreground prose-p:leading-relaxed
-                                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                                        prose-ul:text-muted-foreground prose-ol:text-muted-foreground
-                                        prose-strong:text-foreground
-                                        prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-                                    "
-                                    dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
-                                />
-                            </ScrollArea>
-
-                            {/* Footer */}
-                            <div className="p-4 border-t flex justify-end">
-                                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                                    Đóng
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };
