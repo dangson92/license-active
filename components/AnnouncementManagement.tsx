@@ -201,9 +201,6 @@ export const AnnouncementManagement: React.FC<AnnouncementManagementProps> = ({
                         <p className="text-muted-foreground text-sm">Quản lý thông báo hệ thống và bài viết cho người dùng.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline">
-                            Drafts ({stats.drafts})
-                        </Button>
                         <Button className="bg-blue-600 hover:bg-blue-700" onClick={onCreateNew}>
                             <Plus className="w-4 h-4 mr-2" />
                             New Post

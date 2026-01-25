@@ -48,7 +48,8 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      callback(null, true) // Allow all for API endpoints (activate, check-in)
+      console.warn('⚠️ Blocked CORS request from:', origin)
+      callback(new Error('Not allowed by CORS'), false)
     }
   },
   credentials: true,
@@ -63,9 +64,9 @@ app.use(cors(corsOptions))
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions))
 
-// Increase body size limits for file uploads
-app.use(express.json({ limit: '1gb' }))
-app.use(express.urlencoded({ limit: '1gb', extended: true, parameterLimit: 50000 }))
+// Body size limits - 10MB for regular requests
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ limit: '10mb', extended: true, parameterLimit: 50000 }))
 app.use(helmet({
   crossOriginResourcePolicy: false, // Don't block cross-origin requests
 }))

@@ -7,6 +7,7 @@ import { MemberManagement } from './MemberManagement';
 import { CreateLicense } from './CreateLicense';
 import { AppLayout } from './layout/AppLayout';
 import { OrderManagement } from './OrderManagement';
+import { AdminDashboardOverview } from './AdminDashboardOverview';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'versions'>('licenses');
-  const [activeSection, setActiveSection] = useState<string>('licenses');
+  const [activeSection, setActiveSection] = useState<string>('dashboard');
   const [insight, setInsight] = useState<string>('');
   const [loadingInsight, setLoadingInsight] = useState(false);
 
@@ -357,7 +358,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         }}
       >
         {/* Render content based on activeSection */}
-        {activeSection === 'members' ? (
+        {activeSection === 'dashboard' ? (
+          <AdminDashboardOverview />
+        ) : activeSection === 'members' ? (
           <MemberManagement />
         ) : activeSection === 'orders' ? (
           <OrderManagement />

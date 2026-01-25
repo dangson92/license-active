@@ -52,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     const userNavItems: NavItem[] = [
+        { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
         { icon: Megaphone, label: 'Announcements', id: 'announcements' },
         { icon: Key, label: 'My Licenses', id: 'licenses' },
         { icon: ShoppingBag, label: 'Store', id: 'store' },

@@ -84,7 +84,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 }
                 // All users (including admin) join their personal room
                 if (user?.id) {
-                    joinUserRoom(Number(user.id));
+                    joinUserRoom();
                 }
             }, 100);
         };

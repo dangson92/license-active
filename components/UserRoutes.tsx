@@ -25,6 +25,7 @@ import { NotificationsPage } from './NotificationsPage';
 import { UserAnnouncements } from './UserAnnouncements';
 import { AnnouncementDetailPage } from './AnnouncementDetailPage';
 import { UserSettings } from './UserSettings';
+import { UserDashboardOverview } from './UserDashboardOverview';
 
 interface UserRoutesProps {
     user: User;
@@ -38,6 +39,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
     // Get active section from URL
     const getActiveSection = () => {
         const path = location.pathname;
+        if (path.includes('/user/dashboard')) return 'dashboard';
         if (path.includes('/user/store')) return 'store';
         if (path.includes('/user/orders')) return 'orders';
         if (path.includes('/user/support')) return 'support';
@@ -45,11 +47,14 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         if (path.includes('/user/announcements')) return 'announcements';
         if (path.includes('/user/checkout')) return 'store';
         if (path.includes('/user/settings')) return 'settings';
-        return 'announcements';
+        return 'dashboard';
     };
 
     const handleNavClick = (itemId: string) => {
         switch (itemId) {
+            case 'dashboard':
+                navigate('/user/dashboard');
+                break;
             case 'licenses':
                 navigate('/user/licenses');
                 break;
@@ -69,7 +74,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                 navigate('/user/settings');
                 break;
             default:
-                navigate('/user/announcements');
+                navigate('/user/dashboard');
         }
     };
 
@@ -88,6 +93,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                 onNavClick={handleNavClick}
             >
                 <Routes>
+                    <Route path="dashboard" element={<UserDashboardOverview />} />
                     <Route path="licenses" element={<LicenseContent />} />
                     <Route path="store" element={
                         <ApplicationStore onCheckout={handleCheckout} />
@@ -108,7 +114,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     <Route path="announcements" element={<UserAnnouncements />} />
                     <Route path="announcements/:id" element={<AnnouncementDetailPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />
-                    <Route path="*" element={<Navigate to="/user/announcements" replace />} />
+                    <Route path="*" element={<Navigate to="/user/dashboard" replace />} />
                 </Routes>
             </AppLayout>
         </TooltipProvider>

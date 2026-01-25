@@ -1,4 +1,5 @@
 import { Server } from 'socket.io'
+import jwt from 'jsonwebtoken'
 
 let io = null
 
@@ -18,17 +19,39 @@ export const initSocket = (httpServer) => {
     io.on('connection', (socket) => {
         console.log('🔌 Client connected:', socket.id)
 
-        // Join admin room if user is admin
-        socket.on('join-admin', () => {
-            socket.join('admins')
-            console.log('👑 Admin joined:', socket.id)
+        // Join admin room if user is admin - WITH JWT VERIFICATION
+        socket.on('join-admin', (token) => {
+            try {
+                if (!token) {
+                    console.warn('⚠️ Admin join attempt without token:', socket.id)
+                    return
+                }
+                const decoded = jwt.verify(token, process.env.JWT_SECRET)
+                if (decoded.role === 'admin') {
+                    socket.join('admins')
+                    console.log('👑 Admin joined:', socket.id, decoded.email)
+                } else {
+                    console.warn('⚠️ Non-admin tried to join admin room:', socket.id, decoded.email)
+                }
+            } catch (e) {
+                console.warn('⚠️ Invalid token for admin join:', socket.id, e.message)
+            }
         })
 
-        // Join user room for personal notifications
-        socket.on('join-user', (userId) => {
-            if (userId) {
-                socket.join(`user:${userId}`)
-                console.log(`👤 User ${userId} joined their room:`, socket.id)
+        // Join user room for personal notifications - WITH JWT VERIFICATION
+        socket.on('join-user', (token) => {
+            try {
+                if (!token) {
+                    console.warn('⚠️ User join attempt without token:', socket.id)
+                    return
+                }
+                const decoded = jwt.verify(token, process.env.JWT_SECRET)
+                if (decoded.id) {
+                    socket.join(`user:${decoded.id}`)
+                    console.log(`👤 User ${decoded.id} joined their room:`, socket.id)
+                }
+            } catch (e) {
+                console.warn('⚠️ Invalid token for user join:', socket.id, e.message)
             }
         })
 

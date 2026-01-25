@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { config } from '../config';
+import { getToken } from './api';
 
 let socket: Socket | null = null;
 
@@ -51,12 +52,17 @@ export const joinAdminRoom = (): void => {
 
     if (!socket.connected) {
         console.warn('👑 Socket not connected yet, will join admin room when connected');
-        // Socket will auto-join when connected via 'connect' event handler
         return;
     }
 
-    socket.emit('join-admin');
-    console.log('👑 Joined admin room, socket id:', socket.id);
+    const token = getToken();
+    if (!token) {
+        console.warn('👑 Cannot join admin room: no auth token');
+        return;
+    }
+
+    socket.emit('join-admin', token);
+    console.log('👑 Requested to join admin room, socket id:', socket.id);
 };
 
 export const disconnectSocket = (): void => {
@@ -66,7 +72,7 @@ export const disconnectSocket = (): void => {
     }
 };
 
-export const joinUserRoom = (userId: number): void => {
+export const joinUserRoom = (): void => {
     if (!socket) {
         console.warn('👤 Cannot join user room: socket not initialized');
         return;
@@ -77,8 +83,14 @@ export const joinUserRoom = (userId: number): void => {
         return;
     }
 
-    socket.emit('join-user', userId);
-    console.log(`👤 Joined user room ${userId}, socket id:`, socket.id);
+    const token = getToken();
+    if (!token) {
+        console.warn('👤 Cannot join user room: no auth token');
+        return;
+    }
+
+    socket.emit('join-user', token);
+    console.log('👤 Requested to join user room, socket id:', socket.id);
 };
 
 export default { initSocket, getSocket, joinAdminRoom, joinUserRoom, disconnectSocket };

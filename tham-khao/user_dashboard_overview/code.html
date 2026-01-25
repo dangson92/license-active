@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Dashboard Overview - SD Automation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#0d141b] transition-colors duration-200">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="w-64 border-r border-[#cfdbe7] dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary rounded-lg p-1.5 flex items-center justify-center">
+<svg class="w-6 h-6 text-white" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z" fill="currentColor"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<h1 class="text-[#0d141b] dark:text-white text-base font-bold leading-tight">SD Automation</h1>
+<p class="text-[#4c739a] text-xs font-medium">User Portal</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-4 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary" href="#">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<p class="text-sm font-semibold">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#4c739a] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">key</span>
+<p class="text-sm font-medium">Licenses</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#4c739a] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">devices</span>
+<p class="text-sm font-medium">Devices</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#4c739a] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">payments</span>
+<p class="text-sm font-medium">Billing</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-[#4c739a] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">help_center</span>
+<p class="text-sm font-medium">Support</p>
+</a>
+</nav>
+<div class="p-4 border-t border-[#cfdbe7] dark:border-slate-800">
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Avatar of user with professional look" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDT_BYj8ayHmXqgeGqpJjxvLU0FsVDpG4IYEO-CJQojHBAXoqbVBBKcCvw94pHZZMoRavilwRpP3n9_nQyGCGnnbgA4dJ4551NrHi5oUdrTI_AvGXkQGXYYM01dvlKE0zWdzUyjMKe9ok7m_ReQML2Y-t3ZwuZW71oOxXgbnTYTkR3VsphoKIa3xFHb9j9fQUyOpGdzDRkwCe2dYCps5T7dIruwgSWoILEPq-JbmEkxicEW7i7gfnFUg4X6hno945nxeMSwzLFR1WdI");'></div>
+<div class="flex flex-col">
+<p class="text-[#0d141b] dark:text-white text-sm font-bold">Lê Minh Tuấn</p>
+<p class="text-[#4c739a] text-xs">Standard Plan</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto">
+<!-- TopNavBar -->
+<header class="flex items-center justify-between sticky top-0 z-10 bg-background-light dark:bg-background-dark border-b border-[#cfdbe7] dark:border-slate-800 px-8 py-4">
+<div class="flex items-center gap-2">
+<h2 class="text-[#0d141b] dark:text-white text-lg font-bold tracking-tight">Trang chủ</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative max-w-xs w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#4c739a] text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 rounded-lg border-none bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-primary/50 placeholder:text-[#4c739a]" placeholder="Tìm kiếm tài liệu..."/>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-white dark:bg-slate-800 text-[#0d141b] dark:text-white hover:bg-slate-100 transition-colors border border-[#cfdbe7] dark:border-slate-800">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="p-2 rounded-lg bg-white dark:bg-slate-800 text-[#0d141b] dark:text-white hover:bg-slate-100 transition-colors border border-[#cfdbe7] dark:border-slate-800">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</div>
+</header>
+<div class="max-w-[1200px] mx-auto px-8 py-8">
+<!-- HeadlineText -->
+<div class="mb-8">
+<h1 class="text-[#0d141b] dark:text-white tracking-tight text-3xl font-bold leading-tight">Chào mừng trở lại, Tuấn!</h1>
+<p class="text-[#4c739a] mt-1">Hôm nay là một ngày tuyệt vời để tối ưu hóa quy trình của bạn.</p>
+</div>
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfdbe7] dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#4c739a] text-sm font-semibold uppercase tracking-wider">My Active Licenses</p>
+<span class="material-symbols-outlined text-primary">verified</span>
+</div>
+<p class="text-[#0d141b] dark:text-white text-4xl font-extrabold leading-tight">5</p>
+<div class="flex items-center gap-1 text-emerald-500 text-xs font-bold">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+<span>+1 trong tháng này</span>
+</div>
+</div>
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfdbe7] dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#4c739a] text-sm font-semibold uppercase tracking-wider">Total Devices Linked</p>
+<span class="material-symbols-outlined text-primary">important_devices</span>
+</div>
+<p class="text-[#0d141b] dark:text-white text-4xl font-extrabold leading-tight">12</p>
+<p class="text-[#4c739a] text-xs font-medium">Giới hạn tối đa: 20 thiết bị</p>
+</div>
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-slate-900 border border-[#cfdbe7] dark:border-slate-800 shadow-sm">
+<div class="flex items-center justify-between">
+<p class="text-[#4c739a] text-sm font-semibold uppercase tracking-wider">Subscription Status</p>
+<span class="material-symbols-outlined text-primary">event_repeat</span>
+</div>
+<p class="text-[#0d141b] dark:text-white text-xl font-bold leading-tight">Gia hạn kế tiếp</p>
+<p class="text-primary text-2xl font-extrabold">20/12/2024</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+<!-- Recent Announcements -->
+<div class="lg:col-span-2">
+<div class="flex items-center justify-between mb-4 px-1">
+<h2 class="text-[#0d141b] dark:text-white text-xl font-bold">Recent Announcements</h2>
+<a class="text-primary text-sm font-bold hover:underline" href="#">Xem tất cả</a>
+</div>
+<div class="flex flex-col gap-4">
+<div class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#cfdbe7] dark:border-slate-800 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-[#0d141b] dark:text-white group-hover:text-primary transition-colors">Cập nhật phiên bản SD Engine v4.2.0</h3>
+<span class="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">Mới</span>
+</div>
+<p class="text-[#4c739a] text-sm leading-relaxed mb-3">Chúng tôi vừa phát hành bản cập nhật lớn tập trung vào hiệu suất xử lý dữ liệu và tích hợp API mới...</p>
+<p class="text-[#4c739a] text-xs font-medium">Đăng ngày: 15/10/2023</p>
+</div>
+<div class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#cfdbe7] dark:border-slate-800 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-[#0d141b] dark:text-white group-hover:text-primary transition-colors">Bảo trì hệ thống định kỳ</h3>
+<span class="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-[#4c739a] px-2 py-1 rounded">Thông báo</span>
+</div>
+<p class="text-[#4c739a] text-sm leading-relaxed mb-3">Hệ thống sẽ tạm ngưng để bảo trì vào rạng sáng Chủ Nhật tuần này để nâng cấp hạ tầng server...</p>
+<p class="text-[#4c739a] text-xs font-medium">Đăng ngày: 12/10/2023</p>
+</div>
+<div class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-[#cfdbe7] dark:border-slate-800 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-bold text-[#0d141b] dark:text-white group-hover:text-primary transition-colors">Ưu đãi gia hạn năm 2024</h3>
+<span class="text-xs font-medium bg-emerald-100 text-emerald-600 px-2 py-1 rounded">Khuyến mãi</span>
+</div>
+<p class="text-[#4c739a] text-sm leading-relaxed mb-3">Nhận ngay ưu đãi 20% khi thực hiện gia hạn bản quyền trước ngày 31/12/2023...</p>
+<p class="text-[#4c739a] text-xs font-medium">Đăng ngày: 10/10/2023</p>
+</div>
+</div>
+</div>
+<!-- My Quick Actions -->
+<div class="lg:col-span-1">
+<div class="mb-4 px-1">
+<h2 class="text-[#0d141b] dark:text-white text-xl font-bold">My Quick Actions</h2>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-[#cfdbe7] dark:border-slate-800 shadow-sm flex flex-col gap-4">
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-lg font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+                                Buy New License
+                            </button>
+<button class="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 text-primary border-2 border-primary/20 hover:border-primary/40 py-3 px-4 rounded-lg font-bold text-sm transition-all">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                                Download Software
+                            </button>
+<button class="w-full flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 text-[#4c739a] hover:bg-slate-100 dark:hover:bg-slate-700 py-3 px-4 rounded-lg font-bold text-sm transition-all border border-transparent">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+                                Get Support
+                            </button>
+<hr class="my-2 border-[#cfdbe7] dark:border-slate-800"/>
+<div class="flex flex-col gap-3">
+<p class="text-[#4c739a] text-[11px] font-bold uppercase tracking-widest text-center">Tài liệu nhanh</p>
+<div class="grid grid-cols-2 gap-2">
+<a class="flex flex-col items-center p-3 rounded-lg border border-[#cfdbe7] dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-primary mb-1">menu_book</span>
+<span class="text-[10px] font-bold text-[#0d141b] dark:text-white">User Guide</span>
+</a>
+<a class="flex flex-col items-center p-3 rounded-lg border border-[#cfdbe7] dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-primary mb-1">integration_instructions</span>
+<span class="text-[10px] font-bold text-[#0d141b] dark:text-white">API Docs</span>
+</a>
+</div>
+</div>
+</div>
+<div class="mt-6 p-6 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20">
+<div class="flex items-center gap-3 mb-3">
+<div class="p-2 bg-primary/20 rounded-full">
+<span class="material-symbols-outlined text-primary">auto_awesome</span>
+</div>
+<p class="text-[#0d141b] dark:text-white text-sm font-bold">SD Automation Tip</p>
+</div>
+<p class="text-[#4c739a] text-xs leading-relaxed">Sử dụng tính năng 'Auto-Connect' trong cài đặt để tự động hóa việc đồng bộ hóa thiết bị mới.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

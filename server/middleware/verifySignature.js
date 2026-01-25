@@ -95,14 +95,6 @@ export const verifySignature = (req, res, next) => {
     const bodyString = JSON.stringify(sortedBody)
     const dataToSign = bodyString + timestamp
 
-    // Debug logging
-    console.log('🔍 Debug signature verification:')
-    console.log('Secret:', SIGNING_SECRET)
-    console.log('Original body:', JSON.stringify(req.body))
-    console.log('Sorted body:', bodyString)
-    console.log('Timestamp:', timestamp)
-    console.log('Data to sign:', dataToSign)
-
     const expectedSignature = crypto
       .createHmac('sha256', SIGNING_SECRET)
       .update(dataToSign)

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Statistics Dashboard Overview</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Manrope -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b8cee",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#0d141b] transition-colors duration-200">
+<div class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-[#e7edf3] dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col sticky top-0 h-screen">
+<div class="p-6 flex flex-col h-full">
+<!-- Brand -->
+<div class="flex items-center gap-3 mb-10">
+<div class="bg-primary rounded-lg p-2 text-white">
+<span class="material-symbols-outlined block">automation</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-[#0d141b] dark:text-white text-base font-bold leading-tight">SD Automation</h1>
+<p class="text-[#4c739a] text-xs font-normal">Admin Console</p>
+</div>
+</div>
+<!-- Nav Items -->
+<nav class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group" href="#">
+<span class="material-symbols-outlined text-primary">dashboard</span>
+<p class="text-sm font-semibold">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">key</span>
+<p class="text-sm font-medium">Licenses</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<p class="text-sm font-medium">Users</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">help_center</span>
+<p class="text-sm font-medium">Support</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium">Settings</p>
+</a>
+</nav>
+<!-- Footer User Info -->
+<div class="border-t border-[#e7edf3] dark:border-slate-800 pt-6">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDYyBIObCklF5NgEifaVmEzxmygIE9glWDjeKtoKe8w4aeilI5WHYhQoy-7X3rsILbBPwzN-D4UopqaK54ZT1wCofg1wGcKvVv2MwMa5uEOsBFZRV1pXvs93t8Vx9NfveFHXZeHYO-MhTqw-i4wekWI7LDGf8V8Hb9gjwMRL5ntgSHqBfrX9tNyi46nxEalmMwi7QoyadSSJP1tZWXo7ppc_0ClmeqBgdMNac0E2n3ecl8WWTf2PLk6GV6FKNi5pG8J9et62RsiBJsL");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-[#0d141b] dark:text-white text-sm font-bold truncate">Alex Morgan</p>
+<p class="text-[#4c739a] text-xs truncate">System Admin</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-x-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between bg-white dark:bg-background-dark border-b border-[#e7edf3] dark:border-slate-800 px-8 py-4 sticky top-0 z-10">
+<div class="flex items-center gap-6">
+<h2 class="text-xl font-bold dark:text-white">Dashboard Overview</h2>
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full bg-background-light dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none text-slate-700 dark:text-slate-300" placeholder="Search data..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<div class="p-8">
+<!-- Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#e7edf3] dark:border-slate-800 shadow-sm">
+<p class="text-[#4c739a] text-sm font-medium mb-1">Total Members</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-bold dark:text-white">12,450</h3>
+<span class="flex items-center text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                                5.2%
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#e7edf3] dark:border-slate-800 shadow-sm">
+<p class="text-[#4c739a] text-sm font-medium mb-1">Active Licenses</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-bold dark:text-white">8,920</h3>
+<span class="flex items-center text-slate-500 text-sm font-medium bg-slate-100 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-sm mr-1">horizontal_rule</span>
+                                0%
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#e7edf3] dark:border-slate-800 shadow-sm">
+<p class="text-[#4c739a] text-sm font-medium mb-1">Total Revenue</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-bold dark:text-white">$45,200</h3>
+<span class="flex items-center text-emerald-600 text-sm font-bold bg-emerald-50 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+                                8.4%
+                            </span>
+</div>
+</div>
+<div class="bg-white dark:bg-background-dark p-6 rounded-xl border border-[#e7edf3] dark:border-slate-800 shadow-sm">
+<p class="text-[#4c739a] text-sm font-medium mb-1">Pending Tickets</p>
+<div class="flex items-end justify-between">
+<h3 class="text-3xl font-bold dark:text-white">14</h3>
+<span class="flex items-center text-rose-600 text-sm font-bold bg-rose-50 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-sm mr-1">trending_down</span>
+                                2.1%
+                            </span>
+</div>
+</div>
+</div>
+<!-- Middle Section: Chart & Recent Sales -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+<!-- Revenue Analytics -->
+<div class="lg:col-span-2 bg-white dark:bg-background-dark rounded-xl border border-[#e7edf3] dark:border-slate-800 p-6 shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="text-lg font-bold dark:text-white">Revenue Analytics</h3>
+<p class="text-sm text-slate-500">Monthly growth and performance</p>
+</div>
+<div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+<button class="px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-slate-700 shadow-sm">6 Months</button>
+<button class="px-3 py-1 text-xs font-medium text-slate-500 hover:text-slate-700">1 Year</button>
+</div>
+</div>
+<div class="relative h-[240px] w-full mt-4">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 500 150">
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#2b8cee" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#2b8cee" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,120 Q50,110 80,70 T160,80 T240,40 T320,60 T400,20 T500,30 L500,150 L0,150 Z" fill="url(#chartGradient)"></path>
+<path d="M0,120 Q50,110 80,70 T160,80 T240,40 T320,60 T400,20 T500,30" fill="none" stroke="#2b8cee" stroke-linecap="round" stroke-width="3"></path>
+<circle cx="80" cy="70" fill="white" r="4" stroke="#2b8cee" stroke-width="2"></circle>
+<circle cx="240" cy="40" fill="white" r="4" stroke="#2b8cee" stroke-width="2"></circle>
+<circle cx="400" cy="20" fill="white" r="4" stroke="#2b8cee" stroke-width="2"></circle>
+</svg>
+</div>
+<div class="flex justify-between mt-4 px-2">
+<span class="text-xs font-bold text-slate-400">Jan</span>
+<span class="text-xs font-bold text-slate-400">Feb</span>
+<span class="text-xs font-bold text-slate-400">Mar</span>
+<span class="text-xs font-bold text-slate-400">Apr</span>
+<span class="text-xs font-bold text-slate-400">May</span>
+<span class="text-xs font-bold text-slate-400">Jun</span>
+</div>
+</div>
+<!-- Recent Sales -->
+<div class="bg-white dark:bg-background-dark rounded-xl border border-[#e7edf3] dark:border-slate-800 p-6 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-bold dark:text-white">Recent Sales</h3>
+<a class="text-primary text-sm font-semibold hover:underline" href="#">View All</a>
+</div>
+<div class="space-y-6">
+<!-- Sale Item -->
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuNVLiXy2aj7rQUG8p9gZpKaUAowOSWftp29zYUKqwNR3rggKF79Z1WqRbqObTp-9mqaS-0ZdX1ExR5jQJUtxEjuq7_SJTL-V9ChIQEXiAVhyAKdwUCFIuASkVszOjxE0gqh3lI7vBmUAE0YYcEJ20gKUM0gwlytldaRLB1KJyLulLWUVQk_3uy6u1ZAUQj9ssE3MYXoXL3ZShCtdTwuswWH_qWo8alGBNb0_vgofFSpcP5i2nIEi4SxuJ9Z9xoUO1Xc6sBL-APrak"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold dark:text-white truncate">Jordan Smith</p>
+<p class="text-xs text-slate-500">Enterprise Tier</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-primary">$1,200</p>
+<p class="text-[10px] text-slate-400">2m ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg8kMkRI3t9vAij1Rs1KKGCi_mFYe2yA0-0VFtNyeo8adiSDz8yfaqPeWFyYrO1Tr1LgGkWunQYRPpomMR0BozekjtEu_NSm-DkiJTrg3h8nNSQo8wqsjBZnBjkPewDzZVK4Dp7vxvgo3iHFo5piqZTWz7NktuQkVeDNKFYztHSiNgOfFNjmFQuAUs_1DKXM7mFNkTMuBVWTBu49x8J3wGyPUjniwvJAwToA9LThK56lz0TsmgjxXkCzLGbL_aL_0TGesfqrDdwdbe"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold dark:text-white truncate">Elena Rossi</p>
+<p class="text-xs text-slate-500">Pro Monthly</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-primary">$299</p>
+<p class="text-[10px] text-slate-400">14m ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-vzI0qqqdgCgQKsDiXsAPZdkX3Z0AsSnasMFo0YSLk-6FyNw3dVSvC3hODzbnVrBkkZnHxirPIH6LifPdZljtUwNvx2Uh1JmqoyjCONhLFjpX_NJk3-asi_BV-bnSygLypyupASpe1oiME4LDpL2KApaRaMA5YMA41CX7Ooex8YReG5tkZ8bW9OrkqGOrghVPPSsG-TlyDewdXv4xBEu3CnimuRjMTre0Cg3k7HoSyA2mp6Zc8zKMKlLjvNQxYo5ASvNgnrB7-_Bn"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold dark:text-white truncate">Marcus Chen</p>
+<p class="text-xs text-slate-500">Basic Tier</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-primary">$49</p>
+<p class="text-[10px] text-slate-400">1h ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1oO14lI9HPp1g-CEXDR2EzxzGsGpGoWkg2Z0I7rfAa9BEO8I7M95_dddyuL1Ho7OjovEtDTjD8e1HOgb0QkKanq47yP4rzEtKvOC9O8fn_VzhhmZyiYPlcYbYwm34_KvDK7qax1YeqqKM_NG7a8ZRjvLgDmp5QxOSw_VgL2W94TcIKBmKIhp5qi8OK0rHs1kUhyAb4KP5Xpha_LH0z8pIqhwLQeUKm0LTJDUbyPbq1NufH_W785swwQfIi1goJUDC7ldLrSBXs6lL"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold dark:text-white truncate">Sarah Jenkins</p>
+<p class="text-xs text-slate-500">Enterprise Tier</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-primary">$1,200</p>
+<p class="text-[10px] text-slate-400">3h ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar 5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu2pKXkw8JJkS-jFH2St_RtnMV3C6u0uzFb7TfqmQQAnw64J2hO3AAnhxtzbGNfZ3I2FMUzz56QCguw4HHJoL9ak3PtmqoZFl0ve8AQND8PVbCzmUc3RDqqcNBB1sRTNnwnz2OXU_CV-jZJIUdArRew3YtJffe5nZadvzsy33RSL6QfcZTL6filg_HLHy8LTabhxo-yty766TpmcoXht7GlmFPGkirRYhsq_WX4fM7hMWSwCu47uUsFsyBdCmZuCUYOwmutylGwWt_"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold dark:text-white truncate">David Miller</p>
+<p class="text-xs text-slate-500">Pro Annual</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-primary">$2,400</p>
+<p class="text-[10px] text-slate-400">5h ago</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: License Distribution -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="bg-white dark:bg-background-dark rounded-xl border border-[#e7edf3] dark:border-slate-800 p-6 shadow-sm">
+<h3 class="text-lg font-bold dark:text-white mb-6">License Distribution</h3>
+<div class="flex items-center gap-12">
+<!-- Simple SVG Pie Chart Representation -->
+<div class="relative w-40 h-40">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<circle class="stroke-slate-100 dark:stroke-slate-800" cx="18" cy="18" fill="none" r="16" stroke-width="4"></circle>
+<!-- Automation: 45% -->
+<circle class="stroke-primary" cx="18" cy="18" fill="none" r="16" stroke-dasharray="45 100" stroke-dashoffset="0" stroke-width="4"></circle>
+<!-- CRM: 30% -->
+<circle class="stroke-sky-300" cx="18" cy="18" fill="none" r="16" stroke-dasharray="30 100" stroke-dashoffset="-45" stroke-width="4"></circle>
+<!-- Analytics: 25% -->
+<circle class="stroke-blue-900" cx="18" cy="18" fill="none" r="16" stroke-dasharray="25 100" stroke-dashoffset="-75" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<p class="text-xs text-slate-500 font-medium">Total</p>
+<p class="text-lg font-bold dark:text-white">8.9k</p>
+</div>
+</div>
+<div class="flex-1 space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<p class="text-sm font-medium text-slate-600 dark:text-slate-400">Automation</p>
+</div>
+<p class="text-sm font-bold dark:text-white">4,014 (45%)</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-sky-300"></div>
+<p class="text-sm font-medium text-slate-600 dark:text-slate-400">CRM Connect</p>
+</div>
+<p class="text-sm font-bold dark:text-white">2,676 (30%)</p>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-blue-900"></div>
+<p class="text-sm font-medium text-slate-600 dark:text-slate-400">Data Analytics</p>
+</div>
+<p class="text-sm font-bold dark:text-white">2,230 (25%)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Additional Context: System Health/Alerts -->
+<div class="bg-primary/5 dark:bg-primary/10 rounded-xl border border-primary/20 p-6 flex items-center gap-6">
+<div class="size-20 rounded-full border-[6px] border-primary/20 border-t-primary flex items-center justify-center">
+<span class="text-xl font-bold text-primary">98%</span>
+</div>
+<div>
+<h3 class="text-lg font-bold dark:text-white mb-1">System Health</h3>
+<p class="text-sm text-slate-600 dark:text-slate-400 mb-4">All servers are operating within normal parameters. 2 updates pending for next maintenance cycle.</p>
+<button class="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-sm hover:bg-primary/90 transition-colors">
+                                View Server Status
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
