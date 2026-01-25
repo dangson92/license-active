@@ -149,12 +149,12 @@ export const AnnouncementDetailPage: React.FC = () => {
                             {/* Category Badges */}
                             <div className="flex flex-wrap gap-2">
                                 {getCategoryBadge(announcement.category)}
-                                {!announcement.is_published && (
+                                {announcement.is_published === false && (
                                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                                         DRAFT
                                     </Badge>
                                 )}
-                                {announcement.is_archived && (
+                                {announcement.is_archived === true && (
                                     <Badge variant="outline" className="bg-slate-100 text-slate-600">
                                         ARCHIVED
                                     </Badge>
