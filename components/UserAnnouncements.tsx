@@ -4,9 +4,12 @@ import api from '../services/api';
 // UI Components
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Icons
-import { Megaphone, Calendar } from 'lucide-react';
+import { Megaphone, Calendar, X, ArrowLeft, Clock } from 'lucide-react';
 
 interface Announcement {
     id: number;
@@ -23,6 +26,7 @@ export const UserAnnouncements: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
     useEffect(() => {
         loadAnnouncements();
@@ -59,11 +63,41 @@ export const UserAnnouncements: React.FC = () => {
         return date.toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
+    const formatFullDate = (dateStr?: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getReadingTime = (content: string) => {
+        const wordsPerMinute = 200;
+        const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+        const minutes = Math.ceil(wordCount / wordsPerMinute);
+        return `${minutes} phút đọc`;
+    };
+
+    const stripHtmlForPreview = (html: string, maxLength: number = 200) => {
+        const text = html.replace(/<[^>]*>/g, '');
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    };
+
+    const openDetailDialog = (announcement: Announcement) => {
+        setSelectedAnnouncement(announcement);
+        setDialogOpen(true);
+    };
+
     const categories = [
-        { id: 'all', label: 'All Announcements' },
-        { id: 'system_update', label: 'System Updates' },
-        { id: 'news', label: 'News' },
-        { id: 'maintenance', label: 'Maintenance' },
+        { id: 'all', label: 'Tất cả' },
+        { id: 'system_update', label: 'Cập nhật hệ thống' },
+        { id: 'news', label: 'Tin tức' },
+        { id: 'maintenance', label: 'Bảo trì' },
     ];
 
     if (loading) {
@@ -82,9 +116,9 @@ export const UserAnnouncements: React.FC = () => {
                     <Megaphone className="w-4 h-4" />
                     OFFICIAL UPDATES
                 </p>
-                <h1 className="text-2xl font-bold tracking-tight">Announcements</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Thông báo</h1>
                 <p className="text-muted-foreground text-sm">
-                    Stay up to date with the latest news, system updates, and official notices.
+                    Cập nhật tin tức mới nhất, thông báo hệ thống và các thông tin quan trọng.
                 </p>
             </div>
 
@@ -95,8 +129,8 @@ export const UserAnnouncements: React.FC = () => {
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         className={`py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeCategory === cat.id
-                                ? 'border-blue-600 text-blue-600'
-                                : 'border-transparent text-muted-foreground hover:text-foreground'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         {cat.label}
@@ -112,7 +146,7 @@ export const UserAnnouncements: React.FC = () => {
                             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                                 <Megaphone className="w-6 h-6 text-muted-foreground" />
                             </div>
-                            <p className="text-muted-foreground">No announcements found.</p>
+                            <p className="text-muted-foreground">Không có thông báo nào.</p>
                         </CardContent>
                     </Card>
                 ) : (
@@ -120,7 +154,7 @@ export const UserAnnouncements: React.FC = () => {
                         <Card
                             key={item.id}
                             className="cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() => setSelectedAnnouncement(selectedAnnouncement?.id === item.id ? null : item)}
+                            onClick={() => openDetailDialog(item)}
                         >
                             <CardContent className="p-6">
                                 <div className="flex items-start gap-4">
@@ -129,22 +163,13 @@ export const UserAnnouncements: React.FC = () => {
                                             {getCategoryBadge(item.category)}
                                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                                                 <Calendar className="w-3 h-3" />
-                                                Published {formatDate(item.published_at || item.created_at)}
+                                                {formatDate(item.published_at || item.created_at)}
                                             </span>
                                         </div>
                                         <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
                                         <p className="text-sm text-muted-foreground line-clamp-2">
-                                            {item.content.substring(0, 200)}...
+                                            {stripHtmlForPreview(item.content)}
                                         </p>
-
-                                        {/* Expanded content */}
-                                        {selectedAnnouncement?.id === item.id && (
-                                            <div className="mt-4 pt-4 border-t">
-                                                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-                                                    {item.content}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -152,6 +177,60 @@ export const UserAnnouncements: React.FC = () => {
                     ))
                 )}
             </div>
+
+            {/* Detail Dialog */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col p-0">
+                    {selectedAnnouncement && (
+                        <>
+                            {/* Header */}
+                            <div className="p-6 pb-4 border-b bg-muted/30">
+                                <div className="flex items-center gap-3 mb-4">
+                                    {getCategoryBadge(selectedAnnouncement.category)}
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        {formatFullDate(selectedAnnouncement.published_at || selectedAnnouncement.created_at)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {getReadingTime(selectedAnnouncement.content)}
+                                    </span>
+                                </div>
+                                <DialogTitle className="text-2xl font-bold leading-tight">
+                                    {selectedAnnouncement.title}
+                                </DialogTitle>
+                                {selectedAnnouncement.author_name && (
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Đăng bởi: <span className="font-medium">{selectedAnnouncement.author_name}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            <ScrollArea className="flex-1 p-6">
+                                <div
+                                    className="prose prose-sm max-w-none dark:prose-invert
+                                        prose-headings:font-bold prose-headings:text-foreground
+                                        prose-p:text-muted-foreground prose-p:leading-relaxed
+                                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                                        prose-ul:text-muted-foreground prose-ol:text-muted-foreground
+                                        prose-strong:text-foreground
+                                        prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                                    "
+                                    dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
+                                />
+                            </ScrollArea>
+
+                            {/* Footer */}
+                            <div className="p-4 border-t flex justify-end">
+                                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                                    Đóng
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
