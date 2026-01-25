@@ -23,6 +23,7 @@ import { CheckoutSuccess } from './CheckoutSuccess';
 import { UserOrders } from './UserOrders';
 import { NotificationsPage } from './NotificationsPage';
 import { UserAnnouncements } from './UserAnnouncements';
+import { UserSettings } from './UserSettings';
 
 interface UserRoutesProps {
     user: User;
@@ -102,7 +103,7 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                             onGoToLicenses={() => navigate('/user/licenses')}
                         />
                     } />
-                    <Route path="settings" element={<SettingsPlaceholder />} />
+                    <Route path="settings" element={<UserSettings />} />
                     <Route path="announcements" element={<UserAnnouncements />} />
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="*" element={<Navigate to="/user/announcements" replace />} />
@@ -130,19 +131,6 @@ const CheckoutWrapper: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => 
         />
     );
 };
-
-// Settings Placeholder
-const SettingsPlaceholder: React.FC = () => (
-    <div className="space-y-6">
-        <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-            <p className="text-muted-foreground text-sm">Cài đặt tài khoản của bạn.</p>
-        </div>
-        <div className="bg-muted/50 rounded-lg p-12 text-center text-muted-foreground">
-            Settings content sẽ được thêm sau...
-        </div>
-    </div>
-);
 
 // License Content (extracted from UserDashboard)
 const LicenseContent: React.FC = () => {

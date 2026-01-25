@@ -179,6 +179,57 @@ router.post('/resend-verification', async (req, res) => {
   }
 })
 
+// Change password endpoint (requires authentication)
+router.post('/change-password', async (req, res) => {
+  try {
+    // Verify JWT token
+    const authHeader = req.headers.authorization || ''
+    const parts = authHeader.split(' ')
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return res.status(401).json({ error: 'unauthorized' })
+    }
+
+    let userData
+    try {
+      userData = jwt.verify(parts[1], process.env.JWT_SECRET)
+    } catch (e) {
+      return res.status(401).json({ error: 'unauthorized' })
+    }
+
+    const { currentPassword, newPassword } = req.body
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'invalid_input' })
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'password_too_short' })
+    }
+
+    // Get user's current password hash
+    const result = await query('SELECT id, password_hash FROM users WHERE id = ?', [userData.id])
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    const user = result.rows[0]
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password_hash)
+    if (!isValid) {
+      return res.status(400).json({ error: 'incorrect_password' })
+    }
+
+    // Hash new password and update
+    const newPasswordHash = await bcrypt.hash(newPassword, 10)
+    await query('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, userData.id])
+
+    res.json({ success: true, message: 'Mật khẩu đã được thay đổi thành công!' })
+  } catch (e) {
+    console.error('Change password error:', e)
+    res.status(500).json({ error: 'server_error' })
+  }
+})
+
 export const requireUser = (req, res, next) => {
   try {
     const h = req.headers.authorization || ''

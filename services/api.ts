@@ -143,6 +143,13 @@ export const api = {
       });
     },
 
+    changePassword: async (currentPassword: string, newPassword: string) => {
+      return apiCall('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+    },
+
     logout: () => {
       removeToken();
     },
