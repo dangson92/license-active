@@ -60,15 +60,17 @@ router.get('/users', requireAdmin, async (req, res) => {
     )
     const total = countResult.rows[0].total
 
-    // Get paginated data
+    // Get paginated data - use parseInt to ensure integers for LIMIT/OFFSET
+    const limitInt = parseInt(limit, 10)
+    const offsetInt = parseInt(offset, 10)
     const r = await query(`
       SELECT u.id, u.email, u.full_name, u.role, u.email_verified, u.created_at, u.last_login_at,
         (SELECT COUNT(*) FROM licenses l WHERE l.user_id = u.id) as licenses_count
       FROM users u
       ${where}
       ORDER BY u.id DESC
-      LIMIT ? OFFSET ?
-    `, [...params, limit, offset])
+      LIMIT ${limitInt} OFFSET ${offsetInt}
+    `, params)
 
     res.json({
       items: r.rows,
@@ -251,7 +253,9 @@ router.get('/licenses', requireAdmin, async (req, res) => {
     )
     const total = countResult.rows[0].total
 
-    // Get paginated data
+    // Get paginated data - use parseInt to ensure integers for LIMIT/OFFSET
+    const limitInt = parseInt(limit, 10)
+    const offsetInt = parseInt(offset, 10)
     const r = await query(
       `SELECT l.id, l.license_key, l.expires_at, l.status, l.max_devices, l.created_at,
               u.email, a.code AS app_code, a.name AS app_name,
@@ -261,8 +265,8 @@ router.get('/licenses', requireAdmin, async (req, res) => {
        JOIN apps a ON a.id=l.app_id
        ${where}
        ORDER BY l.id DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       LIMIT ${limitInt} OFFSET ${offsetInt}`,
+      params
     )
 
     res.json({
