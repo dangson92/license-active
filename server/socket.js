@@ -7,7 +7,7 @@ export const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
             origin: [
-                process.env.FRONTEND_URL || 'https://license.dangthanhson.com',
+                process.env.FRONTEND_URL || 'https://app.dangthanhson.com',
                 'http://localhost:3000',
                 'http://localhost:5173'
             ],

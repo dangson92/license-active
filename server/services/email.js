@@ -94,7 +94,7 @@ function loadTemplate(templateName, variables) {
  */
 export async function sendVerificationEmail(to, userName, token) {
     const settings = await getSettings()
-    const frontendUrl = process.env.FRONTEND_URL || 'https://license.dangthanhson.com'
+    const frontendUrl = process.env.FRONTEND_URL || 'https://app.dangthanhson.com'
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`
 
     const html = loadTemplate('verification-email', {
@@ -258,7 +258,7 @@ export async function sendOrderStatusEmail(order, newStatus) {
             return false
         }
 
-        const frontendUrl = process.env.FRONTEND_URL || 'https://license.dangthanhson.com'
+        const frontendUrl = process.env.FRONTEND_URL || 'https://app.dangthanhson.com'
 
         // Format expires date for display
         const formatDate = (dateStr) => {

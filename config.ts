@@ -1,7 +1,7 @@
 // Config for API endpoints
 export const config = {
   // Main API domain (qua CloudFlare)
-  apiUrl: import.meta.env.VITE_API_URL || 'https://license.dangthanhson.com',
+  apiUrl: import.meta.env.VITE_API_URL || 'https://app.dangthanhson.com',
 
   // Upload API domain (KHÔNG qua CloudFlare - no 100MB limit)
   uploadApiUrl: import.meta.env.VITE_UPLOAD_API_URL || 'https://upload.dangthanhson.com',
