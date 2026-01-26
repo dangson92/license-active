@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 // UI Components
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Pagination } from '@/components/ui/pagination';
 import {
     Dialog,
     DialogContent,
@@ -57,6 +58,13 @@ export const MemberManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [roleFilter, setRoleFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Edit dialog state
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -69,23 +77,43 @@ export const MemberManagement: React.FC = () => {
     const [deletingMember, setDeletingMember] = useState<Member | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setCurrentPage(1); // Reset to first page on search
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [roleFilter]);
+
     useEffect(() => {
         loadMembers();
-    }, []);
+    }, [currentPage, itemsPerPage, debouncedSearch, roleFilter]);
 
     const loadMembers = async () => {
         try {
             setLoading(true);
-            const response = await api.admin.getUsers();
+            const response = await api.admin.getUsers({
+                page: currentPage,
+                limit: itemsPerPage,
+                search: debouncedSearch,
+                role: roleFilter
+            });
             setMembers(response.items || []);
+            if (response.pagination) {
+                setTotalItems(response.pagination.total);
+                setTotalPages(response.pagination.totalPages);
+            }
         } catch (error) {
             console.error('Failed to load members:', error);
-            // Mock data for development
-            setMembers([
-                { id: 1, email: 'admin@example.com', full_name: 'Admin User', role: 'admin', status: 'active', licenses_count: 5 },
-                { id: 2, email: 'user1@example.com', full_name: 'John Doe', role: 'user', status: 'active', licenses_count: 2 },
-                { id: 3, email: 'user2@example.com', full_name: 'Jane Smith', role: 'user', status: 'active', licenses_count: 3 },
-            ]);
+            setMembers([]);
+            setTotalItems(0);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }
@@ -167,16 +195,17 @@ export const MemberManagement: React.FC = () => {
         }
     };
 
-    const filteredMembers = members.filter(member => {
-        const matchesRole = roleFilter === 'all' || member.role === roleFilter;
-        const matchesSearch = !searchQuery ||
-            member.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            member.email.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesRole && matchesSearch;
-    });
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handleItemsPerPageChange = (limit: number) => {
+        setItemsPerPage(limit);
+        setCurrentPage(1); // Reset to first page
+    };
 
     const stats = {
-        totalMembers: members.length,
+        totalMembers: totalItems,
         activeLicenses: members.reduce((sum, m) => sum + (m.licenses_count || 0), 0),
     };
 
@@ -278,14 +307,14 @@ export const MemberManagement: React.FC = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredMembers.length === 0 ? (
+                                {members.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                             Không tìm thấy thành viên nào.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredMembers.map((member) => (
+                                    members.map((member) => (
                                         <TableRow key={member.id} className="group">
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
@@ -347,6 +376,19 @@ export const MemberManagement: React.FC = () => {
                                 )}
                             </TableBody>
                         </Table>
+
+                        {/* Pagination */}
+                        {totalPages > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={handlePageChange}
+                                onItemsPerPageChange={handleItemsPerPageChange}
+                                className="border-t"
+                            />
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -237,8 +237,14 @@ export const api = {
     },
 
     // Users
-    getUsers: async () => {
-      return apiCall('/api/admin/users');
+    getUsers: async (params?: { page?: number; limit?: number; search?: string; role?: string }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) searchParams.append('page', params.page.toString());
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+      if (params?.search) searchParams.append('search', params.search);
+      if (params?.role) searchParams.append('role', params.role);
+      const query = searchParams.toString();
+      return apiCall(`/api/admin/users${query ? '?' + query : ''}`);
     },
 
     updateUser: async (id: number, data: { full_name?: string; role?: string; email_verified?: boolean }) => {
@@ -255,11 +261,14 @@ export const api = {
     },
 
     // Licenses
-    getLicenses: async (filters?: { user_id?: number; app_id?: number; status?: string }) => {
+    getLicenses: async (filters?: { user_id?: number; app_id?: number; status?: string; page?: number; limit?: number; search?: string }) => {
       const params = new URLSearchParams();
       if (filters?.user_id) params.append('user_id', filters.user_id.toString());
       if (filters?.app_id) params.append('app_id', filters.app_id.toString());
       if (filters?.status) params.append('status', filters.status);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.search) params.append('search', filters.search);
 
       const query = params.toString();
       return apiCall(`/api/admin/licenses${query ? '?' + query : ''}`);

@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Pagination } from '@/components/ui/pagination';
 
 // Icons
 import {
@@ -44,21 +45,73 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
     const [keys, setKeys] = useState<LicenseKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [appFilter, setAppFilter] = useState<string>('all');
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [devicePopup, setDevicePopup] = useState<DevicePopup | null>(null);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+
+    // All apps for filter (loaded once)
+    const [allApps, setAllApps] = useState<{ code: string, name: string }[]>([]);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setCurrentPage(1); // Reset to first page on search
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, appFilter]);
+
+    // Load apps for filter
+    useEffect(() => {
+        const loadApps = async () => {
+            try {
+                const response = await api.admin.getApps();
+                setAllApps(response.items?.map((a: any) => ({ code: a.code, name: a.name })) || []);
+            } catch (error) {
+                console.error('Failed to load apps:', error);
+            }
+        };
+        loadApps();
+    }, []);
+
     useEffect(() => {
         loadData();
-    }, []);
+    }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, appFilter]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const response = await api.admin.getLicenses();
 
-            const licenses: LicenseKey[] = response.items.map((item: any) => ({
+            // Find app_id from appCode if filter is set
+            let appId: number | undefined = undefined;
+            if (appFilter !== 'all') {
+                const apps = await api.admin.getApps();
+                const app = apps.items?.find((a: any) => a.code === appFilter);
+                if (app) appId = app.id;
+            }
+
+            const response = await api.admin.getLicenses({
+                page: currentPage,
+                limit: itemsPerPage,
+                search: debouncedSearch,
+                status: statusFilter,
+                app_id: appId
+            });
+
+            const licenses: LicenseKey[] = (response.items || []).map((item: any) => ({
                 id: item.id.toString(),
                 key: item.license_key,
                 status: mapStatus(item.status),
@@ -72,9 +125,15 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
             }));
 
             setKeys(licenses);
+            if (response.pagination) {
+                setTotalItems(response.pagination.total);
+                setTotalPages(response.pagination.totalPages);
+            }
         } catch (error) {
             console.error('Failed to load licenses:', error);
             setKeys([]);
+            setTotalItems(0);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }
@@ -205,42 +264,16 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
         });
     };
 
-    // Get unique apps for filter
-    const uniqueApps = Array.from(new Set(keys.map(k => k.appCode).filter(Boolean))).sort();
-
-    // Filter and search
-    const getFilteredKeys = () => {
-        let filtered = [...keys];
-
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(key =>
-                key.key.toLowerCase().includes(query) ||
-                (key.owner && key.owner.toLowerCase().includes(query))
-            );
-        }
-
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(key => key.status.toLowerCase() === statusFilter.toLowerCase());
-        }
-
-        if (appFilter !== 'all') {
-            filtered = filtered.filter(key => key.appCode === appFilter);
-        }
-
-        // Sort by appName (A-Z)
-        filtered.sort((a, b) => {
-            const appA = (a.appName || a.appCode || '').toLowerCase();
-            const appB = (b.appName || b.appCode || '').toLowerCase();
-            return appA.localeCompare(appB);
-        });
-
-        return filtered;
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
     };
 
-    const filteredKeys = getFilteredKeys();
+    const handleItemsPerPageChange = (limit: number) => {
+        setItemsPerPage(limit);
+        setCurrentPage(1); // Reset to first page
+    };
 
-    // Stats
+    // Stats - now using totalItems from server
     const stats = {
         totalActive: keys.filter(k => k.status === KeyStatus.ACTIVE).length,
         expiringSoon: keys.filter(k => {
@@ -249,7 +282,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
             return days > 0 && days <= 30 && k.status === KeyStatus.ACTIVE;
         }).length,
         revoked: keys.filter(k => k.status === KeyStatus.REVOKED).length,
-        total: keys.length,
+        total: totalItems,
     };
 
     if (loading) {
@@ -345,14 +378,11 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tất cả ứng dụng</SelectItem>
-                                        {uniqueApps.map(appCode => {
-                                            const app = keys.find(k => k.appCode === appCode);
-                                            return (
-                                                <SelectItem key={appCode} value={appCode}>
-                                                    {app?.appName || appCode}
-                                                </SelectItem>
-                                            );
-                                        })}
+                                        {allApps.map(app => (
+                                            <SelectItem key={app.code} value={app.code}>
+                                                {app.name || app.code}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -376,7 +406,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                 className="max-w-md"
                             />
                             <span className="text-sm text-muted-foreground">
-                                Hiển thị {filteredKeys.length} / {keys.length} license keys
+                                Hiển thị {keys.length} / {totalItems} license keys
                             </span>
                         </div>
                     </CardHeader>
@@ -394,7 +424,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredKeys.length === 0 ? (
+                                {keys.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
@@ -410,7 +440,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredKeys.map((key) => (
+                                    keys.map((key) => (
                                         <TableRow key={key.id} className="group">
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
@@ -521,6 +551,19 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                 )}
                             </TableBody>
                         </Table>
+
+                        {/* Pagination */}
+                        {totalPages > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={handlePageChange}
+                                onItemsPerPageChange={handleItemsPerPageChange}
+                                className="border-t"
+                            />
+                        )}
                     </CardContent>
                 </Card>
 

@@ -33,13 +33,52 @@ const genKey = () => {
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10))
+    const search = req.query.search || ''
+    const role = req.query.role || ''
+    const offset = (page - 1) * limit
+
+    const cond = []
+    const params = []
+
+    if (search) {
+      params.push(`%${search}%`, `%${search}%`)
+      cond.push(`(u.full_name LIKE ? OR u.email LIKE ?)`)
+    }
+    if (role && role !== 'all') {
+      params.push(role)
+      cond.push(`u.role = ?`)
+    }
+
+    const where = cond.length ? `WHERE ${cond.join(' AND ')}` : ''
+
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) as total FROM users u ${where}`,
+      params
+    )
+    const total = countResult.rows[0].total
+
+    // Get paginated data
     const r = await query(`
       SELECT u.id, u.email, u.full_name, u.role, u.email_verified, u.created_at, u.last_login_at,
         (SELECT COUNT(*) FROM licenses l WHERE l.user_id = u.id) as licenses_count
       FROM users u
+      ${where}
       ORDER BY u.id DESC
-    `)
-    res.json({ items: r.rows })
+      LIMIT ? OFFSET ?
+    `, [...params, limit, offset])
+
+    res.json({
+      items: r.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (e) {
     console.error('Error getting users:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
@@ -176,19 +215,43 @@ router.delete('/apps/:id', requireAdmin, async (req, res) => {
 
 router.get('/licenses', requireAdmin, async (req, res) => {
   try {
+    const page = Math.max(1, parseInt(req.query.page) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10))
+    const search = req.query.search || ''
+    const offset = (page - 1) * limit
+
     const { user_id, app_id, status } = req.query
     const cond = []
     const params = []
+
     if (user_id) { params.push(Number(user_id)); cond.push(`l.user_id=?`) }
     if (app_id) {
       params.push(Number(app_id))
       cond.push(`l.app_id=?`)
     }
-    if (status) {
+    if (status && status !== 'all') {
       params.push(String(status))
       cond.push(`l.status=?`)
     }
+    if (search) {
+      params.push(`%${search}%`, `%${search}%`)
+      cond.push(`(l.license_key LIKE ? OR u.email LIKE ?)`)
+    }
+
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : ''
+
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) as total
+       FROM licenses l
+       JOIN users u ON u.id=l.user_id
+       JOIN apps a ON a.id=l.app_id
+       ${where}`,
+      params
+    )
+    const total = countResult.rows[0].total
+
+    // Get paginated data
     const r = await query(
       `SELECT l.id, l.license_key, l.expires_at, l.status, l.max_devices, l.created_at,
               u.email, a.code AS app_code, a.name AS app_name,
@@ -197,10 +260,20 @@ router.get('/licenses', requireAdmin, async (req, res) => {
        JOIN users u ON u.id=l.user_id
        JOIN apps a ON a.id=l.app_id
        ${where}
-       ORDER BY l.id DESC`,
-      params
+       ORDER BY l.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
     )
-    res.json({ items: r.rows })
+
+    res.json({
+      items: r.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (e) {
     console.error('Error getting licenses:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
