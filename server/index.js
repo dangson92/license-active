@@ -18,6 +18,7 @@ import supportRouter from './modules/support.js'
 import storeRouter from './modules/store.js'
 import notificationsRouter from './modules/notifications.js'
 import announcementsRouter from './modules/announcements.js'
+import downloadRouter from './modules/download.js'
 import { initSocket } from './socket.js'
 import { initLicenseScheduler } from './services/license-scheduler.js'
 
@@ -108,6 +109,13 @@ app.use('/api/announcements', announcementsRouter)
 app.use('/activate', activateRouter)
 app.use('/check-in', checkInRouter)
 app.use('/version', versionRouter)
+
+// Download routes - Virtual download links
+// Hỗ trợ: upload.dangthanhson.com/app-code.zip hoặc /download/app-code.zip
+app.use('/download', downloadRouter)
+app.use('/d', downloadRouter)
+// Mount directly for cleaner URLs like upload.dangthanhson.com/app-code.zip
+app.use('/', downloadRouter)
 
 // Serve static files từ uploads folder
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))

@@ -6,13 +6,24 @@ const router = express.Router()
 
 router.get('/licenses', requireUser, async (req, res) => {
   try {
+    // Lấy danh sách licenses của user kèm theo thông tin version mới nhất
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
-              (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices
+      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,
+              a.id AS app_id, a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
+              (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices,
+              (SELECT av.version FROM app_versions av WHERE av.app_id = a.id ORDER BY av.created_at DESC LIMIT 1) AS latest_version
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.user_id=? ORDER BY l.id DESC`,
       [req.user.id]
     )
-    res.json({ items: r.rows })
+
+    // Thêm download_url cho các app có version
+    const items = r.rows.map(license => ({
+      ...license,
+      // Tạo download URL dạng /download/{app_code}.zip nếu có version
+      download_url: license.latest_version ? `/download/${license.app_code}.zip` : null
+    }))
+
+    res.json({ items })
   } catch (e) {
     res.status(500).json({ error: 'server_error' })
   }

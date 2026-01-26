@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { getCurrentUser } from '../services/api';
+import api, { getCurrentUser, getAssetUrl } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,14 @@ interface Announcement {
     date: string;
 }
 
+interface LicensedApp {
+    app_code: string;
+    app_name: string;
+    app_icon: string | null;
+    download_url: string;
+    latest_version: string;
+}
+
 export const UserDashboardOverview: React.FC = () => {
     const navigate = useNavigate();
     const user = getCurrentUser();
@@ -46,6 +54,7 @@ export const UserDashboardOverview: React.FC = () => {
         nextRenewal: null,
     });
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [licensedApps, setLicensedApps] = useState<LicensedApp[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -73,6 +82,25 @@ export const UserDashboardOverview: React.FC = () => {
                 const nearest = new Date(Math.min(...dates.map(d => d.getTime())));
                 nextRenewal = nearest.toLocaleDateString('vi-VN');
             }
+
+            // Get unique apps with active licenses that have download URLs
+            const appsWithDownload: LicensedApp[] = [];
+            const seenApps = new Set<string>();
+
+            for (const license of licenses) {
+                // Only include active licenses with download_url
+                if (license.status === 'active' && license.download_url && !seenApps.has(license.app_code)) {
+                    seenApps.add(license.app_code);
+                    appsWithDownload.push({
+                        app_code: license.app_code,
+                        app_name: license.app_name,
+                        app_icon: license.app_icon,
+                        download_url: license.download_url,
+                        latest_version: license.latest_version || 'N/A'
+                    });
+                }
+            }
+            setLicensedApps(appsWithDownload);
 
             setStats({
                 activeLicenses,
@@ -259,15 +287,6 @@ export const UserDashboardOverview: React.FC = () => {
                             </Button>
 
                             <Button
-                                variant="outline"
-                                className="w-full border-2 border-primary/20 hover:border-primary/40 text-primary"
-                                onClick={() => window.open('/downloads', '_blank')}
-                            >
-                                <Download className="w-5 h-5 mr-2" />
-                                Download Software
-                            </Button>
-
-                            <Button
                                 variant="ghost"
                                 className="w-full bg-slate-50 hover:bg-slate-100 text-muted-foreground"
                                 onClick={() => navigate('/user/support')}
@@ -275,6 +294,50 @@ export const UserDashboardOverview: React.FC = () => {
                                 <HeadphonesIcon className="w-5 h-5 mr-2" />
                                 Get Support
                             </Button>
+
+                            {/* Download links for licensed apps */}
+                            {licensedApps.length > 0 && (
+                                <>
+                                    <hr className="my-4 border-border" />
+                                    <div className="space-y-3">
+                                        <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-widest text-center">
+                                            Tải ứng dụng của bạn
+                                        </p>
+                                        <div className="space-y-2">
+                                            {licensedApps.map((app) => (
+                                                <a
+                                                    key={app.app_code}
+                                                    href={app.download_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80 hover:border-emerald-300 transition-all group"
+                                                >
+                                                    {app.app_icon ? (
+                                                        <img
+                                                            src={getAssetUrl(app.app_icon) || ''}
+                                                            alt={app.app_name}
+                                                            className="w-8 h-8 rounded-md object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-md bg-emerald-200 flex items-center justify-center">
+                                                            <Download className="w-4 h-4 text-emerald-600" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-sm text-slate-700 truncate group-hover:text-emerald-700 transition-colors">
+                                                            {app.app_name}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            v{app.latest_version}
+                                                        </p>
+                                                    </div>
+                                                    <Download className="w-4 h-4 text-emerald-500 group-hover:text-emerald-600 flex-shrink-0" />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
 
                             <hr className="my-4 border-border" />
 
