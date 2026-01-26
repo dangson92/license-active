@@ -6,10 +6,11 @@ const router = express.Router()
 
 router.get('/licenses', requireUser, async (req, res) => {
   try {
-    // Lấy danh sách licenses của user kèm theo thông tin version mới nhất
+    // Lấy danh sách licenses của user kèm theo thông tin version mới nhất và trạng thái app
     const r = await query(
       `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,
               a.id AS app_id, a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
+              a.is_active AS app_is_active,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices,
               (SELECT av.version FROM app_versions av WHERE av.app_id = a.id ORDER BY av.created_at DESC LIMIT 1) AS latest_version
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.user_id=? ORDER BY l.id DESC`,
@@ -19,11 +20,13 @@ router.get('/licenses', requireUser, async (req, res) => {
     // Upload domain for download URLs (from env)
     const uploadDomain = process.env.VITE_UPLOAD_API_URL
 
-    // Thêm download_url cho các app có version
+    // Thêm download_url cho các app có version VÀ app đang active
     const items = r.rows.map(license => ({
       ...license,
-      // Tạo download URL tuyệt đối với upload domain nếu có version
-      download_url: license.latest_version ? `${uploadDomain}/${license.app_code}.zip` : null
+      // Chỉ trả về download URL nếu: có version VÀ app đang active (is_active = 1 hoặc NULL)
+      download_url: (license.latest_version && (license.app_is_active === 1 || license.app_is_active === null))
+        ? `${uploadDomain}/${license.app_code}.zip`
+        : null
     }))
 
     res.json({ items })
