@@ -114,8 +114,66 @@ app.use('/version', versionRouter)
 // Hỗ trợ: upload.dangthanhson.com/app-code.zip hoặc /download/app-code.zip
 app.use('/download', downloadRouter)
 app.use('/d', downloadRouter)
-// Mount directly for cleaner URLs like upload.dangthanhson.com/app-code.zip
-app.use('/', downloadRouter)
+
+// Direct download route for cleaner URLs like upload.dangthanhson.com/app-code.zip
+// Only match requests ending with .zip or .exe (to avoid conflicts with other routes)
+app.get('/:filename', async (req, res, next) => {
+  const { filename } = req.params
+  // Only handle if filename ends with download extensions
+  if (filename && (filename.endsWith('.zip') || filename.endsWith('.exe'))) {
+    try {
+      // Import query function
+      const { query } = await import('./db.js')
+
+      // Parse app code from filename
+      let appCode = filename
+      if (appCode.toLowerCase().endsWith('.zip')) {
+        appCode = appCode.slice(0, -4)
+      } else if (appCode.toLowerCase().endsWith('.exe')) {
+        appCode = appCode.slice(0, -4)
+      }
+
+      // Find app
+      const appResult = await query(
+        'SELECT id, code, name FROM apps WHERE code = ? AND is_active = 1',
+        [appCode]
+      )
+
+      if (appResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'app_not_found',
+          message: `Application "${appCode}" not found`
+        })
+      }
+
+      const app = appResult.rows[0]
+
+      // Get latest version
+      const versionResult = await query(
+        `SELECT download_url, version FROM app_versions 
+         WHERE app_id = ? ORDER BY created_at DESC LIMIT 1`,
+        [app.id]
+      )
+
+      if (versionResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'no_version',
+          message: `No version available for "${app.name}"`
+        })
+      }
+
+      const version = versionResult.rows[0]
+      console.log(`📥 Direct download redirect: ${app.code} v${version.version} -> ${version.download_url}`)
+
+      return res.redirect(302, version.download_url)
+    } catch (e) {
+      console.error('Error handling direct download:', e)
+      return res.status(500).json({ error: 'server_error', message: e.message })
+    }
+  }
+  // Otherwise, pass to next handler
+  next()
+})
 
 // Serve static files từ uploads folder
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))

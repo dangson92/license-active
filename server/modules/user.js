@@ -16,11 +16,14 @@ router.get('/licenses', requireUser, async (req, res) => {
       [req.user.id]
     )
 
+    // Upload domain for download URLs (from env)
+    const uploadDomain = process.env.VITE_UPLOAD_API_URL
+
     // Thêm download_url cho các app có version
     const items = r.rows.map(license => ({
       ...license,
-      // Tạo download URL dạng /download/{app_code}.zip nếu có version
-      download_url: license.latest_version ? `/download/${license.app_code}.zip` : null
+      // Tạo download URL tuyệt đối với upload domain nếu có version
+      download_url: license.latest_version ? `${uploadDomain}/${license.app_code}.zip` : null
     }))
 
     res.json({ items })
