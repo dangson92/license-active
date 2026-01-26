@@ -4,6 +4,7 @@
  */
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Upload } from '@aws-sdk/lib-storage'
 import fs from 'fs'
 import path from 'path'
@@ -159,4 +160,45 @@ export function isE2Configured() {
         process.env.IDRIVE_E2_SECRET_KEY &&
         process.env.IDRIVE_E2_BUCKET
     )
+}
+
+/**
+ * Get presigned URL for direct browser upload to E2
+ * Cho phép client upload trực tiếp lên E2 mà không cần đi qua VPS
+ * @param {Object} options
+ * @param {string} options.key - S3 object key (path in bucket)
+ * @param {string} options.contentType - MIME type
+ * @param {number} options.expiresIn - URL expiration time in seconds (default: 3600)
+ * @returns {Promise<{uploadUrl: string, publicUrl: string, key: string}>}
+ */
+export async function getPresignedUploadUrl({ key, contentType, expiresIn = 3600 }) {
+    const s3Client = getS3Client()
+    const bucket = process.env.IDRIVE_E2_BUCKET
+
+    if (!bucket) {
+        throw new Error('iDrive E2 bucket not configured. Please set IDRIVE_E2_BUCKET environment variable.')
+    }
+
+    console.log(`🔑 Generating presigned URL for: ${key}`)
+
+    const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType || 'application/octet-stream',
+    })
+
+    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn })
+
+    // Build public URL for accessing the file after upload
+    const publicUrl = process.env.IDRIVE_E2_PUBLIC_URL
+        ? `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
+        : `${process.env.IDRIVE_E2_ENDPOINT}/${bucket}/${key}`
+
+    console.log(`✅ Presigned URL generated (expires in ${expiresIn}s)`)
+
+    return {
+        uploadUrl,
+        publicUrl,
+        key,
+    }
 }

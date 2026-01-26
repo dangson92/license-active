@@ -171,6 +171,12 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
 
     // Upload file với XMLHttpRequest để track progress
     const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: 'vps' | 'idrive-e2'): Promise<any> => {
+        // For iDrive E2: Use presigned URL to upload directly from browser
+        if (destination === 'idrive-e2') {
+            return uploadDirectToE2(file, appCode, version);
+        }
+
+        // For VPS: Upload through server
         return new Promise((resolve, reject) => {
             const formData = new FormData();
             formData.append('appCode', appCode);
@@ -209,10 +215,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
             xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
 
-            // Determine upload endpoint based on destination
-            const uploadEndpoint = destination === 'idrive-e2'
-                ? `${config.uploadApiUrl}/api/admin/app-versions/upload-e2`
-                : `${config.uploadApiUrl}/api/admin/app-versions/upload`;
+            const uploadEndpoint = `${config.uploadApiUrl}/api/admin/app-versions/upload`;
 
             const token = localStorage.getItem('auth_token');
             xhr.open('POST', uploadEndpoint);
@@ -220,6 +223,79 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 xhr.setRequestHeader('Authorization', `Bearer ${token}`);
             }
             xhr.send(formData);
+        });
+    };
+
+    // Upload trực tiếp lên iDrive E2 sử dụng presigned URL
+    // Flow: Browser -> E2 (không qua VPS)
+    const uploadDirectToE2 = async (file: File, appCode: string, version: string): Promise<any> => {
+        const token = localStorage.getItem('auth_token');
+
+        // Bước 1: Lấy presigned URL từ server
+        setUploadProgress(2); // Show small progress to indicate starting
+
+        const presignedResponse = await fetch(`${config.uploadApiUrl}/api/admin/app-versions/get-presigned-url`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                appCode,
+                version,
+                filename: file.name,
+                fileSize: file.size,
+            }),
+        });
+
+        if (!presignedResponse.ok) {
+            const error = await presignedResponse.json();
+            throw new Error(error.message || 'Failed to get presigned URL');
+        }
+
+        const presignedData = await presignedResponse.json();
+        console.log('📎 Got presigned URL, uploading directly to E2...');
+
+        // Bước 2: Upload trực tiếp lên E2 bằng presigned URL
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.timeout = 60 * 60 * 1000; // 1 hour for large files
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    setUploadProgress(percentComplete);
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    console.log('✅ Direct upload to E2 completed!');
+                    // Return file info in same format as VPS upload
+                    resolve({
+                        success: true,
+                        file: {
+                            filename: file.name.replace(/\.[^/.]+$/, '') + '-' + version + file.name.substring(file.name.lastIndexOf('.')),
+                            originalname: file.name,
+                            size: file.size,
+                            path: presignedData.publicUrl,
+                            storage: 'idrive-e2',
+                            key: presignedData.key,
+                        }
+                    });
+                } else {
+                    console.error('E2 upload failed:', xhr.status, xhr.responseText);
+                    reject(new Error(`E2 upload failed: HTTP ${xhr.status}`));
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Network error during E2 upload')));
+            xhr.addEventListener('abort', () => reject(new Error('E2 upload cancelled')));
+            xhr.addEventListener('timeout', () => reject(new Error('E2 upload timeout')));
+
+            xhr.open('PUT', presignedData.uploadUrl);
+            xhr.setRequestHeader('Content-Type', presignedData.contentType);
+            xhr.send(file);
         });
     };
 

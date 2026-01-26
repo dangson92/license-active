@@ -533,4 +533,75 @@ router.post('/upload-e2', requireAdmin, upload.single('file'), async (req, res) 
   }
 })
 
+/**
+ * POST /admin/app-versions/get-presigned-url
+ * Lấy presigned URL để upload trực tiếp từ browser lên iDrive E2
+ * Body: { appCode: string, version: string, filename: string, contentType: string }
+ */
+router.post('/get-presigned-url', requireAdmin, async (req, res) => {
+  let e2Service
+  try {
+    e2Service = await import('../services/idrive-e2.js')
+  } catch (importError) {
+    console.error('Failed to import E2 service:', importError)
+    return res.status(500).json({
+      error: 'e2_service_error',
+      message: 'Failed to load E2 service'
+    })
+  }
+
+  try {
+    const { appCode, version, filename, contentType, fileSize } = req.body
+
+    if (!appCode || !version || !filename) {
+      return res.status(400).json({
+        error: 'invalid_input',
+        message: 'Missing required fields: appCode, version, filename'
+      })
+    }
+
+    // Check if E2 is configured
+    if (!e2Service.isE2Configured()) {
+      return res.status(500).json({
+        error: 'e2_not_configured',
+        message: 'iDrive E2 is not configured. Please set environment variables.'
+      })
+    }
+
+    // Generate S3 key
+    const e2Key = e2Service.generateE2Key(appCode, version, filename)
+
+    // Determine content type
+    const ext = path.extname(filename).toLowerCase()
+    const contentTypes = {
+      '.zip': 'application/zip',
+      '.exe': 'application/x-msdownload',
+      '.msi': 'application/x-msi',
+      '.dmg': 'application/x-apple-diskimage',
+      '.deb': 'application/x-debian-package',
+    }
+    const finalContentType = contentType || contentTypes[ext] || 'application/octet-stream'
+
+    console.log(`📤 Generating presigned URL for direct upload: ${e2Key}`)
+
+    // Get presigned URL (expires in 1 hour)
+    const result = await e2Service.getPresignedUploadUrl({
+      key: e2Key,
+      contentType: finalContentType,
+      expiresIn: 3600,
+    })
+
+    res.json({
+      success: true,
+      uploadUrl: result.uploadUrl,
+      publicUrl: result.publicUrl,
+      key: result.key,
+      contentType: finalContentType,
+    })
+  } catch (e) {
+    console.error('Error getting presigned URL:', e)
+    res.status(500).json({ error: 'presigned_url_error', message: e.message })
+  }
+})
+
 export default router
