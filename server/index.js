@@ -133,9 +133,9 @@ app.get('/:filename', async (req, res, next) => {
         appCode = appCode.slice(0, -4)
       }
 
-      // Find app
+      // Find app (accept is_active = 1 or NULL)
       const appResult = await query(
-        'SELECT id, code, name FROM apps WHERE code = ? AND is_active = 1',
+        'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
         [appCode]
       )
 

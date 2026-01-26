@@ -35,9 +35,9 @@ router.get('/:appCodeWithExt', async (req, res) => {
       appCode = appCode.slice(0, -4)
     }
 
-    // Tìm app theo code
+    // Tìm app theo code (accept is_active = 1 or NULL)
     const appResult = await query(
-      'SELECT id, code, name FROM apps WHERE code = ? AND is_active = 1',
+      'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
       [appCode]
     )
 
@@ -91,9 +91,9 @@ router.get('/:appCode/info', async (req, res) => {
   try {
     const { appCode } = req.params
 
-    // Tìm app theo code
+    // Tìm app theo code (accept is_active = 1 or NULL)
     const appResult = await query(
-      'SELECT id, code, name, icon_url FROM apps WHERE code = ? AND is_active = 1',
+      'SELECT id, code, name, icon_url FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
       [appCode]
     )
 
