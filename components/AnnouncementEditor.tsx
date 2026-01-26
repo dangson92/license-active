@@ -22,7 +22,7 @@ import 'tinymce/plugins/insertdatetime';
 import 'tinymce/plugins/media';
 import 'tinymce/plugins/table';
 import 'tinymce/plugins/preview';
-import 'tinymce/plugins/help';
+// import 'tinymce/plugins/help'; // Removed - causes i18n loading issues with self-hosted
 import 'tinymce/plugins/wordcount';
 import { Editor } from '@tinymce/tinymce-react';
 
@@ -214,12 +214,12 @@ export const AnnouncementEditor: React.FC<AnnouncementEditorProps> = ({
                                 plugins: [
                                     'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
                                     'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                                    'insertdatetime', 'media', 'table', 'preview', 'help', 'wordcount'
+                                    'insertdatetime', 'media', 'table', 'preview', 'wordcount'
                                 ],
                                 toolbar: 'undo redo | blocks | ' +
                                     'bold italic forecolor | alignleft aligncenter ' +
                                     'alignright alignjustify | bullist numlist outdent indent | ' +
-                                    'removeformat | help',
+                                    'removeformat',
                                 content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                                 skin: false,
                                 content_css: false,

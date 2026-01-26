@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { App } from '../types';
 import api from '../services/api';
 
@@ -18,7 +18,10 @@ import {
     ArrowLeft,
     Calendar,
     Monitor,
-    AppWindow
+    AppWindow,
+    Search,
+    User,
+    X
 } from 'lucide-react';
 
 interface CreateLicenseProps {
@@ -36,12 +39,42 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
 }) => {
     const [selectedApp, setSelectedApp] = useState<string>('');
     const [selectedUser, setSelectedUser] = useState<string>('');
+    const [userSearchQuery, setUserSearchQuery] = useState<string>('');
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [expirationDate, setExpirationDate] = useState<string>('');
     const [maxDevices, setMaxDevices] = useState<number>(1);
     const [generatedKey, setGeneratedKey] = useState<string>('');
     const [copied, setCopied] = useState(false);
     const [creating, setCreating] = useState(false);
     const dateInputRef = useRef<HTMLInputElement>(null);
+    const userSearchRef = useRef<HTMLDivElement>(null);
+
+    // Filter users based on search query
+    const filteredUsers = useMemo(() => {
+        if (!userSearchQuery.trim()) return users;
+        const query = userSearchQuery.toLowerCase().trim();
+        return users.filter((u: any) =>
+            u.full_name?.toLowerCase().includes(query) ||
+            u.email?.toLowerCase().includes(query)
+        );
+    }, [users, userSearchQuery]);
+
+    // Get selected user object
+    const selectedUserObj = useMemo(() => {
+        if (!selectedUser) return null;
+        return users.find((u: any) => u.id.toString() === selectedUser);
+    }, [users, selectedUser]);
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
+                setShowUserDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Set default expiration date (1 month from now)
     useEffect(() => {
@@ -161,21 +194,87 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                             </Select>
                         </div>
 
-                        {/* Select User */}
-                        <div className="space-y-2">
-                            <Label>Gán cho User</Label>
-                            <Select value={selectedUser} onValueChange={setSelectedUser}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn user..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {users.map(u => (
-                                        <SelectItem key={u.id} value={u.id.toString()}>
-                                            {u.full_name} ({u.email})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        {/* Select User with Search */}
+                        <div className="space-y-2" ref={userSearchRef}>
+                            <Label className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                Gán cho User
+                            </Label>
+                            <div className="relative">
+                                {/* Selected User Display or Search Input */}
+                                {selectedUserObj ? (
+                                    <div className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <User className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium">{selectedUserObj.full_name}</p>
+                                                <p className="text-xs text-muted-foreground">{selectedUserObj.email}</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => {
+                                                setSelectedUser('');
+                                                setUserSearchQuery('');
+                                            }}
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                type="text"
+                                                placeholder="Tìm kiếm theo tên hoặc email..."
+                                                value={userSearchQuery}
+                                                onChange={(e) => {
+                                                    setUserSearchQuery(e.target.value);
+                                                    setShowUserDropdown(true);
+                                                }}
+                                                onFocus={() => setShowUserDropdown(true)}
+                                                className="pl-9"
+                                            />
+                                        </div>
+                                        {/* Dropdown Results */}
+                                        {showUserDropdown && (
+                                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                {filteredUsers.length > 0 ? (
+                                                    filteredUsers.map((u: any) => (
+                                                        <div
+                                                            key={u.id}
+                                                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer transition-colors"
+                                                            onClick={() => {
+                                                                setSelectedUser(u.id.toString());
+                                                                setUserSearchQuery('');
+                                                                setShowUserDropdown(false);
+                                                            }}
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                                <User className="w-4 h-4 text-blue-600" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-sm font-medium truncate">{u.full_name}</p>
+                                                                <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-3 text-center text-sm text-muted-foreground">
+                                                        Không tìm thấy user nào
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         {/* Expiration Date */}
