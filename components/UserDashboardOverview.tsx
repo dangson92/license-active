@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getCurrentUser, getAssetUrl } from '../services/api';
-import { DownloadModal } from './DownloadModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
     Key,
     Monitor,
@@ -17,7 +17,8 @@ import {
     Sparkles,
     ArrowUpRight,
     ArrowRight,
-    CheckCircle
+    CheckCircle,
+    FileArchive
 } from 'lucide-react';
 
 interface UserStats {
@@ -36,12 +37,18 @@ interface Announcement {
     date: string;
 }
 
+interface AppAttachment {
+    id: number;
+    description: string;
+}
+
 interface LicensedApp {
     app_code: string;
     app_name: string;
     app_icon: string | null;
     download_url: string;
     latest_version: string;
+    attachments: AppAttachment[];
 }
 
 export const UserDashboardOverview: React.FC = () => {
@@ -57,8 +64,6 @@ export const UserDashboardOverview: React.FC = () => {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [licensedApps, setLicensedApps] = useState<LicensedApp[]>([]);
     const [loading, setLoading] = useState(true);
-    const [downloadModalOpen, setDownloadModalOpen] = useState(false);
-    const [downloadApp, setDownloadApp] = useState<{ code: string; name: string } | null>(null);
 
     useEffect(() => {
         loadDashboardData();
@@ -99,7 +104,8 @@ export const UserDashboardOverview: React.FC = () => {
                         app_name: license.app_name,
                         app_icon: license.app_icon,
                         download_url: license.download_url,
-                        latest_version: license.latest_version || 'N/A'
+                        latest_version: license.latest_version || 'N/A',
+                        attachments: license.attachments || []
                     });
                 }
             }
@@ -306,38 +312,81 @@ export const UserDashboardOverview: React.FC = () => {
                                         <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-widest text-center">
                                             Tải ứng dụng của bạn
                                         </p>
-                                        <div className="space-y-2">
-                                            {licensedApps.map((app) => (
-                                                <button
-                                                    key={app.app_code}
-                                                    onClick={() => {
-                                                        setDownloadApp({ code: app.app_code, name: app.app_name });
-                                                        setDownloadModalOpen(true);
-                                                    }}
-                                                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80 hover:border-emerald-300 transition-all group"
-                                                >
-                                                    {app.app_icon ? (
-                                                        <img
-                                                            src={getAssetUrl(app.app_icon) || ''}
-                                                            alt={app.app_name}
-                                                            className="w-8 h-8 rounded-md object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-md bg-emerald-200 flex items-center justify-center">
-                                                            <Download className="w-4 h-4 text-emerald-600" />
+                                        <div className="space-y-3">
+                                            <TooltipProvider>
+                                                {licensedApps.map((app) => (
+                                                    <div
+                                                        key={app.app_code}
+                                                        className="p-3 rounded-lg border border-slate-200 bg-slate-50/50"
+                                                    >
+                                                        {/* App Name & Version */}
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {app.app_icon ? (
+                                                                <img
+                                                                    src={getAssetUrl(app.app_icon) || ''}
+                                                                    alt={app.app_name}
+                                                                    className="w-6 h-6 rounded object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center">
+                                                                    <Download className="w-3 h-3 text-primary" />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-semibold text-sm text-slate-700 truncate">
+                                                                    {app.app_name}
+                                                                </p>
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    v{app.latest_version}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0 text-left">
-                                                        <p className="font-semibold text-sm text-slate-700 truncate group-hover:text-emerald-700 transition-colors">
-                                                            {app.app_name}
-                                                        </p>
-                                                        <p className="text-[10px] text-muted-foreground">
-                                                            v{app.latest_version}
-                                                        </p>
+
+                                                        {/* Download Links */}
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {/* Main Software Download */}
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <a
+                                                                        href={app.download_url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-medium transition-colors"
+                                                                    >
+                                                                        <Download className="w-3.5 h-3.5" />
+                                                                        Phần mềm
+                                                                    </a>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>Tải {app.app_name}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+
+                                                            {/* Attachments */}
+                                                            {app.attachments.map((att) => (
+                                                                <Tooltip key={att.id}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <a
+                                                                            href={`/api/download/${app.app_code}/attachment/${att.id}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium transition-colors"
+                                                                        >
+                                                                            <FileArchive className="w-3.5 h-3.5" />
+                                                                            {att.description.length > 12
+                                                                                ? att.description.slice(0, 12) + '...'
+                                                                                : att.description}
+                                                                        </a>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>{att.description}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                    <Download className="w-4 h-4 text-emerald-500 group-hover:text-emerald-600 flex-shrink-0" />
-                                                </button>
-                                            ))}
+                                                ))}
+                                            </TooltipProvider>
                                         </div>
                                     </div>
                                 </>
@@ -370,19 +419,6 @@ export const UserDashboardOverview: React.FC = () => {
                     </Card>
                 </div>
             </div>
-
-            {/* Download Modal */}
-            {downloadApp && (
-                <DownloadModal
-                    appCode={downloadApp.code}
-                    appName={downloadApp.name}
-                    isOpen={downloadModalOpen}
-                    onClose={() => {
-                        setDownloadModalOpen(false);
-                        setDownloadApp(null);
-                    }}
-                />
-            )}
         </div>
     );
 };

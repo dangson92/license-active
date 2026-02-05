@@ -12,6 +12,7 @@ router.get('/licenses', requireUser, async (req, res) => {
               a.id AS app_id, a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
               a.is_active AS app_is_active,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices,
+              (SELECT av.id FROM app_versions av WHERE av.app_id = a.id ORDER BY av.created_at DESC LIMIT 1) AS latest_version_id,
               (SELECT av.version FROM app_versions av WHERE av.app_id = a.id ORDER BY av.created_at DESC LIMIT 1) AS latest_version
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.user_id=? ORDER BY l.id DESC`,
       [req.user.id]
@@ -20,17 +21,36 @@ router.get('/licenses', requireUser, async (req, res) => {
     // Upload domain for download URLs (from env)
     const uploadDomain = process.env.VITE_UPLOAD_API_URL
 
-    // Thêm download_url cho các app có version VÀ app đang active
-    const items = r.rows.map(license => ({
-      ...license,
-      // Chỉ trả về download URL nếu: có version VÀ app đang active (is_active = 1 hoặc NULL)
-      download_url: (license.latest_version && (license.app_is_active === 1 || license.app_is_active === null))
-        ? `${uploadDomain}/${license.app_code}.zip`
-        : null
+    // Thêm download_url và attachments cho các app có version VÀ app đang active
+    const items = await Promise.all(r.rows.map(async (license) => {
+      const hasDownload = license.latest_version && (license.app_is_active === 1 || license.app_is_active === null)
+
+      let attachments = []
+      if (hasDownload && license.latest_version_id) {
+        // Lấy attachments cho version mới nhất
+        const attachmentsResult = await query(
+          `SELECT aa.id, aa.description, aa.original_name
+           FROM app_attachments aa
+           JOIN version_attachment_links val ON aa.id = val.attachment_id
+           WHERE val.version_id = ?`,
+          [license.latest_version_id]
+        )
+        attachments = attachmentsResult.rows.map(att => ({
+          id: att.id,
+          description: att.description || att.original_name
+        }))
+      }
+
+      return {
+        ...license,
+        download_url: hasDownload ? `${uploadDomain}/${license.app_code}.zip` : null,
+        attachments
+      }
     }))
 
     res.json({ items })
   } catch (e) {
+    console.error('Error fetching licenses:', e)
     res.status(500).json({ error: 'server_error' })
   }
 })
