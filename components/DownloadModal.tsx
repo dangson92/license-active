@@ -111,9 +111,14 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingMain(true)
         try {
+            // Build full URL from relative path, using same API domain to avoid CORS
+            const downloadUrl = downloadInfo.mainFile.downloadUrl.startsWith('http')
+                ? downloadInfo.mainFile.downloadUrl
+                : `${config.apiUrl}${downloadInfo.mainFile.downloadUrl}`
+
             // Fetch with authentication header
             const token = localStorage.getItem('token')
-            const response = await fetch(downloadInfo.mainFile.downloadUrl, {
+            const response = await fetch(downloadUrl, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -169,9 +174,14 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingAttachment(attachmentId)
         try {
+            // Build full URL from relative path, using same API domain to avoid CORS
+            const downloadUrl = attachment.downloadUrl.startsWith('http')
+                ? attachment.downloadUrl
+                : `${config.apiUrl}${attachment.downloadUrl}`
+
             // Fetch with authentication header
             const token = localStorage.getItem('token')
-            const response = await fetch(attachment.downloadUrl, {
+            const response = await fetch(downloadUrl, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
