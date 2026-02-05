@@ -110,31 +110,41 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       [version.id]
     )
 
+    // Build full URLs for download endpoints using upload domain
+    const uploadUrl = process.env.UPLOAD_URL || process.env.FRONTEND_URL || 'https://upload.dangthanhson.com'
+    const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
+
     res.json({
       authorized: true,
       app: {
+        id: app.id,
         code: app.code,
         name: app.name,
         icon_url: app.icon_url
       },
       version: {
+        id: version.id,
         version: version.version,
         release_date: version.release_date,
-        release_notes: version.release_notes
+        release_notes: version.release_notes,
+        platform: version.platform,
+        file_type: version.file_type
+      },
+      license: {
+        expires_at: licenseCheck.license.expires_at,
+        status: licenseCheck.license.status
       },
       mainFile: {
         filename: version.file_name,
         size: version.file_size,
-        platform: version.platform,
-        file_type: version.file_type,
-        downloadUrl: `/api/download/${app.code}/file`
+        downloadUrl: `${baseDownloadUrl}/file`
       },
       attachments: attachmentsResult.rows.map(att => ({
         id: att.id,
         description: att.description || att.original_name,
         filename: att.file_name,
         size: att.file_size,
-        downloadUrl: `/api/download/${app.code}/attachment/${att.id}`
+        downloadUrl: `${baseDownloadUrl}/attachment/${att.id}`
       }))
     })
 

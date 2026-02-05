@@ -111,17 +111,21 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingMain(true)
         try {
-            // Open download in new tab - the API will redirect to actual file
-            window.open(`${config.apiUrl}/api/download/${appCode}/file`, '_blank')
+            // Use downloadUrl from API response (already includes full URL)
+            window.open(downloadInfo.mainFile.downloadUrl, '_blank')
         } finally {
             setTimeout(() => setDownloadingMain(false), 1000)
         }
     }
 
     const handleDownloadAttachment = async (attachmentId: number) => {
+        const attachment = downloadInfo?.attachments.find(a => a.id === attachmentId)
+        if (!attachment) return
+
         setDownloadingAttachment(attachmentId)
         try {
-            window.open(`${config.apiUrl}/api/download/${appCode}/attachment/${attachmentId}`, '_blank')
+            // Use downloadUrl from API response (already includes full URL)
+            window.open(attachment.downloadUrl, '_blank')
         } finally {
             setTimeout(() => setDownloadingAttachment(null), 1000)
         }
