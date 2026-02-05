@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getCurrentUser, getAssetUrl } from '../services/api';
+import { DownloadModal } from './DownloadModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +57,8 @@ export const UserDashboardOverview: React.FC = () => {
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [licensedApps, setLicensedApps] = useState<LicensedApp[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+    const [downloadApp, setDownloadApp] = useState<{ code: string; name: string } | null>(null);
 
     useEffect(() => {
         loadDashboardData();
@@ -305,12 +308,13 @@ export const UserDashboardOverview: React.FC = () => {
                                         </p>
                                         <div className="space-y-2">
                                             {licensedApps.map((app) => (
-                                                <a
+                                                <button
                                                     key={app.app_code}
-                                                    href={app.download_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80 hover:border-emerald-300 transition-all group"
+                                                    onClick={() => {
+                                                        setDownloadApp({ code: app.app_code, name: app.app_name });
+                                                        setDownloadModalOpen(true);
+                                                    }}
+                                                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80 hover:border-emerald-300 transition-all group"
                                                 >
                                                     {app.app_icon ? (
                                                         <img
@@ -323,7 +327,7 @@ export const UserDashboardOverview: React.FC = () => {
                                                             <Download className="w-4 h-4 text-emerald-600" />
                                                         </div>
                                                     )}
-                                                    <div className="flex-1 min-w-0">
+                                                    <div className="flex-1 min-w-0 text-left">
                                                         <p className="font-semibold text-sm text-slate-700 truncate group-hover:text-emerald-700 transition-colors">
                                                             {app.app_name}
                                                         </p>
@@ -332,7 +336,7 @@ export const UserDashboardOverview: React.FC = () => {
                                                         </p>
                                                     </div>
                                                     <Download className="w-4 h-4 text-emerald-500 group-hover:text-emerald-600 flex-shrink-0" />
-                                                </a>
+                                                </button>
                                             ))}
                                         </div>
                                     </div>
@@ -366,6 +370,19 @@ export const UserDashboardOverview: React.FC = () => {
                     </Card>
                 </div>
             </div>
+
+            {/* Download Modal */}
+            {downloadApp && (
+                <DownloadModal
+                    appCode={downloadApp.code}
+                    appName={downloadApp.name}
+                    isOpen={downloadModalOpen}
+                    onClose={() => {
+                        setDownloadModalOpen(false);
+                        setDownloadApp(null);
+                    }}
+                />
+            )}
         </div>
     );
 };

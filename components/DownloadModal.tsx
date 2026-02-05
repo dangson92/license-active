@@ -182,15 +182,17 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                     ) : downloadInfo ? (
                         <div className="space-y-4">
                             {/* License Info */}
-                            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                <div className="flex items-center gap-2">
-                                    <CheckCircle className="h-5 w-5 text-green-600" />
-                                    <span className="text-sm font-medium">License hợp lệ</span>
+                            {downloadInfo.license && (
+                                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                        <span className="text-sm font-medium">License hợp lệ</span>
+                                    </div>
+                                    <Badge variant="outline" className="text-green-700">
+                                        HSD: {formatDate(downloadInfo.license.expires_at)}
+                                    </Badge>
                                 </div>
-                                <Badge variant="outline" className="text-green-700">
-                                    HSD: {formatDate(downloadInfo.license.expires_at)}
-                                </Badge>
-                            </div>
+                            )}
 
                             {/* Version Info */}
                             <div className="text-sm text-muted-foreground">
