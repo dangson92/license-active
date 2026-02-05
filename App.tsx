@@ -137,8 +137,8 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         <Route path="members" element={<MemberManagement />} />
         <Route path="applications" element={
           <ApplicationManagement
-            onManageVersions={(appId, appName) => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
-            onAddVersion={(appId, appName) => navigate(`/admin/applications/${appId}/add-version`, { state: { appName } })}
+            onManageVersions={(appId, appName, appCode) => navigate(`/admin/applications/${appId}/versions`, { state: { appName, appCode } })}
+            onAddVersion={(appId, appName, appCode) => navigate(`/admin/applications/${appId}/add-version`, { state: { appName, appCode } })}
             onEditApp={(appId, appName) => navigate(`/admin/applications/${appId}/settings`, { state: { appName } })}
             onAddApp={() => navigate('/admin/applications/new')}
           />
@@ -208,16 +208,19 @@ const AppVersionHistoryWrapper: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const appName = (location.state as any)?.appName || 'Application';
+  const appCode = (location.state as any)?.appCode || '';
 
   return (
     <AppVersionHistory
       appId={appId || '0'}
       appName={appName}
+      appCode={appCode}
       onBack={() => navigate('/admin/applications')}
-      onAddVersion={() => navigate(`/admin/applications/${appId}/add-version`, { state: { appName } })}
+      onAddVersion={() => navigate(`/admin/applications/${appId}/add-version`, { state: { appName, appCode } })}
       onEditVersion={(version) => navigate(`/admin/applications/${appId}/add-version`, {
         state: {
           appName,
+          appCode,
           editVersion: {
             id: version.id,
             version: version.version,

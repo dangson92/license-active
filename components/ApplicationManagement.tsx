@@ -24,8 +24,8 @@ import {
 } from 'lucide-react';
 
 interface ApplicationManagementProps {
-    onManageVersions?: (appId: number, appName: string) => void;
-    onAddVersion?: (appId: number, appName: string) => void;
+    onManageVersions?: (appId: number, appName: string, appCode: string) => void;
+    onAddVersion?: (appId: number, appName: string, appCode: string) => void;
     onEditApp?: (appId: number, appName: string) => void;
     onAddApp?: () => void;
 }
@@ -218,7 +218,7 @@ export const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
-                                                                onClick={() => onManageVersions?.(app.id, app.name)}
+                                                                onClick={() => onManageVersions?.(app.id, app.name, app.code)}
                                                             >
                                                                 <Package className="w-4 h-4" />
                                                             </Button>

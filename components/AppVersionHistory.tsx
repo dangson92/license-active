@@ -7,6 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Components
+import { AttachmentManagement } from './AttachmentManagement';
 
 // Icons
 import {
@@ -16,7 +20,9 @@ import {
     Download,
     Trash2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Package,
+    FileArchive
 } from 'lucide-react';
 
 interface AppVersion {
@@ -33,6 +39,7 @@ interface AppVersion {
 interface AppVersionHistoryProps {
     appId: string;
     appName: string;
+    appCode?: string;
     onBack: () => void;
     onAddVersion: () => void;
     onEditVersion?: (version: AppVersion) => void;
@@ -41,6 +48,7 @@ interface AppVersionHistoryProps {
 export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     appId,
     appName,
+    appCode,
     onBack,
     onAddVersion,
     onEditVersion
@@ -49,6 +57,7 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalVersions, setTotalVersions] = useState(0);
+    const [activeTab, setActiveTab] = useState('software');
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -180,155 +189,192 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                 Back to Apps
                             </button>
                             <h1 className="text-2xl font-bold tracking-tight">{appName}</h1>
-                            <p className="text-muted-foreground text-sm">Application Version History and Changelogs</p>
+                            <p className="text-muted-foreground text-sm">Quản lý phiên bản và file đính kèm</p>
                         </div>
-                        <Button
-                            className="bg-blue-600 hover:bg-blue-700"
-                            onClick={onAddVersion}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add New Version
-                        </Button>
                     </div>
 
-                    {/* Version Table */}
-                    <Card>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/50">
-                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Version Number</TableHead>
-                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Release Date</TableHead>
-                                        <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
-                                        <TableHead className="font-bold text-xs uppercase tracking-wider hidden lg:table-cell">Changelog</TableHead>
-                                        <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {versions.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-12">
-                                                <p className="text-muted-foreground">Chưa có version nào.</p>
-                                                <Button variant="outline" size="sm" className="mt-4" onClick={onAddVersion}>
-                                                    <Plus className="w-4 h-4 mr-2" />
-                                                    Tạo version đầu tiên
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        versions.map((version) => (
-                                            <TableRow key={version.id} className="group hover:bg-muted/30">
-                                                <TableCell>
-                                                    <span className="font-mono font-bold">{version.version}</span>
-                                                    {version.build_hash && (
-                                                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                                                            Build hash: {version.build_hash}
-                                                        </p>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {formatDate(version.release_date)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {getStatusBadge(version.status)}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground max-w-xs truncate hidden lg:table-cell">
-                                                    {version.changelog || '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => handleEdit(version)}
-                                                                >
-                                                                    <Edit className="w-4 h-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Chỉnh sửa</TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8"
-                                                                    onClick={() => handleDownload(version)}
-                                                                >
-                                                                    <Download className="w-4 h-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Download</TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                    onClick={() => handleDelete(version.id)}
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Xóa</TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-
-                            {/* Pagination */}
-                            {versions.length > 0 && (
-                                <div className="px-6 py-4 flex items-center justify-between border-t bg-muted/30">
-                                    <p className="text-xs text-muted-foreground">
-                                        Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                                        <span className="font-bold">{Math.min(currentPage * itemsPerPage, totalVersions)}</span> of{' '}
-                                        <span className="font-bold">{totalVersions}</span> versions
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            disabled={currentPage === 1}
-                                            onClick={() => setCurrentPage(currentPage - 1)}
-                                        >
-                                            <ChevronLeft className="w-4 h-4" />
-                                        </Button>
-                                        <div className="flex gap-1">
-                                            {Array.from({ length: Math.min(3, totalPages) }, (_, i) => (
-                                                <Button
-                                                    key={i + 1}
-                                                    variant={currentPage === i + 1 ? 'default' : 'ghost'}
-                                                    size="icon"
-                                                    className={`h-8 w-8 text-xs font-bold ${currentPage === i + 1 ? 'bg-primary' : ''}`}
-                                                    onClick={() => setCurrentPage(i + 1)}
-                                                >
-                                                    {i + 1}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            disabled={currentPage === totalPages}
-                                            onClick={() => setCurrentPage(currentPage + 1)}
-                                        >
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </div>
+                    {/* Tabs */}
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <TabsList className="grid w-full max-w-md grid-cols-2">
+                                <TabsTrigger value="software" className="flex items-center gap-2">
+                                    <Package className="h-4 w-4" />
+                                    Phần mềm
+                                </TabsTrigger>
+                                <TabsTrigger value="attachments" className="flex items-center gap-2">
+                                    <FileArchive className="h-4 w-4" />
+                                    File Attachment
+                                </TabsTrigger>
+                            </TabsList>
+                            {activeTab === 'software' && (
+                                <Button
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                    onClick={onAddVersion}
+                                >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add New Version
+                                </Button>
                             )}
-                        </CardContent>
-                    </Card>
+                        </div>
+
+                        <TabsContent value="software" className="mt-0">
+
+                            {/* Version Table */}
+                            <Card>
+                                <CardContent className="p-0">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="bg-muted/50">
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Version Number</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Release Date</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider hidden lg:table-cell">Changelog</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {versions.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center py-12">
+                                                        <p className="text-muted-foreground">Chưa có version nào.</p>
+                                                        <Button variant="outline" size="sm" className="mt-4" onClick={onAddVersion}>
+                                                            <Plus className="w-4 h-4 mr-2" />
+                                                            Tạo version đầu tiên
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                versions.map((version) => (
+                                                    <TableRow key={version.id} className="group hover:bg-muted/30">
+                                                        <TableCell>
+                                                            <span className="font-mono font-bold">{version.version}</span>
+                                                            {version.build_hash && (
+                                                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                                    Build hash: {version.build_hash}
+                                                                </p>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {formatDate(version.release_date)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {getStatusBadge(version.status)}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground max-w-xs truncate hidden lg:table-cell">
+                                                            {version.changelog || '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleEdit(version)}
+                                                                        >
+                                                                            <Edit className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Chỉnh sửa</TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleDownload(version)}
+                                                                        >
+                                                                            <Download className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Download</TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                            onClick={() => handleDelete(version.id)}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Xóa</TooltipContent>
+                                                                </Tooltip>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+
+                                    {/* Pagination */}
+                                    {versions.length > 0 && (
+                                        <div className="px-6 py-4 flex items-center justify-between border-t bg-muted/30">
+                                            <p className="text-xs text-muted-foreground">
+                                                Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                                                <span className="font-bold">{Math.min(currentPage * itemsPerPage, totalVersions)}</span> of{' '}
+                                                <span className="font-bold">{totalVersions}</span> versions
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    disabled={currentPage === 1}
+                                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                                >
+                                                    <ChevronLeft className="w-4 h-4" />
+                                                </Button>
+                                                <div className="flex gap-1">
+                                                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => (
+                                                        <Button
+                                                            key={i + 1}
+                                                            variant={currentPage === i + 1 ? 'default' : 'ghost'}
+                                                            size="icon"
+                                                            className={`h-8 w-8 text-xs font-bold ${currentPage === i + 1 ? 'bg-primary' : ''}`}
+                                                            onClick={() => setCurrentPage(i + 1)}
+                                                        >
+                                                            {i + 1}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    disabled={currentPage === totalPages}
+                                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                                >
+                                                    <ChevronRight className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="attachments" className="mt-0">
+                            {appCode ? (
+                                <AttachmentManagement
+                                    appId={parseInt(appId)}
+                                    appName={appName}
+                                    appCode={appCode}
+                                />
+                            ) : (
+                                <Card>
+                                    <CardContent className="py-12 text-center text-muted-foreground">
+                                        Không có thông tin app code
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </TooltipProvider>
         </>
