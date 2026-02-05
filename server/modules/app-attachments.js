@@ -53,9 +53,17 @@ const upload = multer({
 // S3 Client for iDrive E2 (reused config)
 // ===================
 const getS3Client = () => {
+  let endpoint = process.env.IDRIVE_E2_ENDPOINT
+
+  // Auto-add https:// if missing
+  if (endpoint && !endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+    endpoint = `https://${endpoint}`
+    console.log(`🔗 Auto-added https:// to endpoint: ${endpoint}`)
+  }
+
   return new S3Client({
     region: 'e2',
-    endpoint: process.env.IDRIVE_E2_ENDPOINT,
+    endpoint: endpoint,
     credentials: {
       accessKeyId: process.env.IDRIVE_E2_ACCESS_KEY,
       secretAccessKey: process.env.IDRIVE_E2_SECRET_KEY
