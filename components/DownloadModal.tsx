@@ -111,17 +111,23 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingMain(true)
         try {
-            // Build full URL from relative path, using same API domain to avoid CORS
+            // Build full URL - backend returns full URL with upload domain
+            // If relative path (shouldn't happen now), prepend uploadApiUrl
             const downloadUrl = downloadInfo.mainFile.downloadUrl.startsWith('http')
                 ? downloadInfo.mainFile.downloadUrl
-                : `${config.apiUrl}${downloadInfo.mainFile.downloadUrl}`
+                : `${config.uploadApiUrl}${downloadInfo.mainFile.downloadUrl}`
+
+            console.log('Download URL:', downloadUrl)
 
             // Fetch with authentication header
             const token = localStorage.getItem('token')
+            console.log('Token present:', !!token, 'length:', token?.length)
+
             const response = await fetch(downloadUrl, {
                 headers: {
                     'Authorization': `Bearer ${token}`
-                }
+                },
+                credentials: 'include'
             })
 
             console.log('Download response:', {
@@ -129,7 +135,7 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                 contentType: response.headers.get('Content-Type'),
                 contentDisposition: response.headers.get('Content-Disposition'),
                 contentLength: response.headers.get('Content-Length'),
-                url: downloadInfo.mainFile.downloadUrl
+                url: downloadUrl
             })
 
             if (!response.ok) {
@@ -174,10 +180,10 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingAttachment(attachmentId)
         try {
-            // Build full URL from relative path, using same API domain to avoid CORS
+            // Build full URL - backend returns full URL with upload domain
             const downloadUrl = attachment.downloadUrl.startsWith('http')
                 ? attachment.downloadUrl
-                : `${config.apiUrl}${attachment.downloadUrl}`
+                : `${config.uploadApiUrl}${attachment.downloadUrl}`
 
             // Fetch with authentication header
             const token = localStorage.getItem('token')

@@ -112,9 +112,10 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       [version.id]
     )
 
-    // Use relative URLs to avoid cross-domain CORS issues
-    // Frontend will call same domain it's already using for API
-    const baseDownloadUrl = `/api/download/${app.code}`
+    // Build full URLs using UPLOAD_URL - the server that handles downloads
+    // Frontend will use uploadApiUrl (same domain) to fetch
+    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
+    const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
 
     res.json({
       authorized: true,
