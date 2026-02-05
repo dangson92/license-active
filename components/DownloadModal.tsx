@@ -121,13 +121,14 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
             // Fetch with authentication header
             const token = localStorage.getItem('token')
-            console.log('Token present:', !!token, 'length:', token?.length)
+            console.log('Token present:', !!token, 'length:', token?.length, 'token start:', token?.substring(0, 20))
 
             const response = await fetch(downloadUrl, {
+                method: 'GET',
+                mode: 'cors',
                 headers: {
                     'Authorization': `Bearer ${token}`
-                },
-                credentials: 'include'
+                }
             })
 
             console.log('Download response:', {
@@ -188,6 +189,8 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
             // Fetch with authentication header
             const token = localStorage.getItem('token')
             const response = await fetch(downloadUrl, {
+                method: 'GET',
+                mode: 'cors',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
