@@ -111,10 +111,41 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingMain(true)
         try {
-            // Use downloadUrl from API response (already includes full URL)
-            window.open(downloadInfo.mainFile.downloadUrl, '_blank')
+            // Fetch with authentication header
+            const token = localStorage.getItem('token')
+            const response = await fetch(downloadInfo.mainFile.downloadUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (!response.ok) {
+                throw new Error('Download failed')
+            }
+
+            // Get filename from Content-Disposition or use default
+            const contentDisposition = response.headers.get('Content-Disposition')
+            let filename = downloadInfo.mainFile.filename
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (filenameMatch) filename = filenameMatch[1]
+            }
+
+            // Create blob and trigger download
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Download error:', error)
+            alert('Không thể tải file. Vui lòng thử lại.')
         } finally {
-            setTimeout(() => setDownloadingMain(false), 1000)
+            setDownloadingMain(false)
         }
     }
 
@@ -124,10 +155,41 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
         setDownloadingAttachment(attachmentId)
         try {
-            // Use downloadUrl from API response (already includes full URL)
-            window.open(attachment.downloadUrl, '_blank')
+            // Fetch with authentication header
+            const token = localStorage.getItem('token')
+            const response = await fetch(attachment.downloadUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (!response.ok) {
+                throw new Error('Download failed')
+            }
+
+            // Get filename
+            const contentDisposition = response.headers.get('Content-Disposition')
+            let filename = attachment.filename
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+                if (filenameMatch) filename = filenameMatch[1]
+            }
+
+            // Create blob and trigger download
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Download error:', error)
+            alert('Không thể tải attachment. Vui lòng thử lại.')
         } finally {
-            setTimeout(() => setDownloadingAttachment(null), 1000)
+            setDownloadingAttachment(null)
         }
     }
 
