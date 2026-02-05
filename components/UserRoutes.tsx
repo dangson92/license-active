@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Icons
-import { Copy, Check, Plus, Key, AppWindow } from 'lucide-react';
+import { Copy, Check, Plus, Key, AppWindow, Download } from 'lucide-react';
 
 // Page Components
 import { UserSupport } from './UserSupport';
@@ -26,6 +26,7 @@ import { UserAnnouncements } from './UserAnnouncements';
 import { AnnouncementDetailPage } from './AnnouncementDetailPage';
 import { UserSettings } from './UserSettings';
 import { UserDashboardOverview } from './UserDashboardOverview';
+import { DownloadModal } from './DownloadModal';
 
 interface UserRoutesProps {
     user: User;
@@ -146,6 +147,8 @@ const LicenseContent: React.FC = () => {
     const [userKeys, setUserKeys] = useState<(LicenseKey & { appIcon?: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+    const [downloadApp, setDownloadApp] = useState<{ code: string; name: string } | null>(null);
 
     useEffect(() => {
         loadUserLicenses();
@@ -277,12 +280,13 @@ const LicenseContent: React.FC = () => {
                                 <TableHead className="font-semibold">Thời hạn</TableHead>
                                 <TableHead className="font-semibold">Sử dụng Device</TableHead>
                                 <TableHead className="font-semibold">Trạng thái</TableHead>
+                                <TableHead className="font-semibold text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {userKeys.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-12">
+                                    <TableCell colSpan={6} className="text-center py-12">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
                                                 <Key className="w-6 h-6 text-muted-foreground" />
@@ -368,6 +372,30 @@ const LicenseContent: React.FC = () => {
                                             <TableCell>
                                                 {getStatusBadge(key.status)}
                                             </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8"
+                                                                disabled={key.status !== KeyStatus.ACTIVE}
+                                                                onClick={() => {
+                                                                    setDownloadApp({ code: key.appCode, name: key.appName || 'App' });
+                                                                    setDownloadModalOpen(true);
+                                                                }}
+                                                            >
+                                                                <Download className="w-4 h-4 mr-1.5" />
+                                                                Download
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {key.status === KeyStatus.ACTIVE ? 'Tải phần mềm & attachments' : 'License không hoạt động'}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
                                     );
                                 })
@@ -383,6 +411,19 @@ const LicenseContent: React.FC = () => {
                     </div>
                 )}
             </Card>
+
+            {/* Download Modal */}
+            {downloadApp && (
+                <DownloadModal
+                    appCode={downloadApp.code}
+                    appName={downloadApp.name}
+                    isOpen={downloadModalOpen}
+                    onClose={() => {
+                        setDownloadModalOpen(false);
+                        setDownloadApp(null);
+                    }}
+                />
+            )}
         </>
     );
 };
