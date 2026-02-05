@@ -242,7 +242,7 @@ router.get('/:appCode/file', async (req, res) => {
 
     const version = versionResult.rows[0]
 
-    console.log(`📥 Verified download: User ${userId} → ${app.code} v${version.version}`)
+    console.log(`📥 Verified download: User ${tokenData.userId} → ${app.code} v${version.version}`)
 
     // Check if download_url is external (iDrive E2) or local VPS path
     const downloadUrl = version.download_url
@@ -343,7 +343,7 @@ router.get('/:appCode/attachment/:attachmentId', async (req, res) => {
 
     const attachment = attachmentResult.rows[0]
 
-    console.log(`📥 Verified attachment download: User ${userId} → ${app.code} / ${attachment.description}`)
+    console.log(`📥 Verified attachment download: User ${tokenData.userId} → ${app.code} / ${attachment.description}`)
 
     // Check if download_url is external (iDrive E2) or local VPS path
     const downloadUrl = attachment.download_url
