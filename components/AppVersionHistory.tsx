@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Components
-import { AttachmentManagement } from './AttachmentManagement';
+import { AttachmentList } from './AttachmentList';
 
 // Icons
 import {
@@ -43,6 +43,8 @@ interface AppVersionHistoryProps {
     onBack: () => void;
     onAddVersion: () => void;
     onEditVersion?: (version: AppVersion) => void;
+    onAddAttachment?: () => void;
+    onEditAttachment?: (attachment: any) => void;
 }
 
 export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
@@ -51,7 +53,9 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
     appCode,
     onBack,
     onAddVersion,
-    onEditVersion
+    onEditVersion,
+    onAddAttachment,
+    onEditAttachment
 }) => {
     const [versions, setVersions] = useState<AppVersion[]>([]);
     const [loading, setLoading] = useState(true);
@@ -360,11 +364,13 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                         </TabsContent>
 
                         <TabsContent value="attachments" className="mt-0">
-                            {appCode ? (
-                                <AttachmentManagement
-                                    appId={parseInt(appId)}
+                            {appCode && onAddAttachment && onEditAttachment ? (
+                                <AttachmentList
+                                    appId={appId}
                                     appName={appName}
                                     appCode={appCode}
+                                    onAddAttachment={onAddAttachment}
+                                    onEditAttachment={onEditAttachment}
                                 />
                             ) : (
                                 <Card>

@@ -13,6 +13,7 @@ import { ApplicationManagement } from './components/ApplicationManagement';
 import { LicenseManagement } from './components/LicenseManagement';
 import { AddAppVersion } from './components/AddAppVersion';
 import { AppVersionHistory } from './components/AppVersionHistory';
+import { AddAttachment } from './components/AddAttachment';
 import { Settings } from './components/Settings';
 import { VerifyEmail } from './components/VerifyEmail';
 import { AdminTicketManagement } from './components/AdminTicketManagement';
@@ -149,6 +150,9 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         <Route path="applications/:appId/add-version" element={
           <AddAppVersionWrapper />
         } />
+        <Route path="applications/:appId/add-attachment" element={
+          <AddAttachmentWrapper />
+        } />
         <Route path="create-license" element={
           <CreateLicense
             apps={apps}
@@ -233,6 +237,14 @@ const AppVersionHistoryWrapper: React.FC = () => {
           }
         }
       })}
+      onAddAttachment={() => navigate(`/admin/applications/${appId}/add-attachment`, { state: { appName, appCode } })}
+      onEditAttachment={(attachment) => navigate(`/admin/applications/${appId}/add-attachment`, {
+        state: {
+          appName,
+          appCode,
+          editAttachment: attachment
+        }
+      })}
     />
   );
 };
@@ -242,6 +254,7 @@ const AddAppVersionWrapper: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const appName = (location.state as any)?.appName || 'Application';
+  const appCode = (location.state as any)?.appCode || '';
   const editVersion = (location.state as any)?.editVersion || null;
 
   return (
@@ -249,8 +262,28 @@ const AddAppVersionWrapper: React.FC = () => {
       appId={appId}
       appName={appName}
       editVersion={editVersion}
-      onBack={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
-      onSuccess={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName } })}
+      onBack={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName, appCode } })}
+      onSuccess={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName, appCode } })}
+    />
+  );
+};
+
+const AddAttachmentWrapper: React.FC = () => {
+  const { appId } = useParams<{ appId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const appName = (location.state as any)?.appName || 'Application';
+  const appCode = (location.state as any)?.appCode || '';
+  const editAttachment = (location.state as any)?.editAttachment || null;
+
+  return (
+    <AddAttachment
+      appId={appId || '0'}
+      appName={appName}
+      appCode={appCode}
+      editAttachment={editAttachment}
+      onBack={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName, appCode } })}
+      onSuccess={() => navigate(`/admin/applications/${appId}/versions`, { state: { appName, appCode } })}
     />
   );
 };
