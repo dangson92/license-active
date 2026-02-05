@@ -113,7 +113,8 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
     )
 
     // Build full URLs for download endpoints using upload domain
-    const uploadUrl = process.env.UPLOAD_URL || process.env.FRONTEND_URL || 'https://upload.dangthanhson.com'
+    // Note: Must use upload domain (API server), not frontend domain
+    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
     const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
 
     res.json({
