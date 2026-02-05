@@ -19,6 +19,7 @@ import storeRouter from './modules/store.js'
 import notificationsRouter from './modules/notifications.js'
 import announcementsRouter from './modules/announcements.js'
 import downloadRouter from './modules/download.js'
+import appAttachmentsRouter from './modules/app-attachments.js'
 import { initSocket } from './socket.js'
 import { initLicenseScheduler } from './services/license-scheduler.js'
 
@@ -100,10 +101,12 @@ app.use('/api/activate', activateRouter)
 app.use('/api/check-in', checkInRouter)
 app.use('/api/version', versionRouter)
 app.use('/api/admin/app-versions', appVersionsRouter)
+app.use('/api/admin/apps', appAttachmentsRouter)  // attachments: /api/admin/apps/:appId/attachments
 app.use('/api/support', supportRouter)
 app.use('/api/store', storeRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/announcements', announcementsRouter)
+app.use('/api/download', downloadRouter)  // Verified download: /api/download/:appCode/verify
 
 // Routes WITHOUT /api/ prefix (for client apps calling api.dangthanhson.com directly)
 app.use('/activate', activateRouter)

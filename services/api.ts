@@ -357,6 +357,7 @@ export const api = {
       mandatory?: boolean;
       platform?: string;
       file_type?: string;
+      attachment_ids?: number[];
     }) => {
       return apiCall('/api/admin/app-versions', {
         method: 'POST',
@@ -374,6 +375,7 @@ export const api = {
       mandatory?: boolean;
       platform?: string;
       file_type?: string;
+      attachment_ids?: number[];
     }) => {
       return apiCall(`/api/admin/app-versions/${id}`, {
         method: 'PUT',
@@ -412,6 +414,85 @@ export const api = {
       }
 
       return response.json();
+    },
+
+    // App Attachments
+    getAttachments: async (appId: number) => {
+      return apiCall(`/api/admin/apps/${appId}/attachments`);
+    },
+
+    createAttachment: async (appId: number, data: {
+      description: string;
+      file_name: string;
+      original_name: string;
+      file_size: number;
+      download_url: string;
+      storage_type: 'vps' | 'idrive-e2';
+      storage_key?: string;
+    }) => {
+      return apiCall(`/api/admin/apps/${appId}/attachments`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    uploadAttachmentFile: async (appId: number, file: File, appCode: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('appCode', appCode);
+
+      const token = getToken();
+      const headers: HeadersInit = {};
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${config.uploadApiUrl}/api/admin/apps/${appId}/attachments/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    },
+
+    getAttachmentPresignedUrl: async (appId: number, appCode: string, filename: string) => {
+      return apiCall(`/api/admin/apps/${appId}/attachments/get-presigned-url`, {
+        method: 'POST',
+        body: JSON.stringify({ appCode, filename }),
+      });
+    },
+
+    updateAttachment: async (id: number, data: { description?: string }) => {
+      return apiCall(`/api/admin/attachments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    deleteAttachment: async (id: number) => {
+      return apiCall(`/api/admin/attachments/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
+  // Download endpoints (user)
+  download: {
+    // Verify license and get download info
+    verify: async (appCode: string) => {
+      return apiCall(`/api/download/${appCode}/verify`);
+    },
+
+    // Get public app info (no auth required)
+    getInfo: async (appCode: string) => {
+      return apiCall(`/api/download/${appCode}/info`);
     },
   },
 

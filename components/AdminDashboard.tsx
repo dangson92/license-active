@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LicenseKey, KeyStatus, User, App } from '../types';
 import { generateKeyInsights } from '../services/geminiService';
 import api from '../services/api';
-import { VersionManagement } from './VersionManagement';
+import { VersionManagementTabs } from './VersionManagementTabs';
 import { MemberManagement } from './MemberManagement';
 import { CreateLicense } from './CreateLicense';
 import { AppLayout } from './layout/AppLayout';
@@ -632,7 +632,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
             )}
 
             {activeTab === 'versions' && (
-              <VersionManagement apps={apps} />
+              <VersionManagementTabs apps={apps} />
             )}
 
             {/* Create License Dialog */}

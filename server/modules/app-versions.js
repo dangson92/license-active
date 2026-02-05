@@ -67,7 +67,22 @@ router.get('/:appId', requireAdmin, async (req, res) => {
       [appId]
     )
 
-    res.json({ items: r.rows })
+    // Get attachments for each version
+    const versions = await Promise.all(r.rows.map(async (version) => {
+      const attachmentsResult = await query(
+        `SELECT aa.id, aa.file_name, aa.original_name, aa.file_size, aa.description, aa.download_url
+         FROM app_attachments aa
+         JOIN version_attachment_links val ON aa.id = val.attachment_id
+         WHERE val.version_id = ?`,
+        [version.id]
+      )
+      return {
+        ...version,
+        attachments: attachmentsResult.rows
+      }
+    }))
+
+    res.json({ items: versions })
   } catch (e) {
     console.error('Error getting versions:', e)
     res.status(500).json({ error: 'server_error', message: e.message })
@@ -117,7 +132,8 @@ router.post('/', requireAdmin, async (req, res) => {
       file_size,
       mandatory,
       platform,
-      file_type
+      file_type,
+      attachment_ids  // NEW: Array of attachment IDs to link
     } = req.body
 
     // Validation
@@ -142,7 +158,7 @@ router.post('/', requireAdmin, async (req, res) => {
     }
 
     // Insert new version
-    const result = await query(
+    await query(
       `INSERT INTO app_versions (
         app_id, version, release_date, release_notes, download_url,
         file_name, file_size, mandatory, platform, file_type
@@ -161,9 +177,24 @@ router.post('/', requireAdmin, async (req, res) => {
       ]
     )
 
+    // Get inserted version ID
+    const idResult = await query('SELECT LAST_INSERT_ID() as id')
+    const versionId = idResult.rows[0].id
+
+    // Link attachments if provided
+    if (attachment_ids && Array.isArray(attachment_ids) && attachment_ids.length > 0) {
+      const linkValues = attachment_ids.map(attachmentId => [versionId, attachmentId])
+      for (const [vid, aid] of linkValues) {
+        await query(
+          'INSERT INTO version_attachment_links (version_id, attachment_id) VALUES (?, ?)',
+          [vid, aid]
+        )
+      }
+    }
+
     res.json({
       success: true,
-      id: result.rows.insertId
+      id: versionId
     })
   } catch (e) {
     console.error('Error creating version:', e)
@@ -187,7 +218,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
       file_size,
       mandatory,
       platform,
-      file_type
+      file_type,
+      attachment_ids  // NEW: Array of attachment IDs to link
     } = req.body
 
     // Build dynamic update query
@@ -231,19 +263,30 @@ router.put('/:id', requireAdmin, async (req, res) => {
       values.push(file_type)
     }
 
-    if (updates.length === 0) {
-      return res.status(400).json({
-        error: 'invalid_input',
-        message: 'No fields to update'
-      })
+    // Update version fields if any
+    if (updates.length > 0) {
+      values.push(id)
+      await query(
+        `UPDATE app_versions SET ${updates.join(', ')} WHERE id = ?`,
+        values
+      )
     }
 
-    values.push(id)
+    // Update attachment links if provided
+    if (attachment_ids !== undefined && Array.isArray(attachment_ids)) {
+      // Delete existing links
+      await query('DELETE FROM version_attachment_links WHERE version_id = ?', [id])
 
-    await query(
-      `UPDATE app_versions SET ${updates.join(', ')} WHERE id = ?`,
-      values
-    )
+      // Insert new links
+      if (attachment_ids.length > 0) {
+        for (const attachmentId of attachment_ids) {
+          await query(
+            'INSERT INTO version_attachment_links (version_id, attachment_id) VALUES (?, ?)',
+            [id, attachmentId]
+          )
+        }
+      }
+    }
 
     res.json({ success: true })
   } catch (e) {

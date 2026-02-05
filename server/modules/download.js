@@ -1,43 +1,63 @@
 /**
- * Download Module - Virtual Download Links
+ * Download Module - Virtual Download Links + Verified Downloads
  * 
- * Cung cấp link download ảo dạng /download/{app_code}.zip
- * Luôn redirect đến version mới nhất của ứng dụng đó
+ * Public endpoints:
+ * - /download/{app_code}.zip - Redirect to latest version (public)
+ * - /download/{app_code}/info - Get version info (public)
  * 
- * Ví dụ:
- * - https://upload.dangthanhson.com/content-auto-sondang.zip -> redirect đến version mới nhất
+ * Protected endpoints (require auth + active license):
+ * - /download/{app_code}/verify - Verify license and get download URLs
+ * - /download/{app_code}/file - Download main file (redirect)
+ * - /download/{app_code}/attachment/:id - Download attachment (redirect)
  */
 
 import express from 'express'
 import { query } from '../db.js'
+import { requireAuth } from './auth.js'
 
 const router = express.Router()
 
 /**
- * GET /download/:appCode.zip
- * GET /d/:appCode.zip (short URL)
- * 
- * Redirect đến file download mới nhất của app
- * Không cần authentication - Chỉ cần biết app code
- * 
- * Response: 302 Redirect to actual download URL
+ * Helper: Check if user has ACTIVE license for an app
  */
-router.get('/:appCodeWithExt', async (req, res) => {
+async function checkActiveLicense(userId, appId) {
+  const result = await query(
+    `SELECT id, license_key, expires_at, status 
+     FROM licenses 
+     WHERE user_id = ? AND app_id = ? AND status = 'active'
+     ORDER BY expires_at DESC
+     LIMIT 1`,
+    [userId, appId]
+  )
+
+  if (result.rows.length === 0) {
+    return { valid: false, reason: 'no_license' }
+  }
+
+  const license = result.rows[0]
+
+  // Check if expired
+  if (license.expires_at && new Date(license.expires_at) < new Date()) {
+    return { valid: false, reason: 'license_expired' }
+  }
+
+  return { valid: true, license }
+}
+
+/**
+ * GET /download/:appCode/verify
+ * 
+ * Verify user has active license and return download info
+ * Requires authentication
+ */
+router.get('/:appCode/verify', requireAuth, async (req, res) => {
   try {
-    const { appCodeWithExt } = req.params
+    const { appCode } = req.params
+    const userId = req.user.id
 
-    // Parse app code từ URL (loại bỏ .zip extension)
-    // Ví dụ: "content-auto-sondang.zip" -> "content-auto-sondang"
-    let appCode = appCodeWithExt
-    if (appCode.toLowerCase().endsWith('.zip')) {
-      appCode = appCode.slice(0, -4)
-    } else if (appCode.toLowerCase().endsWith('.exe')) {
-      appCode = appCode.slice(0, -4)
-    }
-
-    // Tìm app theo code (accept is_active = 1 or NULL)
+    // Find app
     const appResult = await query(
-      'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
+      'SELECT id, code, name, icon_url FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
       [appCode]
     )
 
@@ -50,9 +70,21 @@ router.get('/:appCodeWithExt', async (req, res) => {
 
     const app = appResult.rows[0]
 
-    // Lấy version mới nhất (dựa theo created_at DESC)
+    // Check license
+    const licenseCheck = await checkActiveLicense(userId, app.id)
+    if (!licenseCheck.valid) {
+      return res.status(403).json({
+        authorized: false,
+        error: licenseCheck.reason,
+        message: licenseCheck.reason === 'license_expired'
+          ? 'License đã hết hạn. Vui lòng gia hạn để tiếp tục tải.'
+          : 'Bạn chưa có license cho ứng dụng này.'
+      })
+    }
+
+    // Get latest version
     const versionResult = await query(
-      `SELECT id, version, download_url, file_name, file_size, platform, file_type
+      `SELECT id, version, release_date, release_notes, download_url, file_name, file_size, platform, file_type
        FROM app_versions 
        WHERE app_id = ? 
        ORDER BY created_at DESC 
@@ -69,10 +101,225 @@ router.get('/:appCodeWithExt', async (req, res) => {
 
     const version = versionResult.rows[0]
 
-    // Log download attempt
-    console.log(`📥 Download redirect: ${app.code} v${version.version} -> ${version.download_url}`)
+    // Get attachments for this version
+    const attachmentsResult = await query(
+      `SELECT aa.id, aa.file_name, aa.original_name, aa.file_size, aa.description, aa.download_url
+       FROM app_attachments aa
+       JOIN version_attachment_links val ON aa.id = val.attachment_id
+       WHERE val.version_id = ?`,
+      [version.id]
+    )
 
-    // Redirect đến actual download URL
+    res.json({
+      authorized: true,
+      app: {
+        code: app.code,
+        name: app.name,
+        icon_url: app.icon_url
+      },
+      version: {
+        version: version.version,
+        release_date: version.release_date,
+        release_notes: version.release_notes
+      },
+      mainFile: {
+        filename: version.file_name,
+        size: version.file_size,
+        platform: version.platform,
+        file_type: version.file_type,
+        downloadUrl: `/api/download/${app.code}/file`
+      },
+      attachments: attachmentsResult.rows.map(att => ({
+        id: att.id,
+        description: att.description || att.original_name,
+        filename: att.file_name,
+        size: att.file_size,
+        downloadUrl: `/api/download/${app.code}/attachment/${att.id}`
+      }))
+    })
+
+  } catch (e) {
+    console.error('Error verifying download:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
+ * GET /download/:appCode/file
+ * 
+ * Download main file (requires auth + active license)
+ * Redirects to actual file URL
+ */
+router.get('/:appCode/file', requireAuth, async (req, res) => {
+  try {
+    const { appCode } = req.params
+    const userId = req.user.id
+
+    // Find app
+    const appResult = await query(
+      'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
+      [appCode]
+    )
+
+    if (appResult.rows.length === 0) {
+      return res.status(404).json({ error: 'app_not_found' })
+    }
+
+    const app = appResult.rows[0]
+
+    // Check license
+    const licenseCheck = await checkActiveLicense(userId, app.id)
+    if (!licenseCheck.valid) {
+      return res.status(403).json({
+        error: licenseCheck.reason,
+        message: 'Bạn không có quyền tải file này.'
+      })
+    }
+
+    // Get latest version
+    const versionResult = await query(
+      `SELECT download_url, version FROM app_versions 
+       WHERE app_id = ? ORDER BY created_at DESC LIMIT 1`,
+      [app.id]
+    )
+
+    if (versionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'no_version' })
+    }
+
+    const version = versionResult.rows[0]
+
+    console.log(`📥 Verified download: User ${userId} → ${app.code} v${version.version}`)
+
+    // Redirect to actual file
+    return res.redirect(302, version.download_url)
+
+  } catch (e) {
+    console.error('Error downloading file:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
+ * GET /download/:appCode/attachment/:attachmentId
+ * 
+ * Download attachment file (requires auth + active license)
+ * Redirects to actual file URL
+ */
+router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) => {
+  try {
+    const { appCode, attachmentId } = req.params
+    const userId = req.user.id
+
+    // Find app
+    const appResult = await query(
+      'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
+      [appCode]
+    )
+
+    if (appResult.rows.length === 0) {
+      return res.status(404).json({ error: 'app_not_found' })
+    }
+
+    const app = appResult.rows[0]
+
+    // Check license
+    const licenseCheck = await checkActiveLicense(userId, app.id)
+    if (!licenseCheck.valid) {
+      return res.status(403).json({
+        error: licenseCheck.reason,
+        message: 'Bạn không có quyền tải file này.'
+      })
+    }
+
+    // Get attachment (verify it belongs to this app)
+    const attachmentResult = await query(
+      `SELECT aa.download_url, aa.description 
+       FROM app_attachments aa
+       WHERE aa.id = ? AND aa.app_id = ?`,
+      [attachmentId, app.id]
+    )
+
+    if (attachmentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'attachment_not_found' })
+    }
+
+    const attachment = attachmentResult.rows[0]
+
+    console.log(`📥 Verified attachment download: User ${userId} → ${app.code} / ${attachment.description}`)
+
+    // Redirect to actual file
+    return res.redirect(302, attachment.download_url)
+
+  } catch (e) {
+    console.error('Error downloading attachment:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+// ==========================================
+// PUBLIC ENDPOINTS (backward compatibility)
+// ==========================================
+
+/**
+ * GET /download/:appCode.zip
+ * GET /d/:appCode.zip (short URL)
+ * 
+ * Redirect đến file download mới nhất của app
+ * Không cần authentication - Chỉ cần biết app code
+ * 
+ * Response: 302 Redirect to actual download URL
+ */
+router.get('/:appCodeWithExt', async (req, res) => {
+  try {
+    const { appCodeWithExt } = req.params
+
+    // Skip if it looks like a sub-route (contains no extension)
+    if (!appCodeWithExt.includes('.')) {
+      return res.status(404).json({ error: 'not_found' })
+    }
+
+    // Parse app code từ URL (loại bỏ .zip extension)
+    let appCode = appCodeWithExt
+    if (appCode.toLowerCase().endsWith('.zip')) {
+      appCode = appCode.slice(0, -4)
+    } else if (appCode.toLowerCase().endsWith('.exe')) {
+      appCode = appCode.slice(0, -4)
+    }
+
+    // Tìm app theo code
+    const appResult = await query(
+      'SELECT id, code, name FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
+      [appCode]
+    )
+
+    if (appResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'app_not_found',
+        message: `Application "${appCode}" not found`
+      })
+    }
+
+    const app = appResult.rows[0]
+
+    // Lấy version mới nhất
+    const versionResult = await query(
+      `SELECT id, version, download_url FROM app_versions 
+       WHERE app_id = ? ORDER BY created_at DESC LIMIT 1`,
+      [app.id]
+    )
+
+    if (versionResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'no_version',
+        message: `No version available for "${app.name}"`
+      })
+    }
+
+    const version = versionResult.rows[0]
+
+    console.log(`📥 Public download redirect: ${app.code} v${version.version}`)
+
     return res.redirect(302, version.download_url)
 
   } catch (e) {
@@ -85,13 +332,12 @@ router.get('/:appCodeWithExt', async (req, res) => {
  * GET /download/:appCode/info
  * 
  * Lấy thông tin version mới nhất mà không redirect
- * Dùng cho frontend để hiển thị info trước khi download
+ * Public endpoint
  */
 router.get('/:appCode/info', async (req, res) => {
   try {
     const { appCode } = req.params
 
-    // Tìm app theo code (accept is_active = 1 or NULL)
     const appResult = await query(
       'SELECT id, code, name, icon_url FROM apps WHERE code = ? AND (is_active = 1 OR is_active IS NULL)',
       [appCode]
@@ -106,7 +352,6 @@ router.get('/:appCode/info', async (req, res) => {
 
     const app = appResult.rows[0]
 
-    // Lấy version mới nhất
     const versionResult = await query(
       `SELECT id, version, release_date, release_notes, file_name, file_size, platform, file_type, created_at
        FROM app_versions 
@@ -125,6 +370,14 @@ router.get('/:appCode/info', async (req, res) => {
 
     const version = versionResult.rows[0]
 
+    // Get attachments count
+    const attachmentsResult = await query(
+      `SELECT COUNT(*) as count
+       FROM version_attachment_links
+       WHERE version_id = ?`,
+      [version.id]
+    )
+
     res.json({
       app: {
         code: app.code,
@@ -141,6 +394,7 @@ router.get('/:appCode/info', async (req, res) => {
         file_type: version.file_type,
         released_at: version.created_at
       },
+      attachments_count: attachmentsResult.rows[0].count,
       download_url: `/download/${app.code}.zip`
     })
 
@@ -151,3 +405,4 @@ router.get('/:appCode/info', async (req, res) => {
 })
 
 export default router
+

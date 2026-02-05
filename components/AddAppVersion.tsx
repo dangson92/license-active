@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Icons
 import {
@@ -34,6 +35,16 @@ interface EditVersionData {
     platform?: string;
     file_type?: string;
     mandatory?: boolean;
+    attachments?: { id: number; description: string; file_name: string; file_size: number }[];
+}
+
+interface AppAttachment {
+    id: number;
+    file_name: string;
+    original_name: string;
+    file_size: number | null;
+    description: string | null;
+    download_url: string;
 }
 
 interface AddAppVersionProps {
@@ -79,6 +90,45 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         filename?: string;
     } | null>(null);
 
+    // Attachments selection
+    const [availableAttachments, setAvailableAttachments] = useState<AppAttachment[]>([]);
+    const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<number[]>([]);
+    const [loadingAttachments, setLoadingAttachments] = useState(false);
+
+    // Load available attachments for this app
+    useEffect(() => {
+        if (appId) {
+            loadAttachments();
+        }
+    }, [appId]);
+
+    const loadAttachments = async () => {
+        if (!appId) return;
+        try {
+            setLoadingAttachments(true);
+            const response = await api.admin.getAttachments(parseInt(appId));
+            setAvailableAttachments(response.items || []);
+        } catch (error) {
+            console.error('Error loading attachments:', error);
+        } finally {
+            setLoadingAttachments(false);
+        }
+    };
+
+    const toggleAttachment = (attachmentId: number) => {
+        setSelectedAttachmentIds(prev =>
+            prev.includes(attachmentId)
+                ? prev.filter(id => id !== attachmentId)
+                : [...prev, attachmentId]
+        );
+    };
+
+    const formatAttachmentSize = (bytes: number | null) => {
+        if (!bytes) return '';
+        const mb = bytes / (1024 * 1024);
+        return `(${mb.toFixed(2)} MB)`;
+    };
+
     // Initialize form with edit data or default values
     useEffect(() => {
         if (editVersion) {
@@ -88,8 +138,12 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setDownloadUrl(editVersion.download_url || '');
             setPlatform(editVersion.platform || '');
             setFileType(editVersion.file_type || '');
-            // Fix: Load mandatory state from editVersion
+            // Load mandatory state from editVersion
             setMandatory(editVersion.mandatory || false);
+            // Load selected attachments from editVersion
+            if (editVersion.attachments && editVersion.attachments.length > 0) {
+                setSelectedAttachmentIds(editVersion.attachments.map(a => a.id));
+            }
             // If editing and has download URL, set a default destination
             if (editVersion.download_url) {
                 // Guess destination from URL
@@ -409,6 +463,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     mandatory: mandatory,
                     file_name: fileName || undefined,
                     file_size: fileSize || undefined,
+                    attachment_ids: selectedAttachmentIds,
                 });
                 alert(`Version ${versionNumber} đã được cập nhật thành công!`);
             } else {
@@ -424,6 +479,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     mandatory: mandatory,
                     file_name: fileName || undefined,
                     file_size: fileSize || undefined,
+                    attachment_ids: selectedAttachmentIds,
                 });
                 alert(`Version ${versionNumber} đã được tạo thành công!`);
             }
@@ -760,6 +816,62 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <Label className="text-xs text-green-700 font-medium">Download URL</Label>
                                 <p className="font-mono text-sm break-all text-green-800">{downloadUrl}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Attachments Selection */}
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label className="font-semibold">File Attachments (Plugins)</Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Chọn các file đính kèm sẽ đi kèm version này
+                                </p>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                {selectedAttachmentIds.length > 0 && (
+                                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
+                                        {selectedAttachmentIds.length} đã chọn
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {loadingAttachments ? (
+                            <div className="flex items-center justify-center py-4 text-muted-foreground">
+                                <Package className="w-4 h-4 mr-2 animate-spin" />
+                                Đang tải...
+                            </div>
+                        ) : availableAttachments.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground bg-muted/30 rounded-lg">
+                                <p className="text-sm">Chưa có file attachment nào</p>
+                                <p className="text-xs mt-1">Vào tab "File Attachment" để thêm</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {availableAttachments.map((att) => (
+                                    <label
+                                        key={att.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedAttachmentIds.includes(att.id)
+                                                ? 'bg-primary/5 border-primary'
+                                                : 'hover:bg-muted/50 border-gray-200'
+                                            }`}
+                                    >
+                                        <Checkbox
+                                            checked={selectedAttachmentIds.includes(att.id)}
+                                            onCheckedChange={() => toggleAttachment(att.id)}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
+                                                {att.description || att.original_name}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                {att.original_name} {formatAttachmentSize(att.file_size)}
+                                            </p>
+                                        </div>
+                                    </label>
+                                ))}
                             </div>
                         )}
                     </div>
