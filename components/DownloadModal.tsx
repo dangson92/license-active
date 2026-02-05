@@ -119,7 +119,17 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                 }
             })
 
+            console.log('Download response:', {
+                status: response.status,
+                contentType: response.headers.get('Content-Type'),
+                contentDisposition: response.headers.get('Content-Disposition'),
+                contentLength: response.headers.get('Content-Length'),
+                url: downloadInfo.mainFile.downloadUrl
+            })
+
             if (!response.ok) {
+                const errorText = await response.text()
+                console.error('Download failed:', errorText)
                 throw new Error('Download failed')
             }
 
@@ -131,8 +141,12 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                 if (filenameMatch) filename = filenameMatch[1]
             }
 
+            console.log('Downloading as:', filename)
+
             // Create blob and trigger download
             const blob = await response.blob()
+            console.log('Blob created:', blob.size, 'bytes, type:', blob.type)
+
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url

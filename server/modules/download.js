@@ -224,6 +224,8 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
       const stats = fs.statSync(filePath)
       const filename = path.basename(filePath)
 
+      console.log(`📤 Streaming VPS file: ${filename} (${stats.size} bytes)`)
+
       // Set headers for download
       res.setHeader('Content-Type', 'application/octet-stream')
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
@@ -231,6 +233,14 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
 
       // Stream file
       const fileStream = fs.createReadStream(filePath)
+
+      fileStream.on('error', (error) => {
+        console.error('Stream error:', error)
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'stream_error', message: error.message })
+        }
+      })
+
       fileStream.pipe(res)
     }
 
@@ -309,6 +319,8 @@ router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) =
       const stats = fs.statSync(filePath)
       const filename = path.basename(filePath)
 
+      console.log(`📤 Streaming VPS attachment: ${filename} (${stats.size} bytes)`)
+
       // Set headers for download
       res.setHeader('Content-Type', 'application/octet-stream')
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
@@ -316,6 +328,14 @@ router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) =
 
       // Stream file
       const fileStream = fs.createReadStream(filePath)
+
+      fileStream.on('error', (error) => {
+        console.error('Stream error:', error)
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'stream_error', message: error.message })
+        }
+      })
+
       fileStream.pipe(res)
     }
 
