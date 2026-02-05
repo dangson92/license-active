@@ -21,7 +21,7 @@ import {
     Lock,
     ExternalLink
 } from 'lucide-react'
-import { api } from '@/services/api'
+import { api, getToken } from '@/services/api'
 import { config } from '@/config'
 
 interface DownloadInfo {
@@ -120,8 +120,8 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
             console.log('Download URL:', downloadUrl)
 
             // Fetch with authentication header
-            const token = localStorage.getItem('token')
-            console.log('Token present:', !!token, 'length:', token?.length, 'token start:', token?.substring(0, 20))
+            const token = getToken()
+            console.log('Token present:', !!token, 'length:', token?.length)
 
             const response = await fetch(downloadUrl, {
                 method: 'GET',
@@ -187,7 +187,7 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                 : `${config.uploadApiUrl}${attachment.downloadUrl}`
 
             // Fetch with authentication header
-            const token = localStorage.getItem('token')
+            const token = getToken()
             const response = await fetch(downloadUrl, {
                 method: 'GET',
                 mode: 'cors',
