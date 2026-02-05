@@ -14,10 +14,37 @@
 import express from 'express'
 import fs from 'fs'
 import path from 'path'
+import jwt from 'jsonwebtoken'
 import { query } from '../db.js'
 import { requireAuth } from './auth.js'
 
 const router = express.Router()
+
+// Download token expires in 30 minutes
+const DOWNLOAD_TOKEN_EXPIRY = 30 * 60 // 30 minutes in seconds
+
+/**
+ * Generate a one-time download token
+ * Token contains: userId, appCode, type (main/attachment), attachmentId (optional)
+ */
+function generateDownloadToken(userId, appCode, type, attachmentId = null) {
+  return jwt.sign(
+    { userId, appCode, type, attachmentId },
+    process.env.JWT_SECRET,
+    { expiresIn: DOWNLOAD_TOKEN_EXPIRY }
+  )
+}
+
+/**
+ * Verify download token
+ */
+function verifyDownloadToken(token) {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET)
+  } catch (e) {
+    return null
+  }
+}
 
 /**
  * Helper: Check if user has ACTIVE license for an app
@@ -112,10 +139,12 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       [version.id]
     )
 
-    // Build full URLs using UPLOAD_URL - the server that handles downloads
-    // Frontend will use uploadApiUrl (same domain) to fetch
+    // Build full URLs with download tokens
     const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
     const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
+
+    // Generate tokens for each download link (valid 30 minutes)
+    const mainFileToken = generateDownloadToken(userId, app.code, 'main')
 
     res.json({
       authorized: true,
@@ -140,15 +169,18 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       mainFile: {
         filename: version.file_name,
         size: version.file_size,
-        downloadUrl: `${baseDownloadUrl}/file`
+        downloadUrl: `${baseDownloadUrl}/file?token=${mainFileToken}`
       },
-      attachments: attachmentsResult.rows.map(att => ({
-        id: att.id,
-        description: att.description || att.original_name,
-        filename: att.file_name,
-        size: att.file_size,
-        downloadUrl: `${baseDownloadUrl}/attachment/${att.id}`
-      }))
+      attachments: attachmentsResult.rows.map(att => {
+        const attachmentToken = generateDownloadToken(userId, app.code, 'attachment', att.id)
+        return {
+          id: att.id,
+          description: att.description || att.original_name,
+          filename: att.file_name,
+          size: att.file_size,
+          downloadUrl: `${baseDownloadUrl}/attachment/${att.id}?token=${attachmentToken}`
+        }
+      })
     })
 
   } catch (e) {
@@ -162,15 +194,28 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
 /**
  * GET /download/:appCode/file
  * 
- * Download main file (requires auth + active license)
- * Redirects to actual file URL
+ * Download main file using download token
+ * Token already verified user has valid license
  */
-router.get('/:appCode/file', requireAuth, async (req, res) => {
+router.get('/:appCode/file', async (req, res) => {
   try {
-    // CORS headers are handled by nginx - don't set here to avoid duplicates
-
     const { appCode } = req.params
-    const userId = req.user.id
+    const { token } = req.query
+
+    // Verify download token
+    if (!token) {
+      return res.status(401).json({ error: 'missing_token', message: 'Download token is required' })
+    }
+
+    const tokenData = verifyDownloadToken(token)
+    if (!tokenData) {
+      return res.status(401).json({ error: 'invalid_token', message: 'Download token is invalid or expired' })
+    }
+
+    // Verify token is for this app and type
+    if (tokenData.appCode !== appCode || tokenData.type !== 'main') {
+      return res.status(403).json({ error: 'token_mismatch', message: 'Token does not match this download' })
+    }
 
     // Find app
     const appResult = await query(
@@ -183,15 +228,6 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
     }
 
     const app = appResult.rows[0]
-
-    // Check license
-    const licenseCheck = await checkActiveLicense(userId, app.id)
-    if (!licenseCheck.valid) {
-      return res.status(403).json({
-        error: licenseCheck.reason,
-        message: 'Bạn không có quyền tải file này.'
-      })
-    }
 
     // Get latest version
     const versionResult = await query(
@@ -258,15 +294,28 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
 /**
  * GET /download/:appCode/attachment/:attachmentId
  * 
- * Download attachment file (requires auth + active license)
- * Redirects to actual file URL
+ * Download attachment file using download token
+ * Token already verified user has valid license
  */
-router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) => {
+router.get('/:appCode/attachment/:attachmentId', async (req, res) => {
   try {
-    // CORS headers are handled by nginx - don't set here to avoid duplicates
-
     const { appCode, attachmentId } = req.params
-    const userId = req.user.id
+    const { token } = req.query
+
+    // Verify download token
+    if (!token) {
+      return res.status(401).json({ error: 'missing_token', message: 'Download token is required' })
+    }
+
+    const tokenData = verifyDownloadToken(token)
+    if (!tokenData) {
+      return res.status(401).json({ error: 'invalid_token', message: 'Download token is invalid or expired' })
+    }
+
+    // Verify token is for this app, type and attachment
+    if (tokenData.appCode !== appCode || tokenData.type !== 'attachment' || String(tokenData.attachmentId) !== String(attachmentId)) {
+      return res.status(403).json({ error: 'token_mismatch', message: 'Token does not match this download' })
+    }
 
     // Find app
     const appResult = await query(
@@ -279,15 +328,6 @@ router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) =
     }
 
     const app = appResult.rows[0]
-
-    // Check license
-    const licenseCheck = await checkActiveLicense(userId, app.id)
-    if (!licenseCheck.valid) {
-      return res.status(403).json({
-        error: licenseCheck.reason,
-        message: 'Bạn không có quyền tải file này.'
-      })
-    }
 
     // Get attachment (verify it belongs to this app)
     const attachmentResult = await query(

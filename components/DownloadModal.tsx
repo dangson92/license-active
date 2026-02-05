@@ -14,15 +14,14 @@ import { Badge } from '@/components/ui/badge'
 import {
     Download,
     FileArchive,
-    Loader2,
     Package,
     AlertCircle,
     CheckCircle,
     Lock,
-    ExternalLink
+    ExternalLink,
+    Loader2
 } from 'lucide-react'
-import { api, getToken } from '@/services/api'
-import { config } from '@/config'
+import { api } from '@/services/api'
 
 interface DownloadInfo {
     authorized: boolean
@@ -68,8 +67,6 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [downloadInfo, setDownloadInfo] = useState<DownloadInfo | null>(null)
-    const [downloadingMain, setDownloadingMain] = useState(false)
-    const [downloadingAttachment, setDownloadingAttachment] = useState<number | null>(null)
 
     useEffect(() => {
         if (isOpen && appCode) {
@@ -106,124 +103,28 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
         return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
     }
 
-    const handleDownloadMain = async () => {
+    const handleDownloadMain = () => {
         if (!downloadInfo) return
 
-        setDownloadingMain(true)
-        try {
-            // Build full URL - backend returns full URL with upload domain
-            // If relative path (shouldn't happen now), prepend uploadApiUrl
-            const downloadUrl = downloadInfo.mainFile.downloadUrl.startsWith('http')
-                ? downloadInfo.mainFile.downloadUrl
-                : `${config.uploadApiUrl}${downloadInfo.mainFile.downloadUrl}`
+        // Download URL already contains token from backend
+        // Just open the URL and browser will download directly
+        const downloadUrl = downloadInfo.mainFile.downloadUrl
+        console.log('Opening download URL:', downloadUrl)
 
-            console.log('Download URL:', downloadUrl)
-
-            // Fetch with authentication header
-            const token = getToken()
-            console.log('Token present:', !!token, 'length:', token?.length)
-
-            const response = await fetch(downloadUrl, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-
-            console.log('Download response:', {
-                status: response.status,
-                contentType: response.headers.get('Content-Type'),
-                contentDisposition: response.headers.get('Content-Disposition'),
-                contentLength: response.headers.get('Content-Length'),
-                url: downloadUrl
-            })
-
-            if (!response.ok) {
-                const errorText = await response.text()
-                console.error('Download failed:', errorText)
-                throw new Error('Download failed')
-            }
-
-            // Get filename from Content-Disposition or use default
-            const contentDisposition = response.headers.get('Content-Disposition')
-            let filename = downloadInfo.mainFile.filename
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
-                if (filenameMatch) filename = filenameMatch[1]
-            }
-
-            console.log('Downloading as:', filename)
-
-            // Create blob and trigger download
-            const blob = await response.blob()
-            console.log('Blob created:', blob.size, 'bytes, type:', blob.type)
-
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
-        } catch (error) {
-            console.error('Download error:', error)
-            alert('Không thể tải file. Vui lòng thử lại.')
-        } finally {
-            setDownloadingMain(false)
-        }
+        // Open in new tab to trigger download
+        window.open(downloadUrl, '_blank')
     }
 
-    const handleDownloadAttachment = async (attachmentId: number) => {
+    const handleDownloadAttachment = (attachmentId: number) => {
         const attachment = downloadInfo?.attachments.find(a => a.id === attachmentId)
         if (!attachment) return
 
-        setDownloadingAttachment(attachmentId)
-        try {
-            // Build full URL - backend returns full URL with upload domain
-            const downloadUrl = attachment.downloadUrl.startsWith('http')
-                ? attachment.downloadUrl
-                : `${config.uploadApiUrl}${attachment.downloadUrl}`
+        // Download URL already contains token from backend
+        const downloadUrl = attachment.downloadUrl
+        console.log('Opening attachment URL:', downloadUrl)
 
-            // Fetch with authentication header
-            const token = getToken()
-            const response = await fetch(downloadUrl, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error('Download failed')
-            }
-
-            // Get filename
-            const contentDisposition = response.headers.get('Content-Disposition')
-            let filename = attachment.filename
-            if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
-                if (filenameMatch) filename = filenameMatch[1]
-            }
-
-            // Create blob and trigger download
-            const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = filename
-            document.body.appendChild(a)
-            a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
-        } catch (error) {
-            console.error('Download error:', error)
-            alert('Không thể tải attachment. Vui lòng thử lại.')
-        } finally {
-            setDownloadingAttachment(null)
-        }
+        // Open in new tab to trigger download
+        window.open(downloadUrl, '_blank')
     }
 
     const formatDate = (dateStr: string) => {
@@ -315,15 +216,9 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                                                 </p>
                                             </div>
                                         </div>
-                                        <Button onClick={handleDownloadMain} disabled={downloadingMain}>
-                                            {downloadingMain ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <>
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    Tải xuống
-                                                </>
-                                            )}
+                                        <Button onClick={handleDownloadMain}>
+                                            <Download className="h-4 w-4 mr-2" />
+                                            Tải xuống
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -355,13 +250,8 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleDownloadAttachment(att.id)}
-                                                    disabled={downloadingAttachment === att.id}
                                                 >
-                                                    {downloadingAttachment === att.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        <Download className="h-4 w-4" />
-                                                    )}
+                                                    <Download className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ))}
