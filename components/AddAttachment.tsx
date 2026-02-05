@@ -98,40 +98,65 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
             let uploadResult: { url: string; key?: string };
 
             if (storageType === 'idrive-e2') {
-                // Get presigned URL
-                const presignedResponse = await api.admin.getAttachmentPresignedUrl(
-                    parseInt(appId),
-                    appCode,
-                    file.name
-                );
+                // Bước 1: Lấy presigned URL từ server
+                setUploadProgress(2); // Show small progress to indicate starting
 
-                // Upload to E2
+                const token = localStorage.getItem('auth_token');
+                const presignedResponse = await fetch(`${config.uploadApiUrl}/api/admin/apps/${appId}/attachments/get-presigned-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        appCode,
+                        filename: file.name,
+                        fileSize: file.size,
+                    }),
+                });
+
+                if (!presignedResponse.ok) {
+                    const error = await presignedResponse.json();
+                    throw new Error(error.message || 'Failed to get presigned URL');
+                }
+
+                const presignedData = await presignedResponse.json();
+                console.log('📎 Got presigned URL for attachment, uploading to E2...');
+
+                // Bước 2: Upload trực tiếp lên E2 bằng presigned URL
                 await new Promise<void>((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open('PUT', presignedResponse.uploadUrl, true);
-                    xhr.setRequestHeader('Content-Type', 'application/zip');
+                    xhr.timeout = 60 * 60 * 1000; // 1 hour for large files
 
-                    xhr.upload.onprogress = (e) => {
+                    xhr.upload.addEventListener('progress', (e) => {
                         if (e.lengthComputable) {
-                            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+                            const percentComplete = Math.round((e.loaded / e.total) * 100);
+                            setUploadProgress(percentComplete);
                         }
-                    };
+                    });
 
-                    xhr.onload = () => {
+                    xhr.addEventListener('load', () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
+                            console.log('✅ Attachment upload to E2 completed!');
                             resolve();
                         } else {
-                            reject(new Error('Upload failed'));
+                            console.error('E2 upload failed:', xhr.status, xhr.responseText);
+                            reject(new Error(`E2 upload failed: HTTP ${xhr.status}`));
                         }
-                    };
+                    });
 
-                    xhr.onerror = () => reject(new Error('Upload failed'));
+                    xhr.addEventListener('error', () => reject(new Error('Network error during E2 upload')));
+                    xhr.addEventListener('abort', () => reject(new Error('E2 upload cancelled')));
+                    xhr.addEventListener('timeout', () => reject(new Error('E2 upload timeout')));
+
+                    xhr.open('PUT', presignedData.uploadUrl);
+                    xhr.setRequestHeader('Content-Type', presignedData.contentType || 'application/zip');
                     xhr.send(file);
                 });
 
                 uploadResult = {
-                    url: presignedResponse.publicUrl,
-                    key: presignedResponse.key
+                    url: presignedData.publicUrl,
+                    key: presignedData.key
                 };
             } else {
                 // Upload to VPS
@@ -143,6 +168,7 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
 
                 uploadResult = await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
+                    xhr.timeout = 60 * 60 * 1000; // 1 hour for large files
                     xhr.open('POST', `${config.uploadApiUrl}/api/admin/apps/${appId}/attachments/upload`, true);
 
                     if (token) {
@@ -157,14 +183,24 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
 
                     xhr.onload = () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
-                            const response = JSON.parse(xhr.responseText);
-                            resolve({ url: response.file.path });
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                resolve({ url: response.file.path });
+                            } catch (e) {
+                                reject(new Error('Invalid response from server'));
+                            }
                         } else {
-                            reject(new Error('Upload failed'));
+                            try {
+                                const error = JSON.parse(xhr.responseText);
+                                reject(new Error(error.message || error.error || `HTTP ${xhr.status}`));
+                            } catch {
+                                reject(new Error(`Upload failed: HTTP ${xhr.status}`));
+                            }
                         }
                     };
 
-                    xhr.onerror = () => reject(new Error('Upload failed'));
+                    xhr.onerror = () => reject(new Error('Network error occurred'));
+                    xhr.ontimeout = () => reject(new Error('Upload timeout'));
                     xhr.send(formData);
                 });
             }
