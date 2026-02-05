@@ -12,6 +12,8 @@
  */
 
 import express from 'express'
+import fs from 'fs'
+import path from 'path'
 import { query } from '../db.js'
 import { requireAuth } from './auth.js'
 
@@ -201,8 +203,36 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
 
     console.log(`📥 Verified download: User ${userId} → ${app.code} v${version.version}`)
 
-    // Redirect to actual file
-    return res.redirect(302, version.download_url)
+    // Check if download_url is external (iDrive E2) or local VPS path
+    const downloadUrl = version.download_url
+    const isExternalUrl = downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://')
+
+    if (isExternalUrl) {
+      // External URL (iDrive E2) - redirect
+      return res.redirect(302, downloadUrl)
+    } else {
+      // VPS file - stream directly
+      const filePath = path.join(process.cwd(), downloadUrl)
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found: ${filePath}`)
+        return res.status(404).json({ error: 'file_not_found', message: 'File không tồn tại trên server' })
+      }
+
+      // Get file stats
+      const stats = fs.statSync(filePath)
+      const filename = path.basename(filePath)
+
+      // Set headers for download
+      res.setHeader('Content-Type', 'application/octet-stream')
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Content-Length', stats.size)
+
+      // Stream file
+      const fileStream = fs.createReadStream(filePath)
+      fileStream.pipe(res)
+    }
 
   } catch (e) {
     console.error('Error downloading file:', e)
@@ -258,8 +288,36 @@ router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) =
 
     console.log(`📥 Verified attachment download: User ${userId} → ${app.code} / ${attachment.description}`)
 
-    // Redirect to actual file
-    return res.redirect(302, attachment.download_url)
+    // Check if download_url is external (iDrive E2) or local VPS path
+    const downloadUrl = attachment.download_url
+    const isExternalUrl = downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://')
+
+    if (isExternalUrl) {
+      // External URL (iDrive E2) - redirect
+      return res.redirect(302, downloadUrl)
+    } else {
+      // VPS file - stream directly
+      const filePath = path.join(process.cwd(), downloadUrl)
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        console.error(`File not found: ${filePath}`)
+        return res.status(404).json({ error: 'file_not_found', message: 'File không tồn tại trên server' })
+      }
+
+      // Get file stats
+      const stats = fs.statSync(filePath)
+      const filename = path.basename(filePath)
+
+      // Set headers for download
+      res.setHeader('Content-Type', 'application/octet-stream')
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Content-Length', stats.size)
+
+      // Stream file
+      const fileStream = fs.createReadStream(filePath)
+      fileStream.pipe(res)
+    }
 
   } catch (e) {
     console.error('Error downloading attachment:', e)
