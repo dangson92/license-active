@@ -1,8 +1,24 @@
 import express from 'express'
+import jwt from 'jsonwebtoken'
 import { query } from '../db.js'
 import { requireUser } from './auth.js'
 
 const router = express.Router()
+
+// Download token expires in 30 minutes
+const DOWNLOAD_TOKEN_EXPIRY = 30 * 60 // 30 minutes in seconds
+
+/**
+ * Generate a download token
+ * Token contains: userId, appCode, type (main/attachment), attachmentId (optional)
+ */
+function generateDownloadToken(userId, appCode, type, attachmentId = null) {
+  return jwt.sign(
+    { userId, appCode, type, attachmentId },
+    process.env.JWT_SECRET,
+    { expiresIn: DOWNLOAD_TOKEN_EXPIRY }
+  )
+}
 
 router.get('/licenses', requireUser, async (req, res) => {
   try {
@@ -19,14 +35,22 @@ router.get('/licenses', requireUser, async (req, res) => {
     )
 
     // Upload domain for download URLs (from env)
-    const uploadDomain = process.env.VITE_UPLOAD_API_URL
+    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
+    const userId = req.user.id
 
     // Thêm download_url và attachments cho các app có version VÀ app đang active
     const items = await Promise.all(r.rows.map(async (license) => {
       const hasDownload = license.latest_version && (license.app_is_active === 1 || license.app_is_active === null)
+      const appCode = license.app_code
 
       let attachments = []
+      let mainDownloadUrl = null
+
       if (hasDownload && license.latest_version_id) {
+        // Generate main file download token
+        const mainToken = generateDownloadToken(userId, appCode, 'main')
+        mainDownloadUrl = `${uploadUrl}/api/download/${appCode}/file?token=${mainToken}`
+
         // Lấy attachments cho version mới nhất
         const attachmentsResult = await query(
           `SELECT aa.id, aa.description, aa.original_name
@@ -35,15 +59,21 @@ router.get('/licenses', requireUser, async (req, res) => {
            WHERE val.version_id = ?`,
           [license.latest_version_id]
         )
-        attachments = attachmentsResult.rows.map(att => ({
-          id: att.id,
-          description: att.description || att.original_name
-        }))
+
+        attachments = attachmentsResult.rows.map(att => {
+          // Generate attachment download token
+          const attachmentToken = generateDownloadToken(userId, appCode, 'attachment', att.id)
+          return {
+            id: att.id,
+            description: att.description || att.original_name,
+            download_url: `${uploadUrl}/api/download/${appCode}/attachment/${att.id}?token=${attachmentToken}`
+          }
+        })
       }
 
       return {
         ...license,
-        download_url: hasDownload ? `${uploadDomain}/${license.app_code}.zip` : null,
+        download_url: mainDownloadUrl,
         attachments
       }
     }))

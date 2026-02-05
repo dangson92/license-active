@@ -40,6 +40,7 @@ interface Announcement {
 interface AppAttachment {
     id: number;
     description: string;
+    download_url: string;
 }
 
 interface LicensedApp {
@@ -367,7 +368,7 @@ export const UserDashboardOverview: React.FC = () => {
                                                                 <Tooltip key={att.id}>
                                                                     <TooltipTrigger asChild>
                                                                         <a
-                                                                            href={`/api/download/${app.app_code}/attachment/${att.id}`}
+                                                                            href={att.download_url}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
                                                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium transition-colors"
