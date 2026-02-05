@@ -158,6 +158,32 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
 })
 
 /**
+ * OPTIONS /download/:appCode/file
+ * Handle preflight CORS request
+ */
+router.options('/:appCode/file', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'https://app.dangthanhson.com')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Max-Age', '86400')
+  res.status(204).send()
+})
+
+/**
+ * OPTIONS /download/:appCode/attachment/:attachmentId
+ * Handle preflight CORS request for attachments
+ */
+router.options('/:appCode/attachment/:attachmentId', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'https://app.dangthanhson.com')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Max-Age', '86400')
+  res.status(204).send()
+})
+
+/**
  * GET /download/:appCode/file
  * 
  * Download main file (requires auth + active license)
@@ -165,6 +191,11 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
  */
 router.get('/:appCode/file', requireAuth, async (req, res) => {
   try {
+    // Set CORS headers explicitly (in case nginx/proxy strips them)
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'https://app.dangthanhson.com')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length')
+
     const { appCode } = req.params
     const userId = req.user.id
 
@@ -259,6 +290,11 @@ router.get('/:appCode/file', requireAuth, async (req, res) => {
  */
 router.get('/:appCode/attachment/:attachmentId', requireAuth, async (req, res) => {
   try {
+    // Set CORS headers explicitly (in case nginx/proxy strips them)
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || 'https://app.dangthanhson.com')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length')
+
     const { appCode, attachmentId } = req.params
     const userId = req.user.id
 
