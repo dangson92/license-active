@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +12,8 @@ import {
     Loader2,
     Package,
     Gift,
-    CheckCircle
+    CheckCircle,
+    ArrowRight
 } from 'lucide-react';
 import api, { getAssetUrl } from '../services/api';
 
@@ -61,12 +63,13 @@ interface ApplicationStoreProps {
 }
 
 export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }) => {
+    const navigate = useNavigate();
     const [apps, setApps] = useState<StoreApp[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [selectedPricing, setSelectedPricing] = useState<Record<number, string>>({});
     const [trialLoading, setTrialLoading] = useState<number | null>(null);
-    const [trialSuccess, setTrialSuccess] = useState<Record<number, string>>({});
+    const [trialSuccess, setTrialSuccess] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         loadApps();
@@ -134,10 +137,16 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
     const handleTrial = async (app: StoreApp) => {
         if (trialLoading) return;
+
+        const confirmed = window.confirm(
+            `Bạn muốn dùng thử ${app.name} miễn phí trong 7 ngày?\n\nMỗi tài khoản chỉ được dùng thử 1 lần cho mỗi ứng dụng.`
+        );
+        if (!confirmed) return;
+
         setTrialLoading(app.id);
         try {
-            const result = await api.store.createTrial(app.id);
-            setTrialSuccess(prev => ({ ...prev, [app.id]: result.license_key }));
+            await api.store.createTrial(app.id);
+            setTrialSuccess(prev => ({ ...prev, [app.id]: true }));
         } catch (error: any) {
             const msg = error.message || '';
             if (msg.includes('trial_already_used')) {
@@ -279,8 +288,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                         {/* Trial Button */}
                                         {app.trial_enabled && !trialSuccess[app.id] && (
                                             <Button
-                                                variant="outline"
-                                                className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
                                                 onClick={() => handleTrial(app)}
                                                 disabled={trialLoading === app.id}
                                             >
@@ -295,14 +303,18 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
                                         {/* Trial Success */}
                                         {trialSuccess[app.id] && (
-                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-                                                <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold mb-1.5">
+                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
+                                                <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold">
                                                     <CheckCircle className="w-3.5 h-3.5" />
-                                                    Trial đã kích hoạt!
+                                                    Đăng ký trial thành công!
                                                 </div>
-                                                <code className="text-[11px] bg-white px-2 py-1 rounded border border-emerald-100 select-all">
-                                                    {trialSuccess[app.id]}
-                                                </code>
+                                                <button
+                                                    onClick={() => navigate('/user/licenses')}
+                                                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2 transition-colors"
+                                                >
+                                                    Xem tại My Licenses
+                                                    <ArrowRight className="w-3 h-3" />
+                                                </button>
                                             </div>
                                         )}
                                     </div>

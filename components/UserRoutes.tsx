@@ -169,6 +169,7 @@ const LicenseContent: React.FC = () => {
                 appIcon: item.app_icon,
                 maxDevices: item.max_devices,
                 activeDevices: item.active_devices || 0,
+                is_trial: item.is_trial,
             }));
             setUserKeys(licenses);
         } catch (error) {
@@ -316,7 +317,14 @@ const LicenseContent: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-sm">{key.appName}</p>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="font-semibold text-sm">{key.appName}</p>
+                                                            {key.is_trial && (
+                                                                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                    Trial
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <p className="text-[11px] text-muted-foreground">{key.appCode}</p>
                                                     </div>
                                                 </div>
