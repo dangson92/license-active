@@ -630,6 +630,14 @@ export const api = {
       return apiCall('/api/store/apps');
     },
 
+    // Register trial license (instant, no checkout)
+    createTrial: async (appId: number) => {
+      return apiCall('/api/store/trial', {
+        method: 'POST',
+        body: JSON.stringify({ app_id: appId }),
+      });
+    },
+
     // Get single app
     getApp: async (id: number) => {
       return apiCall(`/api/store/apps/${id}`);
@@ -720,6 +728,7 @@ export const api = {
       is_featured?: boolean;
       badge?: string;
       icon_class?: string;
+      trial_enabled?: boolean;
     }) => {
       return apiCall('/api/store/admin/pricing', {
         method: 'POST',

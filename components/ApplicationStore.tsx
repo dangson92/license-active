@@ -9,7 +9,9 @@ import {
     Database,
     ShoppingBag,
     Loader2,
-    Package
+    Package,
+    Gift,
+    CheckCircle
 } from 'lucide-react';
 import api, { getAssetUrl } from '../services/api';
 
@@ -28,6 +30,7 @@ interface StoreApp {
     is_featured?: boolean;
     badge?: string;
     icon_class?: string;
+    trial_enabled?: boolean;
 }
 
 // Icon mapping based on app code or name
@@ -62,6 +65,8 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [selectedPricing, setSelectedPricing] = useState<Record<number, string>>({});
+    const [trialLoading, setTrialLoading] = useState<number | null>(null);
+    const [trialSuccess, setTrialSuccess] = useState<Record<number, string>>({});
 
     useEffect(() => {
         loadApps();
@@ -125,6 +130,24 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const formatPrice = (price?: number) => {
         if (!price) return 'Liên hệ';
         return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+    };
+
+    const handleTrial = async (app: StoreApp) => {
+        if (trialLoading) return;
+        setTrialLoading(app.id);
+        try {
+            const result = await api.store.createTrial(app.id);
+            setTrialSuccess(prev => ({ ...prev, [app.id]: result.license_key }));
+        } catch (error: any) {
+            const msg = error.message || '';
+            if (msg.includes('trial_already_used')) {
+                alert('Bạn đã sử dụng trial cho ứng dụng này rồi.');
+            } else {
+                alert('Không thể tạo trial: ' + msg);
+            }
+        } finally {
+            setTrialLoading(null);
+        }
     };
 
     if (loading) {
@@ -242,15 +265,47 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                         </div>
                                     )}
 
-                                    {/* Action Button */}
-                                    <Button
-                                        className="w-full shadow-lg shadow-primary/20"
-                                        onClick={() => handleRegister(app)}
-                                        disabled={!hasPricing}
-                                    >
-                                        {hasPricing ? 'Đăng ký ngay' : 'Liên hệ'}
-                                        <ShoppingBag className="w-4 h-4 ml-2" />
-                                    </Button>
+                                    {/* Action Buttons */}
+                                    <div className="space-y-2">
+                                        <Button
+                                            className="w-full shadow-lg shadow-primary/20"
+                                            onClick={() => handleRegister(app)}
+                                            disabled={!hasPricing}
+                                        >
+                                            {hasPricing ? 'Đăng ký ngay' : 'Liên hệ'}
+                                            <ShoppingBag className="w-4 h-4 ml-2" />
+                                        </Button>
+
+                                        {/* Trial Button */}
+                                        {app.trial_enabled && !trialSuccess[app.id] && (
+                                            <Button
+                                                variant="outline"
+                                                className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                                onClick={() => handleTrial(app)}
+                                                disabled={trialLoading === app.id}
+                                            >
+                                                {trialLoading === app.id ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Gift className="w-4 h-4 mr-2" />
+                                                )}
+                                                Dùng thử 7 ngày
+                                            </Button>
+                                        )}
+
+                                        {/* Trial Success */}
+                                        {trialSuccess[app.id] && (
+                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                                                <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold mb-1.5">
+                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                    Trial đã kích hoạt!
+                                                </div>
+                                                <code className="text-[11px] bg-white px-2 py-1 rounded border border-emerald-100 select-all">
+                                                    {trialSuccess[app.id]}
+                                                </code>
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         );

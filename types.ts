@@ -29,6 +29,7 @@ export interface LicenseKey {
   hwid?: string; // Hardware ID (device hash)
   maxDevices?: number; // Max devices allowed
   activeDevices?: number; // Number of active devices
+  is_trial?: boolean; // Trial license flag
 }
 
 export interface AnalyticsSummary {

@@ -62,6 +62,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
         price1YearEnabled: true,
         isActive: true,
         isPublic: false,
+        trialEnabled: false,
     });
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
@@ -116,6 +117,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 price1YearEnabled: pricing.price_1_year_enabled !== 0 && pricing.price_1_year_enabled !== false,
                 isActive: app.is_active ?? true,
                 isPublic: false,
+                trialEnabled: pricing.trial_enabled === 1 || pricing.trial_enabled === true,
             });
             if (app.icon_url) {
                 setIconPreview(getAssetUrl(app.icon_url));
@@ -197,6 +199,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     price_6_months_enabled: formData.price6MonthsEnabled,
                     price_1_year: formData.price1Year || 0,
                     price_1_year_enabled: formData.price1YearEnabled,
+                    trial_enabled: formData.trialEnabled,
                 });
             }
 
@@ -490,6 +493,18 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                             <Switch
                                 checked={formData.isPublic}
                                 onCheckedChange={(checked) => handleInputChange('isPublic', checked)}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label>Trial cho phép</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Cho phép user dùng thử 7 ngày miễn phí (giới hạn 1 lần/user/app).
+                                </p>
+                            </div>
+                            <Switch
+                                checked={formData.trialEnabled}
+                                onCheckedChange={(checked) => handleInputChange('trialEnabled', checked)}
                             />
                         </div>
                     </div>

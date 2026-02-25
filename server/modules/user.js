@@ -24,7 +24,7 @@ router.get('/licenses', requireUser, async (req, res) => {
   try {
     // Lấy danh sách licenses của user kèm theo thông tin version mới nhất và trạng thái app
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,
+      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,l.is_trial,
               a.id AS app_id, a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
               a.is_active AS app_is_active,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices,
@@ -89,7 +89,7 @@ router.get('/licenses/:id', requireUser, async (req, res) => {
   try {
     const id = Number(req.params.id)
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,a.code AS app_code,a.name AS app_name
+      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,l.is_trial,a.code AS app_code,a.name AS app_name
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.id=? AND l.user_id=?`,
       [id, req.user.id]
     )
@@ -108,8 +108,9 @@ router.get('/licenses/:id', requireUser, async (req, res) => {
 router.post('/licenses/:id/renew-requests', requireUser, async (req, res) => {
   try {
     const id = Number(req.params.id)
-    const owns = await query('SELECT id FROM licenses WHERE id=? AND user_id=?', [id, req.user.id])
+    const owns = await query('SELECT id, is_trial FROM licenses WHERE id=? AND user_id=?', [id, req.user.id])
     if (!owns.rows.length) return res.status(404).json({ error: 'not_found' })
+    if (owns.rows[0].is_trial) return res.status(400).json({ error: 'trial_cannot_renew', message: 'Trial licenses cannot be renewed' })
     const message = typeof req.body.message === 'string' ? req.body.message : null
     await query(
       `INSERT INTO renew_requests(user_id,license_id,message,status,created_at)

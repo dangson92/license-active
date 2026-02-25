@@ -27,7 +27,7 @@ router.post('/', verifySignature, rateLimiter, async (req, res) => {
     if (!appR.rows.length) return res.status(404).json({ error: 'app_not_found' })
     const appId = appR.rows[0].id
     const licR = await query(
-      `SELECT l.id, l.max_devices, l.expires_at, l.status, u.email, u.full_name
+      `SELECT l.id, l.max_devices, l.expires_at, l.status, l.is_trial, u.email, u.full_name
        FROM licenses l
        JOIN users u ON u.id = l.user_id
        WHERE l.license_key=? AND l.app_id=?`,
@@ -41,6 +41,19 @@ router.post('/', verifySignature, rateLimiter, async (req, res) => {
     console.log('🔐 Device info:', {
       deviceId: deviceId?.substring(0, 32) + '...'
     })
+
+    // --- Trial device anti-abuse check ---
+    if (lic.is_trial) {
+      const trialCheck = await query(
+        'SELECT id FROM trial_devices WHERE device_id=? AND app_id=?',
+        [deviceId, appId]
+      )
+      if (trialCheck.rows.length) {
+        console.log('❌ Device already used trial for this app')
+        return res.status(403).json({ error: 'device_already_trialed' })
+      }
+    }
+
     const actR = await query('SELECT id,status FROM activations WHERE license_id=? AND device_id=?', [lic.id, deviceId])
     if (!actR.rows.length) {
       const countR = await query(
@@ -61,6 +74,16 @@ router.post('/', verifySignature, rateLimiter, async (req, res) => {
         [lic.id, deviceId]
       )
       console.log('✅ New device activated')
+
+      // Record trial device for anti-abuse tracking
+      if (lic.is_trial) {
+        await query(
+          `INSERT IGNORE INTO trial_devices(device_id, app_id, user_id, license_id, created_at)
+           VALUES(?, ?, (SELECT user_id FROM licenses WHERE id=?), ?, NOW())`,
+          [deviceId, appId, lic.id, lic.id]
+        )
+        console.log('📝 Trial device recorded for anti-abuse')
+      }
     } else {
       await query(`UPDATE activations SET last_checkin_at=NOW() WHERE id=?`, [actR.rows[0].id])
       console.log('✅ Device re-activated (already exists)')

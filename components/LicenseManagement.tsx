@@ -122,6 +122,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                 appName: item.app_name,
                 maxDevices: item.max_devices,
                 activeDevices: item.active_devices || 0,
+                is_trial: item.is_trial,
             }));
 
             setKeys(licenses);
@@ -469,7 +470,14 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="font-medium">{key.appName || key.appCode || '-'}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-medium">{key.appName || key.appCode || '-'}</span>
+                                                    {key.is_trial && (
+                                                        <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                            Trial
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {key.owner || '-'}
@@ -489,19 +497,21 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                                 <div className="flex items-center justify-end gap-1">
                                                     {key.status === KeyStatus.ACTIVE && (
                                                         <>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8"
-                                                                        onClick={() => handleExtendLicense(key.id)}
-                                                                    >
-                                                                        <Clock className="w-4 h-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>Gia hạn</TooltipContent>
-                                                            </Tooltip>
+                                                            {!key.is_trial && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleExtendLicense(key.id)}
+                                                                        >
+                                                                            <Clock className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Gia hạn</TooltipContent>
+                                                                </Tooltip>
+                                                            )}
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <Button
