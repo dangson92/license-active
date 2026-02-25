@@ -4,15 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Sparkles,
     Shield,
@@ -81,6 +79,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const [trialLoading, setTrialLoading] = useState<number | null>(null);
     const [trialSuccess, setTrialSuccess] = useState<Record<number, boolean>>({});
     const [trialConfirmApp, setTrialConfirmApp] = useState<StoreApp | null>(null);
+    const [trialSuccessApp, setTrialSuccessApp] = useState<StoreApp | null>(null);
 
     useEffect(() => {
         loadApps();
@@ -152,8 +151,11 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
         try {
             await api.store.createTrial(app.id);
             setTrialSuccess(prev => ({ ...prev, [app.id]: true }));
+            setTrialConfirmApp(null);
+            setTrialSuccessApp(app);
         } catch (error: any) {
             const msg = error.message || '';
+            setTrialConfirmApp(null);
             if (msg.includes('trial_already_used')) {
                 alert('Bạn đã sử dụng trial cho ứng dụng này rồi.');
             } else {
@@ -161,7 +163,6 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
             }
         } finally {
             setTrialLoading(null);
-            setTrialConfirmApp(null);
         }
     };
 
@@ -292,36 +293,21 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                         </Button>
 
                                         {/* Trial Button */}
-                                        {app.trial_enabled && !trialSuccess[app.id] && (
+                                        {!!app.trial_enabled && (
                                             <Button
                                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
                                                 onClick={() => setTrialConfirmApp(app)}
-                                                disabled={trialLoading === app.id}
+                                                disabled={trialLoading === app.id || trialSuccess[app.id]}
                                             >
                                                 {trialLoading === app.id ? (
                                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : trialSuccess[app.id] ? (
+                                                    <CheckCircle className="w-4 h-4 mr-2" />
                                                 ) : (
                                                     <Gift className="w-4 h-4 mr-2" />
                                                 )}
-                                                Dùng thử 7 ngày
+                                                {trialSuccess[app.id] ? 'Đã kích hoạt trial' : 'Dùng thử 7 ngày'}
                                             </Button>
-                                        )}
-
-                                        {/* Trial Success */}
-                                        {trialSuccess[app.id] && (
-                                            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
-                                                <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold">
-                                                    <CheckCircle className="w-3.5 h-3.5" />
-                                                    Đăng ký trial thành công!
-                                                </div>
-                                                <button
-                                                    onClick={() => navigate('/user/licenses')}
-                                                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2 transition-colors"
-                                                >
-                                                    Xem tại My Licenses
-                                                    <ArrowRight className="w-3 h-3" />
-                                                </button>
-                                            </div>
                                         )}
                                     </div>
                                 </CardContent>
@@ -331,23 +317,25 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                 </div>
             )}
 
-            {/* Trial Confirm Dialog */}
-            <AlertDialog open={!!trialConfirmApp} onOpenChange={(open) => { if (!open) setTrialConfirmApp(null); }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
+            {/* Trial Confirm Popup */}
+            <Dialog open={!!trialConfirmApp} onOpenChange={(open) => { if (!open && !trialLoading) setTrialConfirmApp(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
                             <Gift className="w-5 h-5 text-emerald-600" />
                             Dùng thử miễn phí
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm leading-relaxed">
+                        </DialogTitle>
+                        <DialogDescription className="text-sm leading-relaxed">
                             Bạn muốn dùng thử <span className="font-semibold text-foreground">{trialConfirmApp?.name}</span> miễn phí trong 7 ngày?
                             <br /><br />
                             Mỗi tài khoản chỉ được dùng thử 1 lần cho mỗi ứng dụng.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={!!trialLoading}>Huỷ</AlertDialogCancel>
-                        <AlertDialogAction
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setTrialConfirmApp(null)} disabled={!!trialLoading}>
+                            Huỷ
+                        </Button>
+                        <Button
                             className="bg-emerald-600 hover:bg-emerald-700"
                             disabled={!!trialLoading}
                             onClick={() => trialConfirmApp && handleTrial(trialConfirmApp)}
@@ -358,10 +346,37 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                 <Gift className="w-4 h-4 mr-2" />
                             )}
                             Xác nhận dùng thử
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Trial Success Popup */}
+            <Dialog open={!!trialSuccessApp} onOpenChange={(open) => { if (!open) setTrialSuccessApp(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <div className="flex flex-col items-center text-center py-4 space-y-4">
+                        <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle className="w-8 h-8 text-emerald-600" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <h3 className="text-lg font-bold">Đăng ký trial thành công!</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Bạn đã kích hoạt trial 7 ngày cho <span className="font-semibold text-foreground">{trialSuccessApp?.name}</span>.
+                            </p>
+                        </div>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                            onClick={() => {
+                                setTrialSuccessApp(null);
+                                navigate('/user/licenses');
+                            }}
+                        >
+                            Xem tại My Licenses
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Footer */}
             <footer className="mt-16 pt-12 border-t">
