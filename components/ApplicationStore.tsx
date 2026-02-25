@@ -4,6 +4,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     Sparkles,
     Shield,
     BarChart3,
@@ -70,6 +80,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const [selectedPricing, setSelectedPricing] = useState<Record<number, string>>({});
     const [trialLoading, setTrialLoading] = useState<number | null>(null);
     const [trialSuccess, setTrialSuccess] = useState<Record<number, boolean>>({});
+    const [trialConfirmApp, setTrialConfirmApp] = useState<StoreApp | null>(null);
 
     useEffect(() => {
         loadApps();
@@ -137,12 +148,6 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
     const handleTrial = async (app: StoreApp) => {
         if (trialLoading) return;
-
-        const confirmed = window.confirm(
-            `Bạn muốn dùng thử ${app.name} miễn phí trong 7 ngày?\n\nMỗi tài khoản chỉ được dùng thử 1 lần cho mỗi ứng dụng.`
-        );
-        if (!confirmed) return;
-
         setTrialLoading(app.id);
         try {
             await api.store.createTrial(app.id);
@@ -156,6 +161,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
             }
         } finally {
             setTrialLoading(null);
+            setTrialConfirmApp(null);
         }
     };
 
@@ -289,7 +295,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                         {app.trial_enabled && !trialSuccess[app.id] && (
                                             <Button
                                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
-                                                onClick={() => handleTrial(app)}
+                                                onClick={() => setTrialConfirmApp(app)}
                                                 disabled={trialLoading === app.id}
                                             >
                                                 {trialLoading === app.id ? (
@@ -324,6 +330,38 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                     })}
                 </div>
             )}
+
+            {/* Trial Confirm Dialog */}
+            <AlertDialog open={!!trialConfirmApp} onOpenChange={(open) => { if (!open) setTrialConfirmApp(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <Gift className="w-5 h-5 text-emerald-600" />
+                            Dùng thử miễn phí
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm leading-relaxed">
+                            Bạn muốn dùng thử <span className="font-semibold text-foreground">{trialConfirmApp?.name}</span> miễn phí trong 7 ngày?
+                            <br /><br />
+                            Mỗi tài khoản chỉ được dùng thử 1 lần cho mỗi ứng dụng.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={!!trialLoading}>Huỷ</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            disabled={!!trialLoading}
+                            onClick={() => trialConfirmApp && handleTrial(trialConfirmApp)}
+                        >
+                            {trialLoading ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Gift className="w-4 h-4 mr-2" />
+                            )}
+                            Xác nhận dùng thử
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Footer */}
             <footer className="mt-16 pt-12 border-t">
