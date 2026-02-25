@@ -87,8 +87,22 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
     const loadApps = async () => {
         try {
-            const response = await api.store.getApps();
-            setApps(response.items || []);
+            const [appsRes, licensesRes] = await Promise.all([
+                api.store.getApps(),
+                api.user.getLicenses().catch(() => ({ items: [] })),
+            ]);
+            setApps(appsRes.items || []);
+
+            // Pre-populate trialSuccess for apps where user already has a trial license
+            const existingTrials: Record<number, boolean> = {};
+            for (const lic of licensesRes.items || []) {
+                if (lic.is_trial && lic.app_id) {
+                    existingTrials[lic.app_id] = true;
+                }
+            }
+            if (Object.keys(existingTrials).length > 0) {
+                setTrialSuccess(existingTrials);
+            }
         } catch (error) {
             console.error('Failed to load apps:', error);
         } finally {
