@@ -51,6 +51,18 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
     const [devicePopup, setDevicePopup] = useState<DevicePopup | null>(null);
 
+    // Action dialog state (replaces native alert/confirm/prompt)
+    const [actionDialog, setActionDialog] = useState<{
+        type: 'confirm' | 'alert' | 'prompt';
+        title: string;
+        message: string;
+        variant?: 'default' | 'destructive' | 'success' | 'warning';
+        confirmLabel?: string;
+        onConfirm?: (value?: string) => void;
+        inputLabel?: string;
+    } | null>(null);
+    const [promptValue, setPromptValue] = useState('');
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -177,50 +189,104 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
         }
     };
 
-    const handleRevoke = async (licenseId: string) => {
-        if (!confirm('Bạn có chắc chắn muốn thu hồi license key này?')) return;
-        try {
-            await api.admin.revokeLicense(parseInt(licenseId));
-            loadData();
-        } catch (error) {
-            alert('Không thể thu hồi license key!');
-        }
+    const handleRevoke = (licenseId: string) => {
+        setActionDialog({
+            type: 'confirm',
+            title: 'Thu hồi License',
+            message: 'Bạn có chắc chắn muốn thu hồi license key này? Hành động này không thể hoàn tác.',
+            variant: 'destructive',
+            confirmLabel: 'Thu hồi',
+            onConfirm: async () => {
+                try {
+                    await api.admin.revokeLicense(parseInt(licenseId));
+                    setActionDialog(null);
+                    loadData();
+                } catch (error: any) {
+                    setActionDialog({
+                        type: 'alert',
+                        title: 'Lỗi',
+                        message: 'Không thể thu hồi license key!',
+                        variant: 'destructive',
+                    });
+                }
+            },
+        });
     };
 
-    const handleDelete = async (licenseId: string) => {
-        if (!confirm('Bạn có chắc chắn muốn xóa license key này?')) return;
-        try {
-            await api.admin.deleteLicense(parseInt(licenseId));
-            loadData();
-        } catch (error) {
-            alert('Không thể xóa license key!');
-        }
+    const handleDelete = (licenseId: string) => {
+        setActionDialog({
+            type: 'confirm',
+            title: 'Xóa License',
+            message: 'Bạn có chắc chắn muốn xóa license key này? Dữ liệu sẽ bị xóa vĩnh viễn.',
+            variant: 'destructive',
+            confirmLabel: 'Xóa',
+            onConfirm: async () => {
+                try {
+                    await api.admin.deleteLicense(parseInt(licenseId));
+                    setActionDialog(null);
+                    loadData();
+                } catch (error: any) {
+                    setActionDialog({
+                        type: 'alert',
+                        title: 'Lỗi',
+                        message: 'Không thể xóa license key!',
+                        variant: 'destructive',
+                    });
+                }
+            },
+        });
     };
 
-    const handleExtendLicense = async (licenseId: string) => {
-        const months = prompt('Nhập số tháng muốn gia hạn:', '1');
-        if (!months) return;
-
-        const additionalMonths = parseInt(months);
-        if (isNaN(additionalMonths) || additionalMonths <= 0) {
-            alert('Số tháng không hợp lệ!');
-            return;
-        }
-
-        try {
-            await api.admin.extendLicense(parseInt(licenseId), additionalMonths);
-            alert(`Đã gia hạn thêm ${additionalMonths} tháng thành công!`);
-            loadData();
-        } catch (error: any) {
-            alert(`Không thể gia hạn: ${error.message}`);
-        }
+    const handleExtendLicense = (licenseId: string) => {
+        setPromptValue('1');
+        setActionDialog({
+            type: 'prompt',
+            title: 'Gia hạn License',
+            message: 'Nhập số tháng muốn gia hạn cho license này:',
+            confirmLabel: 'Gia hạn',
+            inputLabel: 'Số tháng',
+            onConfirm: async (value?: string) => {
+                const additionalMonths = parseInt(value || '');
+                if (isNaN(additionalMonths) || additionalMonths <= 0) {
+                    setActionDialog({
+                        type: 'alert',
+                        title: 'Giá trị không hợp lệ',
+                        message: 'Số tháng phải là số nguyên dương!',
+                        variant: 'warning',
+                    });
+                    return;
+                }
+                try {
+                    await api.admin.extendLicense(parseInt(licenseId), additionalMonths);
+                    setActionDialog({
+                        type: 'alert',
+                        title: 'Thành công',
+                        message: `Đã gia hạn thêm ${additionalMonths} tháng thành công!`,
+                        variant: 'success',
+                    });
+                    loadData();
+                } catch (error: any) {
+                    setActionDialog({
+                        type: 'alert',
+                        title: 'Lỗi',
+                        message: `Không thể gia hạn: ${error.message}`,
+                        variant: 'destructive',
+                    });
+                }
+            },
+        });
     };
 
     const handleRemoveDevice = async (licenseId: string) => {
         try {
             const details = await api.admin.getLicenseDetails(parseInt(licenseId));
             if (!details.activations || details.activations.length === 0) {
-                alert('License này chưa có device nào được kích hoạt!');
+                setActionDialog({
+                    type: 'alert',
+                    title: 'Thông báo',
+                    message: 'License này chưa có device nào được kích hoạt!',
+                    variant: 'warning',
+                });
                 return;
             }
 
@@ -230,26 +296,47 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                 selectedDevices: [],
             });
         } catch (error: any) {
-            alert(`Không thể tải danh sách devices: ${error.message}`);
+            setActionDialog({
+                type: 'alert',
+                title: 'Lỗi',
+                message: `Không thể tải danh sách devices: ${error.message}`,
+                variant: 'destructive',
+            });
         }
     };
 
     const handleConfirmRemoveDevices = async () => {
         if (!devicePopup || devicePopup.selectedDevices.length === 0) {
-            alert('Vui lòng chọn ít nhất 1 device để gỡ!');
+            setActionDialog({
+                type: 'alert',
+                title: 'Thông báo',
+                message: 'Vui lòng chọn ít nhất 1 device để gỡ!',
+                variant: 'warning',
+            });
             return;
         }
 
         try {
+            const count = devicePopup.selectedDevices.length;
             for (const deviceId of devicePopup.selectedDevices) {
                 await api.admin.removeDevice(parseInt(devicePopup.licenseId), deviceId);
             }
 
-            alert(`Đã gỡ ${devicePopup.selectedDevices.length} device thành công!`);
             setDevicePopup(null);
+            setActionDialog({
+                type: 'alert',
+                title: 'Thành công',
+                message: `Đã gỡ ${count} device thành công!`,
+                variant: 'success',
+            });
             loadData();
         } catch (error: any) {
-            alert(`Không thể gỡ device: ${error.message}`);
+            setActionDialog({
+                type: 'alert',
+                title: 'Lỗi',
+                message: `Không thể gỡ device: ${error.message}`,
+                variant: 'destructive',
+            });
         }
     };
 
@@ -472,7 +559,7 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                             <TableCell>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-medium">{key.appName || key.appCode || '-'}</span>
-                                                    {key.is_trial && (
+                                                    {!!key.is_trial && (
                                                         <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                             Trial
                                                         </span>
@@ -648,6 +735,85 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                             >
                                 Gỡ {devicePopup?.selectedDevices.length || 0} device
                             </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Action Confirmation/Alert Dialog */}
+                <Dialog open={Boolean(actionDialog)} onOpenChange={(open) => { if (!open) setActionDialog(null); }}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <div className="flex items-start gap-4">
+                                {actionDialog?.variant === 'destructive' && (
+                                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                        <AlertTriangle className="w-5 h-5 text-red-600" />
+                                    </div>
+                                )}
+                                {actionDialog?.variant === 'success' && (
+                                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                )}
+                                {actionDialog?.variant === 'warning' && (
+                                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                )}
+                                {(!actionDialog?.variant || actionDialog?.variant === 'default') && (
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <Clock className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <DialogTitle>{actionDialog?.title}</DialogTitle>
+                                    <DialogDescription className="mt-1.5">
+                                        {actionDialog?.message}
+                                    </DialogDescription>
+                                </div>
+                            </div>
+                        </DialogHeader>
+
+                        {actionDialog?.type === 'prompt' && (
+                            <div className="px-14 pb-2">
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    value={promptValue}
+                                    onChange={(e) => setPromptValue(e.target.value)}
+                                    placeholder={actionDialog.inputLabel || ''}
+                                    className="mt-1"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            actionDialog.onConfirm?.(promptValue);
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        <DialogFooter>
+                            {actionDialog?.type === 'alert' ? (
+                                <Button onClick={() => setActionDialog(null)}>OK</Button>
+                            ) : (
+                                <>
+                                    <Button variant="outline" onClick={() => setActionDialog(null)}>
+                                        Hủy
+                                    </Button>
+                                    <Button
+                                        variant={actionDialog?.variant === 'destructive' ? 'destructive' : 'default'}
+                                        onClick={() => {
+                                            if (actionDialog?.type === 'prompt') {
+                                                actionDialog.onConfirm?.(promptValue);
+                                            } else {
+                                                actionDialog?.onConfirm?.();
+                                            }
+                                        }}
+                                    >
+                                        {actionDialog?.confirmLabel || 'Xác nhận'}
+                                    </Button>
+                                </>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
