@@ -93,7 +93,7 @@ export const AdminDashboardOverview: React.FC = () => {
 
             // Filter paid orders for revenue calculation (status = 'paid' after approval)
             const approvedOrders = orders.filter((o: any) => o.status === 'paid');
-            const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (o.total_price || 0), 0);
+            const totalRevenue = approvedOrders.reduce((sum: number, o: any) => sum + (parseFloat(o.total_price) || 0), 0);
 
             setStats({
                 totalMembers: users.length,
@@ -115,7 +115,7 @@ export const AdminDashboardOverview: React.FC = () => {
                     userName: o.user_full_name || o.user_email?.split('@')[0] || 'Unknown',
                     email: o.user_email || '',
                     tier: o.app_name || 'Standard',
-                    amount: o.total_price || 0,
+                    amount: parseFloat(o.total_price) || 0,
                     time: getTimeAgo(o.created_at),
                 }));
 
@@ -177,7 +177,7 @@ export const AdminDashboardOverview: React.FC = () => {
             if (monthsDiff >= 0 && monthsDiff < monthsCount) {
                 const index = monthsCount - 1 - monthsDiff;
                 if (months[index]) {
-                    months[index].amount += order.total_price || 0;
+                    months[index].amount += parseFloat(order.total_price) || 0;
                 }
             }
         });

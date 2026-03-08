@@ -256,7 +256,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                         {app.description ? (
                                             <>
                                                 <div
-                                                    className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none line-clamp-3 [&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
+                                                    className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none line-clamp-5 [&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
                                                     dangerouslySetInnerHTML={{ __html: app.description }}
                                                 />
                                                 <button
