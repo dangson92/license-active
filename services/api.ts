@@ -643,18 +643,14 @@ export const api = {
       return apiCall(`/api/store/apps/${id}`);
     },
 
-    // Create order
-    createOrder: async (data: { app_id: number; quantity: number; duration_months: number; unit_price: number }) => {
-      return apiCall('/api/store/orders', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-
-    // Upload receipt
-    uploadReceipt: async (orderId: number, file: File) => {
+    // Create order with receipt (single atomic request)
+    createOrder: async (data: { app_id: number; quantity: number; duration_months: number; unit_price: number }, receiptFile: File) => {
       const formData = new FormData();
-      formData.append('receipt', file);
+      formData.append('app_id', data.app_id.toString());
+      formData.append('quantity', data.quantity.toString());
+      formData.append('duration_months', data.duration_months.toString());
+      formData.append('unit_price', data.unit_price.toString());
+      formData.append('receipt', receiptFile);
 
       const token = getToken();
       const headers: HeadersInit = {};
@@ -662,7 +658,7 @@ export const api = {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${config.apiUrl}/api/store/orders/${orderId}/receipt`, {
+      const response = await fetch(`${config.apiUrl}/api/store/orders`, {
         method: 'POST',
         headers,
         body: formData,

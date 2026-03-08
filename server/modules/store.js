@@ -177,8 +177,8 @@ router.get('/orders', requireAuth, async (req, res) => {
     }
 })
 
-// Create purchase order
-router.post('/orders', requireAuth, async (req, res) => {
+// Create purchase order (with receipt - single atomic request)
+router.post('/orders', requireAuth, upload.single('receipt'), async (req, res) => {
     try {
         const userId = req.user.id
         const { app_id, quantity, duration_months, unit_price } = req.body
@@ -187,13 +187,19 @@ router.post('/orders', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'validation_error', message: 'Missing required fields' })
         }
 
+        // Require receipt image
+        if (!req.file) {
+            return res.status(400).json({ error: 'validation_error', message: 'Receipt image is required' })
+        }
+
         const orderCode = generateOrderCode()
         const totalPrice = unit_price * (quantity || 1)
+        const receiptUrl = `/uploads/receipts/${req.file.filename}`
 
         await query(
-            `INSERT INTO purchase_orders (user_id, app_id, order_code, quantity, duration_months, unit_price, total_price, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
-            [userId, app_id, orderCode, quantity || 1, duration_months, unit_price, totalPrice]
+            `INSERT INTO purchase_orders (user_id, app_id, order_code, quantity, duration_months, unit_price, total_price, receipt_url, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+            [userId, app_id, orderCode, quantity || 1, duration_months, unit_price, totalPrice, receiptUrl]
         )
         const r = await query('SELECT LAST_INSERT_ID() as id')
         const orderId = r.rows[0].id
@@ -224,6 +230,7 @@ router.post('/orders', requireAuth, async (req, res) => {
             id: orderId,
             order_code: orderCode,
             total_price: totalPrice,
+            receipt_url: receiptUrl,
             message: 'Order created successfully'
         })
     } catch (e) {

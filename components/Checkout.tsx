@@ -158,18 +158,15 @@ export const Checkout: React.FC<CheckoutProps> = ({
             return;
         }
         try {
-            // Step 1: Create order
-            const orderResponse = await api.store.createOrder({
+            // Create order with receipt in a single atomic request
+            await api.store.createOrder({
                 app_id: parseInt(appId),
                 quantity: getQuantityValue(),
                 duration_months: getDurationMonths(),
                 unit_price: price
-            });
+            }, receiptFile);
 
-            // Step 2: Upload receipt
-            await api.store.uploadReceipt(orderResponse.id, receiptFile);
-
-            // Step 3: Navigate to success
+            // Navigate to success
             onSuccess?.();
         } catch (error) {
             console.error('Failed to submit order:', error);
