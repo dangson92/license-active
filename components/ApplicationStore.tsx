@@ -21,7 +21,8 @@ import {
     Package,
     Gift,
     CheckCircle,
-    ArrowRight
+    ArrowRight,
+    Eye
 } from 'lucide-react';
 import api, { getAssetUrl } from '../services/api';
 
@@ -79,6 +80,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const [trialLoading, setTrialLoading] = useState<number | null>(null);
     const [trialSuccess, setTrialSuccess] = useState<Record<number, boolean>>({});
     const [trialConfirmApp, setTrialConfirmApp] = useState<StoreApp | null>(null);
+    const [descriptionApp, setDescriptionApp] = useState<StoreApp | null>(null);
     const [trialSuccessApp, setTrialSuccessApp] = useState<StoreApp | null>(null);
 
     useEffect(() => {
@@ -250,16 +252,27 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
                                     {/* Info */}
                                     <h3 className="text-lg font-bold mb-2">{app.name}</h3>
-                                    {app.description ? (
-                                        <div
-                                            className="text-sm text-muted-foreground leading-relaxed mb-6 prose prose-sm max-w-none [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
-                                            dangerouslySetInnerHTML={{ __html: app.description }}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                                            License cho {app.name}
-                                        </p>
-                                    )}
+                                    <div className="mb-6">
+                                        {app.description ? (
+                                            <>
+                                                <div
+                                                    className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none line-clamp-3 [&>p]:mb-1 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
+                                                    dangerouslySetInnerHTML={{ __html: app.description }}
+                                                />
+                                                <button
+                                                    onClick={() => setDescriptionApp(app)}
+                                                    className="text-xs text-primary font-semibold hover:underline mt-1.5 inline-flex items-center gap-1"
+                                                >
+                                                    <Eye className="w-3 h-3" />
+                                                    Xem thêm
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                License cho {app.name}
+                                            </p>
+                                        )}
+                                    </div>
 
                                     {/* Pricing Options */}
                                     {hasPricing && (
@@ -389,6 +402,29 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                             <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Description Detail Modal */}
+            <Dialog open={!!descriptionApp} onOpenChange={(open) => { if (!open) setDescriptionApp(null); }}>
+                <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {descriptionApp?.icon_url ? (
+                                <img src={getAssetUrl(descriptionApp.icon_url) || ''} alt={descriptionApp.name} className="w-6 h-6 rounded object-cover" />
+                            ) : null}
+                            {descriptionApp?.name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {descriptionApp?.description && (
+                        <div
+                            className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ol]:list-decimal [&>ol]:pl-4 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>a]:text-primary [&>a]:underline"
+                            dangerouslySetInnerHTML={{ __html: descriptionApp.description }}
+                        />
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDescriptionApp(null)}>Đóng</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Zap,
     Copy,
     Upload,
@@ -14,7 +21,8 @@ import {
     Loader2,
     Check,
     XCircle,
-    X
+    X,
+    AlertTriangle
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -49,6 +57,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
     const [copied, setCopied] = useState<string | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
     const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+    const [orderError, setOrderError] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -170,7 +179,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
             onSuccess?.();
         } catch (error) {
             console.error('Failed to submit order:', error);
-            alert('Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
+            setOrderError('Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
         } finally {
             setSubmitting(false);
         }
@@ -470,6 +479,28 @@ export const Checkout: React.FC<CheckoutProps> = ({
                     </div>
                 </div>
             </footer>
+
+            {/* Order Error Dialog */}
+            <Dialog open={!!orderError} onOpenChange={(open) => { if (!open) setOrderError(null); }}>
+                <DialogContent className="sm:max-w-md">
+                    <div className="flex flex-col items-center text-center py-4 space-y-4">
+                        <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                            <AlertTriangle className="w-8 h-8 text-red-600" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <h3 className="text-lg font-bold">Đặt hàng thất bại</h3>
+                            <p className="text-sm text-muted-foreground">{orderError}</p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setOrderError(null)}
+                        >
+                            Đóng
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
