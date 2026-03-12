@@ -232,8 +232,14 @@ router.get('/licenses', requireAdmin, async (req, res) => {
       cond.push(`l.app_id=?`)
     }
     if (status && status !== 'all') {
-      params.push(String(status))
-      cond.push(`l.status=?`)
+      if (status === 'expired') {
+        cond.push(`(l.status = 'expired' OR (l.status = 'active' AND l.expires_at IS NOT NULL AND l.expires_at < NOW()))`)
+      } else if (status === 'active') {
+        cond.push(`(l.status = 'active' AND (l.expires_at IS NULL OR l.expires_at >= NOW()))`)
+      } else {
+        params.push(String(status))
+        cond.push(`l.status=?`)
+      }
     }
     if (search) {
       params.push(`%${search}%`, `%${search}%`)
@@ -257,7 +263,12 @@ router.get('/licenses', requireAdmin, async (req, res) => {
     const limitInt = parseInt(limit, 10)
     const offsetInt = parseInt(offset, 10)
     const r = await query(
-      `SELECT l.id, l.license_key, l.expires_at, l.status, l.max_devices, l.is_trial, l.created_at,
+      `SELECT l.id, l.license_key, l.expires_at,
+              CASE
+                WHEN l.status = 'active' AND l.expires_at IS NOT NULL AND l.expires_at < NOW() THEN 'expired'
+                ELSE l.status
+              END AS status,
+              l.max_devices, l.is_trial, l.created_at,
               u.email, a.code AS app_code, a.name AS app_name,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices
        FROM licenses l
@@ -324,7 +335,12 @@ router.get('/licenses/:id', requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id)
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,l.is_trial,l.meta,u.email,a.code AS app_code,a.name AS app_name
+      `SELECT l.id,l.license_key,l.expires_at,
+              CASE
+                WHEN l.status = 'active' AND l.expires_at IS NOT NULL AND l.expires_at < NOW() THEN 'expired'
+                ELSE l.status
+              END AS status,
+              l.max_devices,l.is_trial,l.meta,u.email,a.code AS app_code,a.name AS app_name
        FROM licenses l JOIN users u ON u.id=l.user_id JOIN apps a ON a.id=l.app_id WHERE l.id=?`,
       [id]
     )

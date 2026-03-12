@@ -24,7 +24,12 @@ router.get('/licenses', requireUser, async (req, res) => {
   try {
     // Lấy danh sách licenses của user kèm theo thông tin version mới nhất và trạng thái app
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,l.is_trial,
+      `SELECT l.id,l.license_key,l.expires_at,
+              CASE
+                WHEN l.status = 'active' AND l.expires_at IS NOT NULL AND l.expires_at < NOW() THEN 'expired'
+                ELSE l.status
+              END AS status,
+              l.max_devices,l.is_trial,
               a.id AS app_id, a.code AS app_code,a.name AS app_name,a.icon_url AS app_icon,
               a.is_active AS app_is_active,
               (SELECT COUNT(*) FROM activations act WHERE act.license_id = l.id AND act.status = 'active') AS active_devices,
@@ -89,7 +94,12 @@ router.get('/licenses/:id', requireUser, async (req, res) => {
   try {
     const id = Number(req.params.id)
     const r = await query(
-      `SELECT l.id,l.license_key,l.expires_at,l.status,l.max_devices,l.is_trial,a.code AS app_code,a.name AS app_name
+      `SELECT l.id,l.license_key,l.expires_at,
+              CASE
+                WHEN l.status = 'active' AND l.expires_at IS NOT NULL AND l.expires_at < NOW() THEN 'expired'
+                ELSE l.status
+              END AS status,
+              l.max_devices,l.is_trial,a.code AS app_code,a.name AS app_name
        FROM licenses l JOIN apps a ON a.id=l.app_id WHERE l.id=? AND l.user_id=?`,
       [id, req.user.id]
     )
