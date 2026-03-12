@@ -582,23 +582,24 @@ export const LicenseManagement: React.FC<LicenseManagementProps> = ({ user, onCr
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center justify-end gap-1">
+                                                    {/* Gia hạn - hiện cho cả ACTIVE và EXPIRED (trừ trial) */}
+                                                    {(key.status === KeyStatus.ACTIVE || key.status === KeyStatus.EXPIRED) && !key.is_trial && (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8"
+                                                                    onClick={() => handleExtendLicense(key.id)}
+                                                                >
+                                                                    <Clock className="w-4 h-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Gia hạn</TooltipContent>
+                                                        </Tooltip>
+                                                    )}
                                                     {key.status === KeyStatus.ACTIVE && (
                                                         <>
-                                                            {!key.is_trial && (
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() => handleExtendLicense(key.id)}
-                                                                        >
-                                                                            <Clock className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Gia hạn</TooltipContent>
-                                                                </Tooltip>
-                                                            )}
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <Button

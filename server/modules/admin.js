@@ -443,9 +443,16 @@ router.post('/licenses/:id/extend', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'trial_cannot_extend', message: 'Trial licenses cannot be extended' })
     }
 
+    // If license is expired, extend from NOW() instead of the old expires_at
     await query(
-      `UPDATE licenses SET expires_at=COALESCE(expires_at,NOW()) + INTERVAL ? MONTH WHERE id=?`,
-      [Number(additionalMonths), id]
+      `UPDATE licenses SET 
+        expires_at = CASE
+          WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN NOW() + INTERVAL ? MONTH
+          ELSE COALESCE(expires_at, NOW()) + INTERVAL ? MONTH
+        END,
+        status = 'active'
+      WHERE id=?`,
+      [Number(additionalMonths), Number(additionalMonths), id]
     )
     const r = await query('SELECT expires_at FROM licenses WHERE id=?', [id])
     res.json({ id, expires_at: r.rows[0]?.expires_at })
