@@ -14,7 +14,8 @@ import { requireAdmin } from './auth.js'
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-const router = express.Router()
+const appsRouter = express.Router()    // mounted at /api/admin/apps
+const attachmentsRouter = express.Router() // mounted at /api/admin/attachments
 
 // ===================
 // Multer Configuration (reused from app-versions.js)
@@ -76,7 +77,7 @@ const getS3Client = () => {
 // GET /admin/apps/:appId/attachments
 // List all attachments for an app
 // ===================
-router.get('/:appId/attachments', requireAdmin, async (req, res) => {
+appsRouter.get('/:appId/attachments', requireAdmin, async (req, res) => {
   try {
     const { appId } = req.params
 
@@ -103,7 +104,7 @@ router.get('/:appId/attachments', requireAdmin, async (req, res) => {
 // POST /admin/apps/:appId/attachments
 // Create new attachment (metadata only, file uploaded separately)
 // ===================
-router.post('/:appId/attachments', requireAdmin, async (req, res) => {
+appsRouter.post('/:appId/attachments', requireAdmin, async (req, res) => {
   try {
     const { appId } = req.params
     const { description, file_name, original_name, file_size, download_url, storage_type, storage_key } = req.body
@@ -138,7 +139,7 @@ router.post('/:appId/attachments', requireAdmin, async (req, res) => {
 // POST /admin/apps/:appId/attachments/upload
 // Upload attachment file to VPS
 // ===================
-router.post('/:appId/attachments/upload', requireAdmin, upload.single('file'), async (req, res) => {
+appsRouter.post('/:appId/attachments/upload', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'no_file', message: 'No file uploaded' })
@@ -167,7 +168,7 @@ router.post('/:appId/attachments/upload', requireAdmin, upload.single('file'), a
 // POST /admin/apps/:appId/attachments/get-presigned-url
 // Get presigned URL for direct upload to iDrive E2
 // ===================
-router.post('/:appId/attachments/get-presigned-url', requireAdmin, async (req, res) => {
+appsRouter.post('/:appId/attachments/get-presigned-url', requireAdmin, async (req, res) => {
   try {
     const { appId } = req.params
     const { appCode, filename, fileSize } = req.body
@@ -213,7 +214,7 @@ router.post('/:appId/attachments/get-presigned-url', requireAdmin, async (req, r
 // PUT /admin/attachments/:id
 // Update attachment info
 // ===================
-router.put('/:id', requireAdmin, async (req, res) => {
+attachmentsRouter.put('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params
     const { description } = req.body
@@ -234,7 +235,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 // DELETE /admin/attachments/:id
 // Delete attachment and its file
 // ===================
-router.delete('/:id', requireAdmin, async (req, res) => {
+attachmentsRouter.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params
 
@@ -285,4 +286,4 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 })
 
-export default router
+export { appsRouter, attachmentsRouter }
