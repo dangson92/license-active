@@ -252,8 +252,6 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (file_name !== undefined) {
       updates.push('file_name = ?')
       values.push(file_name)
-      updates.push('file_type = ?')
-      values.push(path.extname(file_name) || '.zip')
     }
     if (file_size !== undefined) {
       updates.push('file_size = ?')
