@@ -34,19 +34,19 @@ interface DownloadInfo {
         version: string
         release_date: string
         release_notes: string | null
-        platform: string
-        file_type: string
     }
     availablePlatforms: string[]
     license: {
         expires_at: string
         status: string
     }
-    mainFile: {
+    platformFiles: {
+        platform: string
         filename: string
         size: number
+        file_type: string
         downloadUrl: string
-    }
+    }[]
     attachments: {
         id: number
         description: string
@@ -83,31 +83,22 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [downloadInfo, setDownloadInfo] = useState<DownloadInfo | null>(null)
-    const [selectedPlatform, setSelectedPlatform] = useState<string>('')
 
     useEffect(() => {
         if (isOpen && appCode) {
-            // Auto-detect user's OS on first open
-            const detected = detectUserPlatform()
-            setSelectedPlatform(detected)
-            verifyAndFetchDownload(detected)
+            verifyAndFetchDownload()
         }
     }, [isOpen, appCode])
 
-    const verifyAndFetchDownload = async (platform?: string) => {
+    const verifyAndFetchDownload = async () => {
         setLoading(true)
         setError(null)
         setDownloadInfo(null)
 
         try {
-            const response = await api.download.verify(appCode, platform)
+            const response = await api.download.verify(appCode)
             setDownloadInfo(response)
-            // Update selectedPlatform to what server actually resolved
-            if (response.version?.platform) {
-                setSelectedPlatform(response.version.platform)
-            }
         } catch (err: any) {
-            // Parse error message
             if (err.message.includes('Đăng nhập')) {
                 setError('auth')
             } else if (err.message.includes('license') || err.message.includes('License')) {
@@ -120,12 +111,6 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
         }
     }
 
-    const handlePlatformChange = (platform: string) => {
-        if (platform === selectedPlatform) return
-        setSelectedPlatform(platform)
-        verifyAndFetchDownload(platform)
-    }
-
     const formatFileSize = (bytes: number) => {
         if (!bytes) return 'N/A'
         if (bytes < 1024) return `${bytes} B`
@@ -133,10 +118,7 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
         return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
     }
 
-    const handleDownloadMain = () => {
-        if (!downloadInfo) return
-        // Download URL already contains token from backend
-        const downloadUrl = downloadInfo.mainFile.downloadUrl
+    const handleDownloadPlatform = (downloadUrl: string) => {
         console.log('Opening download URL:', downloadUrl)
         window.open(downloadUrl, '_blank')
     }
@@ -216,62 +198,40 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                                 </div>
                             )}
 
-                            {/* Platform Tabs - only show if multiple platforms available */}
-                            {downloadInfo.availablePlatforms && downloadInfo.availablePlatforms.length > 1 && (
-                                <div className="space-y-1.5">
-                                    <p className="text-xs text-muted-foreground font-medium">Chọn nền tảng:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {downloadInfo.availablePlatforms.map(platform => {
-                                            const cfg = PLATFORM_CONFIG[platform] || { emoji: '💻', label: platform }
-                                            const isActive = selectedPlatform === platform
-                                            return (
-                                                <button
-                                                    key={platform}
-                                                    onClick={() => handlePlatformChange(platform)}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                                                        isActive
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                                                    }`}
-                                                >
-                                                    <span>{cfg.emoji}</span>
-                                                    <span>{cfg.label}</span>
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Version Info */}
                             <div className="text-sm text-muted-foreground">
                                 Phiên bản: <span className="font-semibold text-foreground">{downloadInfo.version.version}</span>
-                                <span className="mx-2">•</span>
-                                {downloadInfo.version.platform} {downloadInfo.version.file_type}
                             </div>
 
-                            {/* Main Download */}
-                            <Card className="border-2 border-primary/20 bg-primary/5">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-primary/10 rounded-lg">
-                                                <Package className="h-6 w-6 text-primary" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-semibold">{appName}</h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {downloadInfo.mainFile.filename} • {formatFileSize(downloadInfo.mainFile.size)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Button onClick={handleDownloadMain}>
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Tải xuống
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            {/* Download buttons for each platform */}
+                            <div className="space-y-2">
+                                {downloadInfo.platformFiles.map(pf => {
+                                    const cfg = PLATFORM_CONFIG[pf.platform] || { emoji: '💻', label: pf.platform }
+                                    return (
+                                        <Card key={pf.platform} className="border-2 border-primary/20 bg-primary/5">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-primary/10 rounded-lg">
+                                                            <Package className="h-6 w-6 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-semibold">{cfg.emoji} {appName} — {cfg.label}</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {pf.filename} • {formatFileSize(pf.size)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button onClick={() => handleDownloadPlatform(pf.downloadUrl)}>
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        Tải xuống
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })}
+                            </div>
 
                             {/* Attachments */}
                             {downloadInfo.attachments.length > 0 && (

@@ -151,39 +151,48 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
         : availablePlatforms[0]
     }
 
-    // Get the version for the resolved platform
-    const versionResult = await query(
+    // Get all versions for this version number (all platforms)
+    const allVersionsResult = await query(
       `SELECT id, version, release_date, release_notes, download_url, file_name, file_size, platform, file_type
-       FROM app_versions 
-       WHERE app_id = ? AND version = ? AND platform = ?
-       LIMIT 1`,
-      [app.id, latestVersionNumber, targetPlatform]
+       FROM app_versions
+       WHERE app_id = ? AND version = ?
+       ORDER BY platform ASC`,
+      [app.id, latestVersionNumber]
     )
 
-    if (versionResult.rows.length === 0) {
+    if (allVersionsResult.rows.length === 0) {
       return res.status(404).json({
         error: 'no_version',
-        message: `No version available for "${app.name}" on platform "${targetPlatform}"`
+        message: `No version available for "${app.name}"`
       })
     }
 
-    const version = versionResult.rows[0]
+    const primaryVersion = allVersionsResult.rows[0]
 
-    // Get attachments for this version
+    // Get attachments for the primary version
     const attachmentsResult = await query(
       `SELECT aa.id, aa.file_name, aa.original_name, aa.file_size, aa.description, aa.download_url
        FROM app_attachments aa
        JOIN version_attachment_links val ON aa.id = val.attachment_id
        WHERE val.version_id = ?`,
-      [version.id]
+      [primaryVersion.id]
     )
 
     // Build full URLs with download tokens
     const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
     const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
 
-    // Generate tokens for each download link (valid 30 minutes)
-    const mainFileToken = generateDownloadToken(userId, app.code, 'main')
+    // Build download entry for each platform
+    const platformFiles = allVersionsResult.rows.map(v => {
+      const token = generateDownloadToken(userId, app.code, 'main')
+      return {
+        platform: v.platform,
+        filename: v.file_name,
+        size: v.file_size,
+        file_type: v.file_type,
+        downloadUrl: `${baseDownloadUrl}/file?token=${token}&platform=${v.platform}`
+      }
+    })
 
     res.json({
       authorized: true,
@@ -194,23 +203,17 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
         icon_url: app.icon_url
       },
       version: {
-        id: version.id,
-        version: version.version,
-        release_date: version.release_date,
-        release_notes: version.release_notes,
-        platform: version.platform,
-        file_type: version.file_type
+        id: primaryVersion.id,
+        version: primaryVersion.version,
+        release_date: primaryVersion.release_date,
+        release_notes: primaryVersion.release_notes,
       },
       availablePlatforms,
       license: {
         expires_at: licenseCheck.license.expires_at,
         status: licenseCheck.license.status
       },
-      mainFile: {
-        filename: version.file_name,
-        size: version.file_size,
-        downloadUrl: `${baseDownloadUrl}/file?token=${mainFileToken}&platform=${targetPlatform}`
-      },
+      platformFiles,
       attachments: attachmentsResult.rows.map(att => {
         const attachmentToken = generateDownloadToken(userId, app.code, 'attachment', att.id)
         return {
@@ -269,15 +272,25 @@ router.get('/:appCode/file', async (req, res) => {
 
     const app = appResult.rows[0]
 
-    // Get latest version
+    // Get latest version for requested platform
+    const requestedPlatform = req.query.platform || 'Windows'
     const versionResult = await query(
-      `SELECT download_url, version FROM app_versions 
-       WHERE app_id = ? ORDER BY created_at DESC LIMIT 1`,
-      [app.id]
+      `SELECT download_url, version FROM app_versions
+       WHERE app_id = ? AND platform = ? ORDER BY created_at DESC LIMIT 1`,
+      [app.id, requestedPlatform]
     )
 
+    // Fallback: if no version for that platform, get any latest
     if (versionResult.rows.length === 0) {
-      return res.status(404).json({ error: 'no_version' })
+      const fallback = await query(
+        `SELECT download_url, version FROM app_versions
+         WHERE app_id = ? ORDER BY created_at DESC LIMIT 1`,
+        [app.id]
+      )
+      if (fallback.rows.length === 0) {
+        return res.status(404).json({ error: 'no_version' })
+      }
+      versionResult.rows = fallback.rows
     }
 
     const version = versionResult.rows[0]
