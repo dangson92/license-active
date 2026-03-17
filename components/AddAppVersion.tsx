@@ -190,8 +190,8 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appInfo = await api.admin.getApp(parseInt(appId));
             const appCode = appInfo.code;
 
-            // Upload with progress - use selected destination
-            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2');
+            // Upload with progress - use selected destination + platform
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2', platform || 'Windows');
 
             // Update form with file info
             // For E2, path is already full URL; for VPS, prepend base URL
@@ -221,10 +221,10 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     };
 
     // Upload file với XMLHttpRequest để track progress
-    const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: 'vps' | 'idrive-e2'): Promise<any> => {
+    const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: 'vps' | 'idrive-e2', platform?: string): Promise<any> => {
         // For iDrive E2: Use presigned URL to upload directly from browser
         if (destination === 'idrive-e2') {
-            return uploadDirectToE2(file, appCode, version);
+            return uploadDirectToE2(file, appCode, version, platform);
         }
 
         // For VPS: Upload through server
@@ -279,7 +279,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
 
     // Upload trực tiếp lên iDrive E2 sử dụng presigned URL
     // Flow: Browser -> E2 (không qua VPS)
-    const uploadDirectToE2 = async (file: File, appCode: string, version: string): Promise<any> => {
+    const uploadDirectToE2 = async (file: File, appCode: string, version: string, platform?: string): Promise<any> => {
         const token = localStorage.getItem('auth_token');
 
         // Bước 1: Lấy presigned URL từ server
@@ -296,6 +296,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 version,
                 filename: file.name,
                 fileSize: file.size,
+                platform: platform || 'Windows',
             }),
         });
 

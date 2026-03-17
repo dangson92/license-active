@@ -116,14 +116,7 @@ router.get('/latest/:appId', requireAdmin, async (req, res) => {
   }
 })
 
-// Map platform → default file_type
-const PLATFORM_FILE_TYPE_MAP = {
-  'Windows': '.exe',
-  'macOS': '.dmg',
-  'Linux': '.deb',
-  'Web': 'N/A',
-  'All': '.zip',
-}
+
 
 /**
  * POST /admin/app-versions
@@ -167,8 +160,10 @@ router.post('/', requireAdmin, async (req, res) => {
       })
     }
 
-    // Auto-derive file_type from platform
-    const resolvedFileType = PLATFORM_FILE_TYPE_MAP[resolvedPlatform] || '.zip'
+    // Derive file_type from actual uploaded file extension
+    const resolvedFileType = file_name
+      ? (require('path').extname(file_name) || '.zip')
+      : '.zip'
 
     // Insert new version
     await query(
@@ -257,6 +252,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (file_name !== undefined) {
       updates.push('file_name = ?')
       values.push(file_name)
+      updates.push('file_type = ?')
+      values.push(path.extname(file_name) || '.zip')
     }
     if (file_size !== undefined) {
       updates.push('file_size = ?')
@@ -269,9 +266,6 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (platform !== undefined) {
       updates.push('platform = ?')
       values.push(platform)
-      // Auto-update file_type when platform changes
-      updates.push('file_type = ?')
-      values.push(PLATFORM_FILE_TYPE_MAP[platform] || '.zip')
     }
 
     // Update version fields if any
@@ -532,9 +526,10 @@ router.post('/upload-e2', requireAdmin, upload.single('file'), async (req, res) 
 
     const appCode = req.body.appCode || 'app'
     const version = req.body.version || 'unknown'
+    const platform = req.body.platform || 'Windows'
 
-    // Generate S3 key
-    const e2Key = e2Service.generateE2Key(appCode, version, req.file.originalname)
+    // Generate S3 key — include platform in path to avoid overwriting
+    const e2Key = e2Service.generateE2Key(appCode, version, req.file.originalname, platform)
 
     // Determine content type
     const ext = path.extname(req.file.originalname).toLowerCase()
@@ -605,7 +600,7 @@ router.post('/get-presigned-url', requireAdmin, async (req, res) => {
   }
 
   try {
-    const { appCode, version, filename, contentType, fileSize } = req.body
+    const { appCode, version, filename, contentType, fileSize, platform } = req.body
 
     if (!appCode || !version || !filename) {
       return res.status(400).json({
@@ -622,8 +617,8 @@ router.post('/get-presigned-url', requireAdmin, async (req, res) => {
       })
     }
 
-    // Generate S3 key
-    const e2Key = e2Service.generateE2Key(appCode, version, filename)
+    // Generate S3 key — include platform in path to avoid overwriting
+    const e2Key = e2Service.generateE2Key(appCode, version, filename, platform)
 
     // Determine content type
     const ext = path.extname(filename).toLowerCase()

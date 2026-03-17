@@ -141,12 +141,17 @@ export async function deleteFromE2(key) {
  * @param {string} appCode - Application code
  * @param {string} version - Version string
  * @param {string} filename - Original filename
+ * @param {string} [platform] - Platform: 'Windows', 'macOS', 'Linux', etc.
  * @returns {string} S3 key
  */
-export function generateE2Key(appCode, version, filename) {
+export function generateE2Key(appCode, version, filename, platform) {
     const ext = path.extname(filename)
-    // Format: releases/{appCode}/{appCode}-{version}.zip
-    return `releases/${appCode}/${appCode}-${version}${ext}`
+    // Normalize platform to lowercase folder name
+    const platformFolder = platform
+        ? platform.toLowerCase().replace(/\s+/g, '-')
+        : 'windows'
+    // Format: releases/{appCode}/{platform}/{appCode}-{version}.{ext}
+    return `releases/${appCode}/${platformFolder}/${appCode}-${version}${ext}`
 }
 
 /**
