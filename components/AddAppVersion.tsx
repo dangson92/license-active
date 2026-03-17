@@ -412,7 +412,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appInfo = await api.admin.getApp(parseInt(appId || '0'));
             const appCode = appInfo.code;
 
-            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2');
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2', platform || 'Windows');
 
             // For E2, path is already full URL; for VPS, prepend base URL
             const fileUrl = response.file.storage === 'idrive-e2'
