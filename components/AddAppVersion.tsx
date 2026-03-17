@@ -15,15 +15,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     ArrowLeft,
     Upload,
-    Calendar,
     Package,
-    FileCode,
     Monitor,
     CloudUpload,
     Info,
     Cloud,
     Server,
-    AlertCircle
+    AlertCircle,
+    Layers
 } from 'lucide-react';
 
 interface EditVersionData {
@@ -66,7 +65,6 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [versionNumber, setVersionNumber] = useState('');
     const [releaseDate, setReleaseDate] = useState('');
     const [platform, setPlatform] = useState('');
-    const [fileType, setFileType] = useState('');
     const [changelog, setChangelog] = useState('');
     const [downloadUrl, setDownloadUrl] = useState('');
     const [mandatory, setMandatory] = useState(false);
@@ -137,7 +135,6 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             setChangelog(editVersion.release_notes || '');
             setDownloadUrl(editVersion.download_url || '');
             setPlatform(editVersion.platform || '');
-            setFileType(editVersion.file_type || '');
             // Load mandatory state from editVersion
             setMandatory(editVersion.mandatory || false);
             // Load selected attachments from editVersion
@@ -456,7 +453,6 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 await api.admin.updateAppVersion(editVersion.id, {
                     version: versionNumber,
                     platform: platform || 'Windows',
-                    file_type: fileType || '.exe',
                     release_notes: changelog,
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
@@ -472,7 +468,6 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                     app_id: parseInt(appId || '0'),
                     version: versionNumber,
                     platform: platform || 'Windows',
-                    file_type: fileType || '.exe',
                     release_notes: changelog,
                     download_url: downloadUrl || '',
                     release_date: releaseDate,
@@ -584,7 +579,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                         </div>
                     </div>
 
-                    {/* Platform & File Type Row */}
+                    {/* Platform Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label className="font-semibold flex items-center gap-2">
@@ -596,32 +591,21 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                     <SelectValue placeholder="Select Platform" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Windows">Windows</SelectItem>
-                                    <SelectItem value="macOS">macOS</SelectItem>
-                                    <SelectItem value="Linux">Linux</SelectItem>
-                                    <SelectItem value="Web">Web</SelectItem>
-                                    <SelectItem value="All">All Platforms</SelectItem>
+                                    <SelectItem value="Windows">🪟 Windows</SelectItem>
+                                    <SelectItem value="macOS">🍎 macOS</SelectItem>
+                                    <SelectItem value="Linux">🐧 Linux</SelectItem>
+                                    <SelectItem value="Web">🌐 Web</SelectItem>
+                                    <SelectItem value="All">📦 All Platforms</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label className="font-semibold flex items-center gap-2">
-                                <FileCode className="w-4 h-4" />
-                                File Type
-                            </Label>
-                            <Select value={fileType} onValueChange={setFileType}>
-                                <SelectTrigger className="h-12">
-                                    <SelectValue placeholder="Select File Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value=".exe">.exe</SelectItem>
-                                    <SelectItem value=".msi">.msi</SelectItem>
-                                    <SelectItem value=".zip">.zip</SelectItem>
-                                    <SelectItem value=".dmg">.dmg</SelectItem>
-                                    <SelectItem value=".app">.app</SelectItem>
-                                    <SelectItem value=".deb">.deb</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        {/* Multi-platform hint */}
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/70 border border-blue-100 self-end mb-0.5">
+                            <Layers className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-blue-700 leading-relaxed">
+                                Để thêm bản <strong>macOS</strong> cho cùng version,
+                                sau khi tạo xong → nhấn <strong>Add New Version</strong> với cùng version number và đổi platform.
+                            </p>
                         </div>
                     </div>
 

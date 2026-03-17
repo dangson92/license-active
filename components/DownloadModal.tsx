@@ -18,7 +18,6 @@ import {
     AlertCircle,
     CheckCircle,
     Lock,
-    ExternalLink,
     Loader2
 } from 'lucide-react'
 import { api } from '@/services/api'
@@ -38,6 +37,7 @@ interface DownloadInfo {
         platform: string
         file_type: string
     }
+    availablePlatforms: string[]
     license: {
         expires_at: string
         status: string
@@ -63,25 +63,49 @@ interface DownloadModalProps {
     onClose: () => void
 }
 
+// Detect user's OS to pre-select the right platform
+function detectUserPlatform(): string {
+    const ua = navigator.userAgent.toLowerCase()
+    if (ua.includes('mac os x') || ua.includes('macintosh')) return 'macOS'
+    if (ua.includes('linux') && !ua.includes('android')) return 'Linux'
+    return 'Windows'
+}
+
+const PLATFORM_CONFIG: Record<string, { emoji: string; label: string }> = {
+    'Windows': { emoji: '🪟', label: 'Windows' },
+    'macOS':   { emoji: '🍎', label: 'macOS' },
+    'Linux':   { emoji: '🐧', label: 'Linux' },
+    'Web':     { emoji: '🌐', label: 'Web' },
+    'All':     { emoji: '📦', label: 'All' },
+}
+
 export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadModalProps) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [downloadInfo, setDownloadInfo] = useState<DownloadInfo | null>(null)
+    const [selectedPlatform, setSelectedPlatform] = useState<string>('')
 
     useEffect(() => {
         if (isOpen && appCode) {
-            verifyAndFetchDownload()
+            // Auto-detect user's OS on first open
+            const detected = detectUserPlatform()
+            setSelectedPlatform(detected)
+            verifyAndFetchDownload(detected)
         }
     }, [isOpen, appCode])
 
-    const verifyAndFetchDownload = async () => {
+    const verifyAndFetchDownload = async (platform?: string) => {
         setLoading(true)
         setError(null)
         setDownloadInfo(null)
 
         try {
-            const response = await api.download.verify(appCode)
+            const response = await api.download.verify(appCode, platform)
             setDownloadInfo(response)
+            // Update selectedPlatform to what server actually resolved
+            if (response.version?.platform) {
+                setSelectedPlatform(response.version.platform)
+            }
         } catch (err: any) {
             // Parse error message
             if (err.message.includes('Đăng nhập')) {
@@ -96,6 +120,12 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
         }
     }
 
+    const handlePlatformChange = (platform: string) => {
+        if (platform === selectedPlatform) return
+        setSelectedPlatform(platform)
+        verifyAndFetchDownload(platform)
+    }
+
     const formatFileSize = (bytes: number) => {
         if (!bytes) return 'N/A'
         if (bytes < 1024) return `${bytes} B`
@@ -105,25 +135,17 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
 
     const handleDownloadMain = () => {
         if (!downloadInfo) return
-
         // Download URL already contains token from backend
-        // Just open the URL and browser will download directly
         const downloadUrl = downloadInfo.mainFile.downloadUrl
         console.log('Opening download URL:', downloadUrl)
-
-        // Open in new tab to trigger download
         window.open(downloadUrl, '_blank')
     }
 
     const handleDownloadAttachment = (attachmentId: number) => {
         const attachment = downloadInfo?.attachments.find(a => a.id === attachmentId)
         if (!attachment) return
-
-        // Download URL already contains token from backend
         const downloadUrl = attachment.downloadUrl
         console.log('Opening attachment URL:', downloadUrl)
-
-        // Open in new tab to trigger download
         window.open(downloadUrl, '_blank')
     }
 
@@ -177,7 +199,7 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                             <h3 className="font-semibold text-lg mb-2">Có lỗi xảy ra</h3>
                             <p className="text-muted-foreground mb-4">{error}</p>
-                            <Button variant="outline" onClick={verifyAndFetchDownload}>Thử lại</Button>
+                            <Button variant="outline" onClick={() => verifyAndFetchDownload(selectedPlatform)}>Thử lại</Button>
                         </div>
                     ) : downloadInfo ? (
                         <div className="space-y-4">
@@ -191,6 +213,33 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                                     <Badge variant="outline" className="text-green-700">
                                         HSD: {formatDate(downloadInfo.license.expires_at)}
                                     </Badge>
+                                </div>
+                            )}
+
+                            {/* Platform Tabs - only show if multiple platforms available */}
+                            {downloadInfo.availablePlatforms && downloadInfo.availablePlatforms.length > 1 && (
+                                <div className="space-y-1.5">
+                                    <p className="text-xs text-muted-foreground font-medium">Chọn nền tảng:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {downloadInfo.availablePlatforms.map(platform => {
+                                            const cfg = PLATFORM_CONFIG[platform] || { emoji: '💻', label: platform }
+                                            const isActive = selectedPlatform === platform
+                                            return (
+                                                <button
+                                                    key={platform}
+                                                    onClick={() => handlePlatformChange(platform)}
+                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                                                        isActive
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                                                    }`}
+                                                >
+                                                    <span>{cfg.emoji}</span>
+                                                    <span>{cfg.label}</span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
                             )}
 

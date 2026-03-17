@@ -78,11 +78,13 @@ async function checkActiveLicense(userId, appId) {
  * 
  * Verify user has active license and return download info
  * Requires authentication
+ * Optional query: ?platform=macOS (default: Windows)
  */
 router.get('/:appCode/verify', requireAuth, async (req, res) => {
   try {
     const { appCode } = req.params
     const userId = req.user.id
+    const requestedPlatform = req.query.platform || null
 
     // Find app
     const appResult = await query(
@@ -111,20 +113,57 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       })
     }
 
-    // Get latest version
+    // Get all available platforms for the latest version number
+    const latestVersionRow = await query(
+      `SELECT version FROM app_versions
+       WHERE app_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [app.id]
+    )
+
+    if (latestVersionRow.rows.length === 0) {
+      return res.status(404).json({
+        error: 'no_version',
+        message: `No version available for "${app.name}"`
+      })
+    }
+
+    const latestVersionNumber = latestVersionRow.rows[0].version
+
+    // Get all platforms available for this version number
+    const platformsResult = await query(
+      `SELECT platform FROM app_versions
+       WHERE app_id = ? AND version = ?
+       ORDER BY platform ASC`,
+      [app.id, latestVersionNumber]
+    )
+    const availablePlatforms = platformsResult.rows.map(r => r.platform)
+
+    // Resolve which platform to serve:
+    // 1. Use requested platform if available
+    // 2. Fallback to Windows if not found
+    // 3. Fallback to any available platform
+    let targetPlatform = requestedPlatform
+    if (!targetPlatform || !availablePlatforms.includes(targetPlatform)) {
+      targetPlatform = availablePlatforms.includes('Windows')
+        ? 'Windows'
+        : availablePlatforms[0]
+    }
+
+    // Get the version for the resolved platform
     const versionResult = await query(
       `SELECT id, version, release_date, release_notes, download_url, file_name, file_size, platform, file_type
        FROM app_versions 
-       WHERE app_id = ? 
-       ORDER BY created_at DESC 
+       WHERE app_id = ? AND version = ? AND platform = ?
        LIMIT 1`,
-      [app.id]
+      [app.id, latestVersionNumber, targetPlatform]
     )
 
     if (versionResult.rows.length === 0) {
       return res.status(404).json({
         error: 'no_version',
-        message: `No version available for "${app.name}"`
+        message: `No version available for "${app.name}" on platform "${targetPlatform}"`
       })
     }
 
@@ -162,6 +201,7 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
         platform: version.platform,
         file_type: version.file_type
       },
+      availablePlatforms,
       license: {
         expires_at: licenseCheck.license.expires_at,
         status: licenseCheck.license.status
@@ -169,7 +209,7 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
       mainFile: {
         filename: version.file_name,
         size: version.file_size,
-        downloadUrl: `${baseDownloadUrl}/file?token=${mainFileToken}`
+        downloadUrl: `${baseDownloadUrl}/file?token=${mainFileToken}&platform=${targetPlatform}`
       },
       attachments: attachmentsResult.rows.map(att => {
         const attachmentToken = generateDownloadToken(userId, app.code, 'attachment', att.id)

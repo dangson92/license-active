@@ -116,6 +116,15 @@ router.get('/latest/:appId', requireAdmin, async (req, res) => {
   }
 })
 
+// Map platform → default file_type
+const PLATFORM_FILE_TYPE_MAP = {
+  'Windows': '.exe',
+  'macOS': '.dmg',
+  'Linux': '.deb',
+  'Web': 'N/A',
+  'All': '.zip',
+}
+
 /**
  * POST /admin/app-versions
  * Tạo version mới
@@ -132,8 +141,7 @@ router.post('/', requireAdmin, async (req, res) => {
       file_size,
       mandatory,
       platform,
-      file_type,
-      attachment_ids  // NEW: Array of attachment IDs to link
+      attachment_ids
     } = req.body
 
     // Validation
@@ -144,18 +152,23 @@ router.post('/', requireAdmin, async (req, res) => {
       })
     }
 
-    // Check if version already exists for this app
+    const resolvedPlatform = platform || 'Windows'
+
+    // Check if version already exists for this app + platform combo
     const existing = await query(
-      'SELECT id FROM app_versions WHERE app_id = ? AND version = ?',
-      [app_id, version]
+      'SELECT id FROM app_versions WHERE app_id = ? AND version = ? AND platform = ?',
+      [app_id, version, resolvedPlatform]
     )
 
     if (existing.rows.length > 0) {
       return res.status(400).json({
         error: 'version_exists',
-        message: 'Version already exists for this app'
+        message: `Version ${version} already exists for platform ${resolvedPlatform}`
       })
     }
+
+    // Auto-derive file_type from platform
+    const resolvedFileType = PLATFORM_FILE_TYPE_MAP[resolvedPlatform] || '.zip'
 
     // Insert new version
     await query(
@@ -172,8 +185,8 @@ router.post('/', requireAdmin, async (req, res) => {
         file_name || null,
         file_size || null,
         mandatory || false,
-        platform || 'windows',
-        file_type || 'zip'
+        resolvedPlatform,
+        resolvedFileType
       ]
     )
 
@@ -218,8 +231,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
       file_size,
       mandatory,
       platform,
-      file_type,
-      attachment_ids  // NEW: Array of attachment IDs to link
+      attachment_ids
     } = req.body
 
     // Build dynamic update query
@@ -257,10 +269,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (platform !== undefined) {
       updates.push('platform = ?')
       values.push(platform)
-    }
-    if (file_type !== undefined) {
+      // Auto-update file_type when platform changes
       updates.push('file_type = ?')
-      values.push(file_type)
+      values.push(PLATFORM_FILE_TYPE_MAP[platform] || '.zip')
     }
 
     // Update version fields if any

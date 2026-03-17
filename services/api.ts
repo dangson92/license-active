@@ -486,8 +486,10 @@ export const api = {
   // Download endpoints (user)
   download: {
     // Verify license and get download info
-    verify: async (appCode: string) => {
-      return apiCall(`/api/download/${appCode}/verify`);
+    // Optional platform param: 'Windows' | 'macOS' | 'Linux' | etc.
+    verify: async (appCode: string, platform?: string) => {
+      const query = platform ? `?platform=${encodeURIComponent(platform)}` : '';
+      return apiCall(`/api/download/${appCode}/verify${query}`);
     },
 
     // Get public app info (no auth required)

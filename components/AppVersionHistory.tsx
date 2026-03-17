@@ -22,7 +22,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Package,
-    FileArchive
+    FileArchive,
+    Monitor
 } from 'lucide-react';
 
 interface AppVersion {
@@ -34,6 +35,15 @@ interface AppVersion {
     changelog?: string;
     platform?: string;
     download_url?: string;
+    release_notes?: string;
+    mandatory?: boolean;
+    file_type?: string;
+}
+
+interface GroupedVersion {
+    versionNumber: string;
+    releaseDate: string;
+    builds: AppVersion[];
 }
 
 interface AppVersionHistoryProps {
@@ -76,64 +86,38 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
             setTotalVersions(response.total || response.items?.length || 0);
         } catch (error) {
             console.error('Failed to load versions:', error);
-            // Mock data for development
-            setVersions([
-                {
-                    id: 1,
-                    version: 'v2.4.0',
-                    build_hash: '#8a2f4c1',
-                    release_date: '2023-10-24',
-                    status: 'latest',
-                    changelog: 'Fixed critical bug in authentication flow and improved session timeout handling for enterprise users...',
-                    platform: 'Windows'
-                },
-                {
-                    id: 2,
-                    version: 'v2.3.5',
-                    build_hash: '#7c1a9d0',
-                    release_date: '2023-10-10',
-                    status: 'stable',
-                    changelog: 'Updated API documentation and minor UI fixes for mobile dashboard views.',
-                    platform: 'Windows'
-                },
-                {
-                    id: 3,
-                    version: 'v2.5.0-rc.1',
-                    build_hash: '#1e5b2a4',
-                    release_date: '2023-11-01',
-                    status: 'beta',
-                    changelog: 'Experimental UI enhancements including dark mode preview.',
-                    platform: 'All'
-                },
-                {
-                    id: 4,
-                    version: 'v2.3.4',
-                    build_hash: '#4d9c3e2',
-                    release_date: '2023-09-28',
-                    status: 'stable',
-                    changelog: 'Security patches for database connection pooling.',
-                    platform: 'Windows'
-                },
-            ]);
-            setTotalVersions(28);
+            setVersions([]);
+            setTotalVersions(0);
         } finally {
             setLoading(false);
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'latest':
-                return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Latest</Badge>;
-            case 'stable':
-                return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Stable</Badge>;
-            case 'beta':
-                return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Beta</Badge>;
-            case 'deprecated':
-                return <Badge variant="secondary">Deprecated</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
+    // Group versions by version number
+    const groupedVersions = versions.reduce<GroupedVersion[]>((acc, v) => {
+        const existing = acc.find(g => g.versionNumber === v.version);
+        if (existing) {
+            existing.builds.push(v);
+        } else {
+            acc.push({
+                versionNumber: v.version,
+                releaseDate: v.release_date,
+                builds: [v],
+            });
         }
+        return acc;
+    }, []);
+
+    const getPlatformBadge = (platform: string) => {
+        const map: Record<string, { label: string; className: string }> = {
+            'Windows': { label: '🪟 Windows', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+            'macOS':   { label: '🍎 macOS',   className: 'bg-zinc-100 text-zinc-700 border-zinc-300' },
+            'Linux':   { label: '🐧 Linux',   className: 'bg-orange-100 text-orange-700 border-orange-200' },
+            'Web':     { label: '🌐 Web',     className: 'bg-green-100 text-green-700 border-green-200' },
+            'All':     { label: '📦 All',     className: 'bg-purple-100 text-purple-700 border-purple-200' },
+        };
+        const config = map[platform] || { label: platform, className: 'bg-gray-100 text-gray-700' };
+        return <Badge className={config.className}>{config.label}</Badge>;
     };
 
     const formatDate = (dateStr: string) => {
@@ -229,15 +213,15 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="bg-muted/50">
-                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Version Number</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Version</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase tracking-wider">Release Date</TableHead>
-                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                                                <TableHead className="font-bold text-xs uppercase tracking-wider">Platforms</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase tracking-wider hidden lg:table-cell">Changelog</TableHead>
                                                 <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {versions.length === 0 ? (
+                                            {groupedVersions.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell colSpan={5} className="text-center py-12">
                                                         <p className="text-muted-foreground">Chưa có version nào.</p>
@@ -248,66 +232,80 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
-                                                versions.map((version) => (
-                                                    <TableRow key={version.id} className="group hover:bg-muted/30">
+                                                groupedVersions.map((group) => (
+                                                    <TableRow key={group.versionNumber} className="group hover:bg-muted/30 align-top">
+                                                        {/* Version number */}
                                                         <TableCell>
-                                                            <span className="font-mono font-bold">{version.version}</span>
-                                                            {version.build_hash && (
-                                                                <p className="text-[10px] text-muted-foreground mt-0.5">
-                                                                    Build hash: {version.build_hash}
-                                                                </p>
-                                                            )}
+                                                            <span className="font-mono font-bold">{group.versionNumber}</span>
                                                         </TableCell>
+
+                                                        {/* Release Date */}
                                                         <TableCell className="text-muted-foreground">
-                                                            {formatDate(version.release_date)}
+                                                            {formatDate(group.releaseDate)}
                                                         </TableCell>
+
+                                                        {/* Platforms — each build as a badge row */}
                                                         <TableCell>
-                                                            {getStatusBadge(version.status)}
+                                                            <div className="flex flex-col gap-1.5">
+                                                                {group.builds.map(build => (
+                                                                    <div key={build.id} className="flex items-center gap-2">
+                                                                        {getPlatformBadge(build.platform || 'Windows')}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </TableCell>
+
+                                                        {/* Changelog (first build) */}
                                                         <TableCell className="text-muted-foreground max-w-xs truncate hidden lg:table-cell">
-                                                            {version.changelog || '-'}
+                                                            {group.builds[0]?.changelog || '-'}
                                                         </TableCell>
+
+                                                        {/* Actions per build */}
                                                         <TableCell>
-                                                            <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() => handleEdit(version)}
-                                                                        >
-                                                                            <Edit className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Chỉnh sửa</TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() => handleDownload(version)}
-                                                                        >
-                                                                            <Download className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Download</TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                            onClick={() => handleDelete(version.id)}
-                                                                        >
-                                                                            <Trash2 className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Xóa</TooltipContent>
-                                                                </Tooltip>
+                                                            <div className="flex flex-col gap-1.5 items-end">
+                                                                {group.builds.map(build => (
+                                                                    <div key={build.id} className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7"
+                                                                                    onClick={() => handleEdit(build)}
+                                                                                >
+                                                                                    <Edit className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Sửa {build.platform}</TooltipContent>
+                                                                        </Tooltip>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7"
+                                                                                    onClick={() => handleDownload(build)}
+                                                                                >
+                                                                                    <Download className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Download {build.platform}</TooltipContent>
+                                                                        </Tooltip>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                                    onClick={() => handleDelete(build.id)}
+                                                                                >
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Xóa {build.platform}</TooltipContent>
+                                                                        </Tooltip>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
@@ -317,7 +315,7 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
                                     </Table>
 
                                     {/* Pagination */}
-                                    {versions.length > 0 && (
+                                    {groupedVersions.length > 0 && (
                                         <div className="px-6 py-4 flex items-center justify-between border-t bg-muted/30">
                                             <p className="text-xs text-muted-foreground">
                                                 Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
