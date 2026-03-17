@@ -51,10 +51,30 @@ router.get('/licenses', requireUser, async (req, res) => {
       let attachments = []
       let mainDownloadUrl = null
 
+      let platformDownloads = []
+
       if (hasDownload && license.latest_version_id) {
-        // Generate main file download token
+        // Generate main file download token (backward compat - defaults to Windows)
         const mainToken = generateDownloadToken(userId, appCode, 'main')
         mainDownloadUrl = `${uploadUrl}/api/download/${appCode}/file?token=${mainToken}`
+
+        // Query available platforms for the latest version
+        const platformsResult = await query(
+          `SELECT DISTINCT platform FROM app_versions
+           WHERE app_id = ? AND version = ?
+           ORDER BY platform ASC`,
+          [license.app_id, license.latest_version]
+        )
+
+        platformDownloads = platformsResult.rows
+          .filter(r => r.platform)
+          .map(r => {
+            const token = generateDownloadToken(userId, appCode, 'main')
+            return {
+              platform: r.platform,
+              download_url: `${uploadUrl}/api/download/${appCode}/file?token=${token}&platform=${r.platform}`
+            }
+          })
 
         // Lấy attachments cho version mới nhất
         const attachmentsResult = await query(
@@ -79,6 +99,7 @@ router.get('/licenses', requireUser, async (req, res) => {
       return {
         ...license,
         download_url: mainDownloadUrl,
+        platform_downloads: platformDownloads,
         attachments
       }
     }))

@@ -43,12 +43,18 @@ interface AppAttachment {
     download_url: string;
 }
 
+interface PlatformDownload {
+    platform: string;
+    download_url: string;
+}
+
 interface LicensedApp {
     app_code: string;
     app_name: string;
     app_icon: string | null;
     download_url: string;
     latest_version: string;
+    platform_downloads: PlatformDownload[];
     attachments: AppAttachment[];
 }
 
@@ -106,6 +112,7 @@ export const UserDashboardOverview: React.FC = () => {
                         app_icon: license.app_icon,
                         download_url: license.download_url,
                         latest_version: license.latest_version || 'N/A',
+                        platform_downloads: license.platform_downloads || [],
                         attachments: license.attachments || []
                     });
                 }
@@ -345,23 +352,45 @@ export const UserDashboardOverview: React.FC = () => {
 
                                                         {/* Download Links */}
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            {/* Main Software Download */}
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <a
-                                                                        href={app.download_url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-medium transition-colors"
-                                                                    >
-                                                                        <Download className="w-3.5 h-3.5" />
-                                                                        Phần mềm
-                                                                    </a>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Tải {app.app_name}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
+                                                            {/* Platform-specific Downloads */}
+                                                            {app.platform_downloads.length > 0 ? (
+                                                                app.platform_downloads.map((pd) => (
+                                                                    <Tooltip key={pd.platform}>
+                                                                        <TooltipTrigger asChild>
+                                                                            <a
+                                                                                href={pd.download_url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-medium transition-colors"
+                                                                            >
+                                                                                <Download className="w-3.5 h-3.5" />
+                                                                                {pd.platform}
+                                                                            </a>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Tải {app.app_name} cho {pd.platform}</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                ))
+                                                            ) : (
+                                                                /* Fallback: single download link */
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <a
+                                                                            href={app.download_url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-medium transition-colors"
+                                                                        >
+                                                                            <Download className="w-3.5 h-3.5" />
+                                                                            Phần mềm
+                                                                        </a>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Tải {app.app_name}</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
 
                                                             {/* Attachments */}
                                                             {app.attachments.map((att) => (
