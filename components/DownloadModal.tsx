@@ -181,7 +181,7 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                             <h3 className="font-semibold text-lg mb-2">Có lỗi xảy ra</h3>
                             <p className="text-muted-foreground mb-4">{error}</p>
-                            <Button variant="outline" onClick={() => verifyAndFetchDownload(selectedPlatform)}>Thử lại</Button>
+                            <Button variant="outline" onClick={() => verifyAndFetchDownload()}>Thử lại</Button>
                         </div>
                     ) : downloadInfo ? (
                         <div className="space-y-4">
@@ -211,16 +211,11 @@ export function DownloadModal({ appCode, appName, isOpen, onClose }: DownloadMod
                                         <Card key={pf.platform} className="border-2 border-primary/20 bg-primary/5">
                                             <CardContent className="p-4">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 bg-primary/10 rounded-lg">
-                                                            <Package className="h-6 w-6 text-primary" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-semibold">{cfg.emoji} {appName} — {cfg.label}</h4>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {pf.filename} • {formatFileSize(pf.size)}
-                                                            </p>
-                                                        </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-sm">{appName} — {cfg.label}</h4>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {pf.filename} • {formatFileSize(pf.size)}
+                                                        </p>
                                                     </div>
                                                     <Button onClick={() => handleDownloadPlatform(pf.downloadUrl)}>
                                                         <Download className="h-4 w-4 mr-2" />
