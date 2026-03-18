@@ -8,10 +8,11 @@ const router = express.Router()
  * Lấy thông tin phiên bản mới nhất của app từ database
  * Query params:
  *   - appCode: Mã app (vd: 'content-auto-sondang')
+ *   - platform: Nền tảng (vd: 'Windows', 'macOS', 'Linux') — optional, default 'Windows'
  */
 router.get('/', async (req, res) => {
   try {
-    const { appCode } = req.query
+    const { appCode, platform } = req.query
 
     if (!appCode) {
       return res.status(400).json({
@@ -20,7 +21,11 @@ router.get('/', async (req, res) => {
       })
     }
 
-    // Get latest version from database
+    // Normalize platform: trim + match DB values (Windows/macOS/Linux/All)
+    const requestedPlatform = (platform || 'Windows').trim()
+
+    // Get latest version for the requested platform
+    // Try exact platform match first, then fallback to 'All' platform
     const result = await query(
       `SELECT
         av.version,
@@ -33,9 +38,12 @@ router.get('/', async (req, res) => {
       FROM app_versions av
       JOIN apps a ON av.app_id = a.id
       WHERE a.code = ?
-      ORDER BY av.created_at DESC
+        AND (av.platform = ? OR av.platform = 'All')
+      ORDER BY
+        CASE WHEN av.platform = ? THEN 0 ELSE 1 END,
+        av.created_at DESC
       LIMIT 1`,
-      [appCode]
+      [appCode, requestedPlatform, requestedPlatform]
     )
 
     if (result.rows.length === 0) {
