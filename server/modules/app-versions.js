@@ -162,7 +162,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
     // Derive file_type from actual uploaded file extension
     const resolvedFileType = file_name
-      ? (require('path').extname(file_name) || '.zip')
+      ? (path.extname(file_name) || '.zip')
       : '.zip'
 
     // Insert new version
