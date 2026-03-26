@@ -179,7 +179,7 @@ router.get('/:appCode/verify', requireAuth, async (req, res) => {
     )
 
     // Build full URLs with download tokens
-    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
+    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.phanmemauto.com'
     const baseDownloadUrl = `${uploadUrl}/api/download/${app.code}`
 
     // Build download entry for each platform

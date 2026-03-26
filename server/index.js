@@ -39,10 +39,10 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests from frontend URL, localhost, and Electron apps (no origin)
     const allowedOrigins = [
-      process.env.FRONTEND_URL || 'https://app.dangthanhson.com',
-      'https://app.dangthanhson.com',
-      'https://upload.dangthanhson.com',
-      'https://api.dangthanhson.com',
+      process.env.FRONTEND_URL || 'https://app.phanmemauto.com',
+      'https://app.phanmemauto.com',
+      'https://upload.phanmemauto.com',
+      'https://api.phanmemauto.com',
       'http://localhost:3000',
       'http://localhost:5173'
     ]
@@ -109,17 +109,17 @@ app.use('/api/notifications', notificationsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/download', downloadRouter)  // Verified download: /api/download/:appCode/verify
 
-// Routes WITHOUT /api/ prefix (for client apps calling api.dangthanhson.com directly)
+// Routes WITHOUT /api/ prefix (for client apps calling api.phanmemauto.com directly)
 app.use('/activate', activateRouter)
 app.use('/check-in', checkInRouter)
 app.use('/version', versionRouter)
 
 // Download routes - Virtual download links
-// Hỗ trợ: upload.dangthanhson.com/app-code.zip hoặc /download/app-code.zip
+// Hỗ trợ: upload.phanmemauto.com/app-code.zip hoặc /download/app-code.zip
 app.use('/download', downloadRouter)
 app.use('/d', downloadRouter)
 
-// Direct download route for cleaner URLs like upload.dangthanhson.com/app-code.zip
+// Direct download route for cleaner URLs like upload.phanmemauto.com/app-code.zip
 // Only match requests ending with .zip or .exe (to avoid conflicts with other routes)
 app.get('/:filename', async (req, res, next) => {
   const { filename } = req.params

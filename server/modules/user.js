@@ -40,7 +40,7 @@ router.get('/licenses', requireUser, async (req, res) => {
     )
 
     // Upload domain for download URLs (from env)
-    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.dangthanhson.com'
+    const uploadUrl = process.env.UPLOAD_URL || 'https://upload.phanmemauto.com'
     const userId = req.user.id
 
     // Thêm download_url và attachments cho các app có version VÀ app đang active
