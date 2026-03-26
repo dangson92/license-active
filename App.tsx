@@ -399,6 +399,9 @@ const App: React.FC = () => {
         <Route path="/login" element={
           currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/dashboard'} /> : <Auth onAuthSuccess={handleAuthSuccess} />
         } />
+        <Route path="/register" element={
+          currentUser ? <Navigate to={currentUser.role === UserRole.ADMIN ? '/admin/dashboard' : '/user/dashboard'} /> : <Auth onAuthSuccess={handleAuthSuccess} initialMode="register" />
+        } />
 
         {/* Email Verification Route */}
         <Route path="/verify-email" element={<VerifyEmail />} />

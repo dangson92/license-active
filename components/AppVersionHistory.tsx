@@ -117,7 +117,7 @@ export const AppVersionHistory: React.FC<AppVersionHistoryProps> = ({
             'All':     { label: '📦 All',     className: 'bg-purple-100 text-purple-700 border-purple-200' },
         };
         const config = map[platform] || { label: platform, className: 'bg-gray-100 text-gray-700' };
-        return <Badge className={config.className}>{config.label}</Badge>;
+        return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
     };
 
     const formatDate = (dateStr: string) => {

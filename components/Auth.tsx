@@ -9,10 +9,11 @@ import api from '../services/api';
 
 interface AuthProps {
   onAuthSuccess: () => void;
+  initialMode?: 'login' | 'register';
 }
 
-export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
+export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
