@@ -102,28 +102,36 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login'
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <header className="border-b border-border bg-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="size-8 bg-blue-600 rounded-md flex items-center justify-center text-white">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">Quản lý SD Automation</span>
+      <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between py-4">
+          <a href="https://phanmemauto.com/" className="flex items-center gap-3 no-underline">
+            <img src="https://phanmemauto.com/wp-content/themes/sd-automation/assets/images/logo-pmauto.png" alt="Phần Mềm Auto" className="h-12 w-auto object-contain" />
+          </a>
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="/" className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">Trang chủ</a>
+            <a href="https://phanmemauto.com/ve-chung-toi" className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">Về chúng tôi</a>
+            <a href="https://phanmemauto.com/lien-he-ho-tro" className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">Liên hệ hỗ trợ</a>
+            <div className="relative group">
+              <a href="#" className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors flex items-center gap-1">
+                Hướng dẫn dùng phần mềm
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </a>
+              <ul className="absolute left-0 top-full mt-1 w-52 bg-white border border-gray-100 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1">
+                <li>
+                  <a href="https://phanmemauto.com/tai-lieu/gioi-thieu-sd-auto-content" className="block px-4 py-2 text-sm text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-colors">Auto Content</a>
+                </li>
+              </ul>
+            </div>
+            <a href="https://phanmemauto.com/kien-thuc-seo" className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors">Kiến thức SEO</a>
+          </nav>
+          <a href="#consultation" className="hidden md:inline-flex items-center px-5 py-2.5 rounded-md bg-[#1a2744] text-white text-sm font-semibold hover:bg-[#243460] transition-colors shadow-lg">
+            Liên hệ ngay
+          </a>
         </div>
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Product
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Pricing
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            About
-          </a>
-        </nav>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 min-h-[calc(100vh-73px)]">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 min-h-[calc(100vh-80px)]">
         {registrationSuccess ? (
           /* Registration Success - Email Verification Required */
           <Card className="w-full max-w-[480px] shadow-sm">
