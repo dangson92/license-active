@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,7 @@ interface AuthProps {
 }
 
 export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login' }) => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -156,11 +158,11 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login'
                 <button
                   onClick={() => {
                     setRegistrationSuccess(false);
-                    setIsLogin(true);
                     setEmail('');
                     setPassword('');
                     setFullName('');
                     setConfirmPassword('');
+                    navigate('/login');
                   }}
                   className="text-primary font-semibold hover:underline text-sm"
                 >
@@ -296,8 +298,8 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login'
                   {isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}
                   <button
                     onClick={() => {
-                      setIsLogin(!isLogin);
                       setError('');
+                      navigate(isLogin ? '/register' : '/login');
                     }}
                     className="text-primary font-bold hover:underline ml-1 cursor-pointer"
                   >
