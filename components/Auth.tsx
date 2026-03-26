@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,13 @@ interface AuthProps {
 
 export const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login' }) => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  const location = useLocation();
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/register');
+
+  useEffect(() => {
+    setIsLogin(location.pathname !== '/register');
+    setError('');
+  }, [location.pathname]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
