@@ -21,6 +21,17 @@ import {
     FileArchive
 } from 'lucide-react';
 
+const getPlatformIcon = (platform: string) => {
+    const icons: Record<string, string> = {
+        'Windows': '🪟',
+        'macOS': '🍎',
+        'Linux': '🐧',
+        'Web': '🌐',
+        'All': '📦',
+    };
+    return icons[platform] ?? null;
+};
+
 interface UserStats {
     activeLicenses: number;
     licensesChange: number;
@@ -292,7 +303,7 @@ export const UserDashboardOverview: React.FC = () => {
 
                 {/* Quick Actions */}
                 <div>
-                    <h2 className="text-xl font-bold mb-4">My Quick Actions</h2>
+                    <h2 className="text-xl font-bold mb-4">Thao tác nhanh</h2>
                     <Card className="bg-white shadow-sm">
                         <CardContent className="p-6 space-y-4">
                             <Button
@@ -300,7 +311,7 @@ export const UserDashboardOverview: React.FC = () => {
                                 onClick={() => navigate('/user/store')}
                             >
                                 <ShoppingCart className="w-5 h-5 mr-2" />
-                                Buy New License
+                                Mua License Mới
                             </Button>
 
                             <Button
@@ -309,7 +320,7 @@ export const UserDashboardOverview: React.FC = () => {
                                 onClick={() => navigate('/user/support')}
                             >
                                 <HeadphonesIcon className="w-5 h-5 mr-2" />
-                                Get Support
+                                Hỗ trợ
                             </Button>
 
                             {/* Download links for licensed apps */}
@@ -363,7 +374,9 @@ export const UserDashboardOverview: React.FC = () => {
                                                                                 rel="noopener noreferrer"
                                                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-medium transition-colors"
                                                                             >
-                                                                                <Download className="w-3.5 h-3.5" />
+                                                                                {getPlatformIcon(pd.platform)
+                                                                                    ? <span className="text-sm leading-none">{getPlatformIcon(pd.platform)}</span>
+                                                                                    : <Download className="w-3.5 h-3.5" />}
                                                                                 {pd.platform}
                                                                             </a>
                                                                         </TooltipTrigger>

@@ -42,22 +42,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onNavClick
 }) => {
     const adminNavItems: NavItem[] = [
-        { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-        { icon: ShoppingBag, label: 'Orders', id: 'orders' },
+        { icon: LayoutDashboard, label: 'Tổng quan', id: 'dashboard' },
+        { icon: ShoppingBag, label: 'Đơn hàng', id: 'orders' },
         { icon: Key, label: 'Licenses', id: 'licenses' },
-        { icon: AppWindow, label: 'Applications', id: 'applications' },
-        { icon: Users, label: 'Members', id: 'members' },
-        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
-        { icon: HelpCircle, label: 'Support', id: 'support' },
+        { icon: AppWindow, label: 'Ứng dụng', id: 'applications' },
+        { icon: Users, label: 'Thành viên', id: 'members' },
+        { icon: Megaphone, label: 'Thông báo', id: 'announcements' },
+        { icon: HelpCircle, label: 'Hỗ trợ', id: 'support' },
     ];
 
     const userNavItems: NavItem[] = [
-        { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
-        { icon: Megaphone, label: 'Announcements', id: 'announcements' },
-        { icon: Key, label: 'My Licenses', id: 'licenses' },
-        { icon: ShoppingBag, label: 'Store', id: 'store' },
-        { icon: Package, label: 'My Orders', id: 'orders' },
-        { icon: HelpCircle, label: 'Support', id: 'support' },
+        { icon: LayoutDashboard, label: 'Tổng quan', id: 'dashboard' },
+        { icon: Megaphone, label: 'Thông báo', id: 'announcements' },
+        { icon: Key, label: 'License của tôi', id: 'licenses' },
+        { icon: ShoppingBag, label: 'Cửa hàng', id: 'store' },
+        { icon: Package, label: 'Đơn hàng', id: 'orders' },
+        { icon: HelpCircle, label: 'Hỗ trợ', id: 'support' },
     ];
 
     const navItems = variant === 'admin' ? adminNavItems : userNavItems;
@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Settings Section */}
                 <div className="pt-4 mt-4 border-t border-border">
                     <p className="px-3 py-2 text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-                        {variant === 'admin' ? 'System' : 'Account'}
+                        {variant === 'admin' ? 'Hệ thống' : 'Tài khoản'}
                     </p>
                     <a
                         href="#"
@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     >
                         <Settings className="w-5 h-5" />
-                        <span>Settings</span>
+                        <span>Cài đặt</span>
                     </a>
                 </div>
             </nav>
