@@ -290,7 +290,7 @@ export const PackageManagement: React.FC = () => {
                                         <TableCell>
                                             <div>
                                                 <p className="font-semibold text-sm flex items-center gap-1.5">
-                                                    {pkg.is_featured && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
+                                                    {!!pkg.is_featured && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
                                                     {pkg.name}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">{pkg.code}</p>
