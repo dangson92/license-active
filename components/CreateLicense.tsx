@@ -136,6 +136,7 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                 max_devices: maxDevices,
                 expires_at: expiresAt.toISOString(),
                 status: 'active',
+                ...(generatedKey ? { license_key: generatedKey } : {}),
             });
 
             setGeneratedKey(result.license_key);
@@ -283,7 +284,25 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                                 <Calendar className="w-4 h-4" />
                                 Ngày hết hạn
                             </Label>
-                            <div className="flex flex-wrap gap-2 mb-2">
+                            <div className="relative">
+                                <Input
+                                    type="text"
+                                    readOnly
+                                    value={expirationDate ? new Date(expirationDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
+                                    placeholder="DD/MM/YYYY"
+                                    className="cursor-pointer"
+                                    onClick={() => dateInputRef.current?.showPicker()}
+                                />
+                                <input
+                                    ref={dateInputRef}
+                                    type="date"
+                                    value={expirationDate}
+                                    onChange={(e) => setExpirationDate(e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    style={{ pointerEvents: 'none' }}
+                                />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -332,24 +351,6 @@ export const CreateLicense: React.FC<CreateLicenseProps> = ({
                                 >
                                     1 năm
                                 </Button>
-                            </div>
-                            <div className="relative">
-                                <Input
-                                    type="text"
-                                    readOnly
-                                    value={expirationDate ? new Date(expirationDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
-                                    placeholder="DD/MM/YYYY"
-                                    className="cursor-pointer"
-                                    onClick={() => dateInputRef.current?.showPicker()}
-                                />
-                                <input
-                                    ref={dateInputRef}
-                                    type="date"
-                                    value={expirationDate}
-                                    onChange={(e) => setExpirationDate(e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    style={{ pointerEvents: 'none' }}
-                                />
                             </div>
                         </div>
 

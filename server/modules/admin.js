@@ -297,7 +297,7 @@ router.get('/licenses', requireAdmin, async (req, res) => {
 
 router.post('/licenses', requireAdmin, async (req, res) => {
   try {
-    const { user_id, app_id, max_devices, expires_at, status } = req.body
+    const { user_id, app_id, max_devices, expires_at, status, license_key: providedKey } = req.body
     console.log('Create license request:', { user_id, app_id, max_devices, expires_at, status })
 
     if (!user_id || !app_id || !max_devices) {
@@ -305,8 +305,9 @@ router.post('/licenses', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'invalid_input' })
     }
 
-    const license_key = genKey()
-    console.log('Generated license key:', license_key)
+    // Use provided key from frontend (if user clicked Generate) or generate a new one
+    const license_key = providedKey || genKey()
+    console.log('Using license key:', license_key, providedKey ? '(from client)' : '(server-generated)')
 
     // Convert expires_at to MySQL datetime format if provided
     let expiresAtFormatted = null
