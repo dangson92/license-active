@@ -305,8 +305,8 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
         const hasPricing = pkg.price_1_month || pkg.price_6_months || pkg.price_1_year;
         return (
             <Card key={itemKey(pkg)} className="hover:shadow-xl transition-all duration-300 flex flex-col group border-amber-200/60 relative overflow-hidden">
-                {/* Package glow accent */}
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400" />
+                {/* Package accent */}
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-amber-400" />
 
                 <CardContent className="pt-6 flex-1 flex flex-col">
                     {/* Header */}
@@ -326,7 +326,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                             <img src={getAssetUrl(pkg.icon_url) || ''} alt={pkg.name} className="w-full h-full object-cover" />
                                         </div>
                                     ) : (
-                                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
                                             <Boxes className="w-5 h-5 text-amber-600" />
                                         </div>
                                     )}
@@ -335,7 +335,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                         })()}
                         <div className="flex flex-col items-end gap-1.5">
                             {/* PACKAGE badge */}
-                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-gradient-to-r from-amber-400 to-orange-400 text-white border-transparent">
+                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-amber-400 text-white border-transparent">
                                 GÓI PHẦN MỀM
                             </span>
                             {pkg.badge && (
@@ -403,7 +403,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
                     {/* Actions */}
                     <Button
-                        className="w-full shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0"
                         onClick={() => handleRegister(pkg)}
                         disabled={!hasPricing}
                     >

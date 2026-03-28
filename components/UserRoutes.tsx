@@ -334,7 +334,7 @@ const LicenseContent: React.FC = () => {
                                                     <div>
                                                         <div className="flex items-center gap-1.5">
                                                             <p className="font-semibold text-sm">{key.appName}</p>
-                                                            {key.is_trial && (
+                                                            {!!key.is_trial && (
                                                                 <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                                     Trial
                                                                 </span>
