@@ -14,6 +14,7 @@ import {
     HelpCircle,
     Grid3X3,
     Package,
+    Boxes,
     Megaphone
 } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const adminNavItems: NavItem[] = [
         { icon: LayoutDashboard, label: 'Tổng quan', id: 'dashboard' },
         { icon: ShoppingBag, label: 'Đơn hàng', id: 'orders' },
+        { icon: Boxes, label: 'Gói phần mềm', id: 'packages' },
         { icon: Key, label: 'Licenses', id: 'licenses' },
         { icon: AppWindow, label: 'Ứng dụng', id: 'applications' },
         { icon: Users, label: 'Thành viên', id: 'members' },

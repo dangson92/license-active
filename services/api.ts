@@ -645,10 +645,14 @@ export const api = {
       return apiCall(`/api/store/apps/${id}`);
     },
 
-    // Create order with receipt (single atomic request)
-    createOrder: async (data: { app_id: number; quantity: number; duration_months: number; unit_price: number }, receiptFile: File) => {
+    // Create order with receipt — supports app_id (single app) or package_id (package)
+    createOrder: async (
+      data: { app_id?: number; package_id?: number; quantity: number; duration_months: number; unit_price: number },
+      receiptFile: File
+    ) => {
       const formData = new FormData();
-      formData.append('app_id', data.app_id.toString());
+      if (data.app_id) formData.append('app_id', data.app_id.toString());
+      if (data.package_id) formData.append('package_id', data.package_id.toString());
       formData.append('quantity', data.quantity.toString());
       formData.append('duration_months', data.duration_months.toString());
       formData.append('unit_price', data.unit_price.toString());
@@ -672,6 +676,74 @@ export const api = {
       }
 
       return response.json();
+    },
+
+    // Get all active packages
+    getPackages: async () => {
+      return apiCall('/api/store/packages');
+    },
+
+    // Get single package detail
+    getPackage: async (id: number) => {
+      return apiCall(`/api/store/packages/${id}`);
+    },
+
+    // Admin: Get all packages (including inactive)
+    getAdminPackages: async () => {
+      return apiCall('/api/store/admin/packages');
+    },
+
+    // Admin: Create package
+    createPackage: async (data: {
+      code: string;
+      name: string;
+      description?: string;
+      icon_url?: string;
+      is_featured?: boolean;
+      badge?: string;
+      discount_percent?: number;
+      price_1_month?: number;
+      price_1_month_enabled?: boolean;
+      price_6_months?: number;
+      price_6_months_enabled?: boolean;
+      price_1_year?: number;
+      price_1_year_enabled?: boolean;
+      app_ids?: number[];
+    }) => {
+      return apiCall('/api/store/admin/packages', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Update package
+    updatePackage: async (id: number, data: {
+      name?: string;
+      description?: string;
+      icon_url?: string;
+      is_active?: boolean;
+      is_featured?: boolean;
+      badge?: string;
+      discount_percent?: number;
+      price_1_month?: number;
+      price_1_month_enabled?: boolean;
+      price_6_months?: number;
+      price_6_months_enabled?: boolean;
+      price_1_year?: number;
+      price_1_year_enabled?: boolean;
+      app_ids?: number[];
+    }) => {
+      return apiCall(`/api/store/admin/packages/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+
+    // Admin: Delete package
+    deletePackage: async (id: number) => {
+      return apiCall(`/api/store/admin/packages/${id}`, {
+        method: 'DELETE',
+      });
     },
 
     // Get my orders

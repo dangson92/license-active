@@ -25,6 +25,7 @@ import { AnnouncementManagement } from './components/AnnouncementManagement';
 import { AnnouncementEditor } from './components/AnnouncementEditor';
 import { AnnouncementDetailPage } from './components/AnnouncementDetailPage';
 import { AdminDashboardOverview } from './components/AdminDashboardOverview';
+import { PackageManagement } from './components/PackageManagement';
 
 // ⚠️ DEV MODE: Set to true to bypass login and test Admin/User Dashboard directly
 // Set to 'admin' or 'user' to test that role, or false to use normal auth
@@ -85,6 +86,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
     if (path.includes('/admin/dashboard')) return 'dashboard';
     if (path.includes('/admin/support')) return 'support';
     if (path.includes('/admin/announcements')) return 'announcements';
+    if (path.includes('/admin/packages')) return 'packages';
     return 'dashboard';
   };
 
@@ -113,6 +115,9 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
         break;
       case 'announcements':
         navigate('/admin/announcements');
+        break;
+      case 'packages':
+        navigate('/admin/packages');
         break;
       default:
         navigate('/admin/dashboard');
@@ -162,6 +167,7 @@ const AdminRoutes: React.FC<{ user: User; onLogout: () => void }> = ({ user, onL
           />
         } />
         <Route path="orders" element={<OrderManagement />} />
+        <Route path="packages" element={<PackageManagement />} />
         <Route path="dashboard" element={<AdminDashboardOverview />} />
         <Route path="settings" element={<Settings />} />
         <Route path="support" element={<AdminTicketManagement />} />

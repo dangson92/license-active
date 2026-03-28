@@ -178,18 +178,36 @@ router.get('/orders', requireAuth, async (req, res) => {
 })
 
 // Create purchase order (with receipt - single atomic request)
+// Supports both single-app orders (app_id) and package orders (package_id)
 router.post('/orders', requireAuth, upload.single('receipt'), async (req, res) => {
     try {
         const userId = req.user.id
-        const { app_id, quantity, duration_months, unit_price } = req.body
+        const { app_id, package_id, quantity, duration_months, unit_price } = req.body
 
-        if (!app_id || !duration_months || !unit_price) {
-            return res.status(400).json({ error: 'validation_error', message: 'Missing required fields' })
+        // Validate: must have exactly one of app_id or package_id
+        const hasApp = !!app_id
+        const hasPkg = !!package_id
+        if (!hasApp && !hasPkg) {
+            return res.status(400).json({ error: 'validation_error', message: 'Either app_id or package_id is required' })
         }
-
-        // Require receipt image
+        if (hasApp && hasPkg) {
+            return res.status(400).json({ error: 'validation_error', message: 'Cannot specify both app_id and package_id' })
+        }
+        if (!duration_months || !unit_price) {
+            return res.status(400).json({ error: 'validation_error', message: 'duration_months and unit_price are required' })
+        }
         if (!req.file) {
             return res.status(400).json({ error: 'validation_error', message: 'Receipt image is required' })
+        }
+
+        // Verify package exists and is active (if package order)
+        let itemName = ''
+        if (hasPkg) {
+            const pkgCheck = await query('SELECT id, name FROM packages WHERE id = ? AND is_active = TRUE', [package_id])
+            if (!pkgCheck.rows.length) {
+                return res.status(404).json({ error: 'package_not_found', message: 'Package not found or inactive' })
+            }
+            itemName = pkgCheck.rows[0].name
         }
 
         const orderCode = generateOrderCode()
@@ -197,31 +215,35 @@ router.post('/orders', requireAuth, upload.single('receipt'), async (req, res) =
         const receiptUrl = `/uploads/receipts/${req.file.filename}`
 
         await query(
-            `INSERT INTO purchase_orders (user_id, app_id, order_code, quantity, duration_months, unit_price, total_price, receipt_url, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
-            [userId, app_id, orderCode, quantity || 1, duration_months, unit_price, totalPrice, receiptUrl]
+            `INSERT INTO purchase_orders (user_id, app_id, package_id, order_code, quantity, duration_months, unit_price, total_price, receipt_url, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+            [userId, app_id || null, package_id || null, orderCode, quantity || 1, duration_months, unit_price, totalPrice, receiptUrl]
         )
         const r = await query('SELECT LAST_INSERT_ID() as id')
         const orderId = r.rows[0].id
 
         // Send email notification to admin (non-blocking)
         const orderInfo = await query(`
-            SELECT po.*, a.name as app_name, u.email as user_email, u.full_name as user_name
+            SELECT po.*,
+                   a.name as app_name,
+                   pk.name as package_name,
+                   u.email as user_email, u.full_name as user_name
             FROM purchase_orders po
             LEFT JOIN apps a ON po.app_id = a.id
+            LEFT JOIN packages pk ON po.package_id = pk.id
             LEFT JOIN users u ON po.user_id = u.id
             WHERE po.id = ?
         `, [orderId])
 
         if (orderInfo.rows.length > 0) {
             const order = orderInfo.rows[0]
-            sendNewOrderNotification(order).catch(e => console.error('Email error:', e))
+            const displayName = order.package_name || order.app_name || itemName
+            sendNewOrderNotification({ ...order, app_name: displayName }).catch(e => console.error('Email error:', e))
 
-            // Create notification for admin
             createNotification({
                 type: 'new_order',
                 title: 'Đơn hàng mới',
-                message: `${order.user_name || order.user_email} đã đặt mua ${order.app_name} - ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ`,
+                message: `${order.user_name || order.user_email} đã đặt mua ${displayName} - ${new Intl.NumberFormat('vi-VN').format(totalPrice)}đ`,
                 link: '/admin/orders'
             })
         }
@@ -292,11 +314,13 @@ router.get('/admin/orders', requireAdmin, async (req, res) => {
     try {
         const { status } = req.query
         let sql = `
-      SELECT o.*, 
+      SELECT o.*,
              a.code as app_code, a.name as app_name,
+             pk.name as package_name, pk.code as package_code,
              u.email as user_email, u.full_name as user_name
       FROM purchase_orders o
-      JOIN apps a ON a.id = o.app_id
+      LEFT JOIN apps a ON a.id = o.app_id
+      LEFT JOIN packages pk ON pk.id = o.package_id
       JOIN users u ON u.id = o.user_id
     `
         const params = []
@@ -316,13 +340,13 @@ router.get('/admin/orders', requireAdmin, async (req, res) => {
     }
 })
 
-// Approve order and create license
+// Approve order and create license(s)
+// For package orders: creates one license per app in the package × quantity
 router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
     try {
         const orderId = Number(req.params.id)
         const adminId = req.user.id
 
-        // Get order details
         const orderRes = await query('SELECT * FROM purchase_orders WHERE id = ?', [orderId])
         if (orderRes.rows.length === 0) {
             return res.status(404).json({ error: 'not_found' })
@@ -333,52 +357,73 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'invalid_status', message: 'Order is not pending' })
         }
 
-        // Generate GUID-style license key (consistent with admin.js)
         const genKey = () => {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 const r = Math.random() * 16 | 0;
                 const v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
-            });
+            })
         }
 
-        // Calculate expires_at - format for MySQL
         const expiresAt = new Date()
         expiresAt.setMonth(expiresAt.getMonth() + order.duration_months)
         const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' ')
 
-        // Create license(s) and collect license keys
         const createdLicenses = []
-        for (let i = 0; i < order.quantity; i++) {
-            const licenseKey = genKey()
-            await query(
-                `INSERT INTO licenses (user_id, app_id, license_key, max_devices, expires_at, status, created_at)
-         VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
-                [order.user_id, order.app_id, licenseKey, expiresAtStr]
-            )
-            createdLicenses.push(licenseKey)
+
+        if (order.package_id) {
+            // Package order: create one license per app in the package (× quantity)
+            const pkgApps = await query('SELECT app_id FROM package_items WHERE package_id = ?', [order.package_id])
+            if (!pkgApps.rows.length) {
+                return res.status(400).json({ error: 'package_empty', message: 'Package has no apps' })
+            }
+            for (let i = 0; i < order.quantity; i++) {
+                for (const { app_id } of pkgApps.rows) {
+                    const licenseKey = genKey()
+                    await query(
+                        `INSERT INTO licenses (user_id, app_id, license_key, max_devices, expires_at, status, created_at)
+                         VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
+                        [order.user_id, app_id, licenseKey, expiresAtStr]
+                    )
+                    createdLicenses.push(licenseKey)
+                }
+            }
+        } else {
+            // Single-app order: original logic
+            for (let i = 0; i < order.quantity; i++) {
+                const licenseKey = genKey()
+                await query(
+                    `INSERT INTO licenses (user_id, app_id, license_key, max_devices, expires_at, status, created_at)
+                     VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
+                    [order.user_id, order.app_id, licenseKey, expiresAtStr]
+                )
+                createdLicenses.push(licenseKey)
+            }
         }
 
-        // Update order status
         await query(
             `UPDATE purchase_orders SET status = 'paid', paid_at = NOW(), processed_by_admin_id = ? WHERE id = ?`,
             [adminId, orderId]
         )
 
-        // Send email notification to user (non-blocking, separate try-catch)
+        // Email notification (non-blocking)
         try {
             const orderInfo = await query(`
                 SELECT po.order_code, po.quantity, po.duration_months,
-                       a.name as app_name, u.email as user_email, u.full_name as user_name
+                       a.name as app_name, pk.name as package_name,
+                       u.email as user_email, u.full_name as user_name
                 FROM purchase_orders po
                 LEFT JOIN apps a ON po.app_id = a.id
+                LEFT JOIN packages pk ON po.package_id = pk.id
                 LEFT JOIN users u ON po.user_id = u.id
                 WHERE po.id = ?
             `, [orderId])
 
             if (orderInfo.rows.length > 0) {
+                const row = orderInfo.rows[0]
                 const emailData = {
-                    ...orderInfo.rows[0],
+                    ...row,
+                    app_name: row.package_name || row.app_name,
                     license_keys: createdLicenses,
                     expires_at: expiresAtStr
                 }
@@ -388,7 +433,6 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             console.error('Failed to send email notification:', emailErr)
         }
 
-        // Create notification for user
         createNotification({
             type: 'order_approved',
             title: 'Đơn hàng đã được duyệt',
@@ -397,7 +441,7 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
             userId: order.user_id
         })
 
-        res.json({ order_id: orderId, approved: true, licenses_created: order.quantity })
+        res.json({ order_id: orderId, approved: true, licenses_created: createdLicenses.length })
     } catch (e) {
         console.error('Error approving order:', e)
         res.status(500).json({ error: 'server_error', message: e.message })
@@ -561,6 +605,186 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
         }
     } catch (e) {
         console.error('Error saving pricing:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// =====================
+// Packages — Public API
+// =====================
+
+// GET /store/packages — list all active packages with included app names
+router.get('/packages', async (req, res) => {
+    try {
+        const r = await query(`
+            SELECT p.*,
+                   GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') as included_apps,
+                   GROUP_CONCAT(a.id ORDER BY a.name SEPARATOR ',') as included_app_ids,
+                   COUNT(pi.app_id) as app_count
+            FROM packages p
+            LEFT JOIN package_items pi ON pi.package_id = p.id
+            LEFT JOIN apps a ON a.id = pi.app_id
+            WHERE p.is_active = TRUE
+            GROUP BY p.id
+            ORDER BY p.is_featured DESC, p.name ASC
+        `)
+        res.json({ items: r.rows })
+    } catch (e) {
+        console.error('Error getting packages:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// GET /store/packages/:id — single package detail with app list
+router.get('/packages/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id)
+        const pkgRes = await query('SELECT * FROM packages WHERE id = ? AND is_active = TRUE', [id])
+        if (!pkgRes.rows.length) return res.status(404).json({ error: 'not_found' })
+
+        const appsRes = await query(`
+            SELECT a.id, a.code, a.name, a.icon_url
+            FROM package_items pi
+            JOIN apps a ON a.id = pi.app_id
+            WHERE pi.package_id = ?
+            ORDER BY a.name ASC
+        `, [id])
+
+        res.json({ ...pkgRes.rows[0], apps: appsRes.rows })
+    } catch (e) {
+        console.error('Error getting package:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// =====================
+// Packages — Admin CRUD
+// =====================
+
+// GET /store/admin/packages — list all packages (including inactive)
+router.get('/admin/packages', requireAdmin, async (req, res) => {
+    try {
+        const r = await query(`
+            SELECT p.*,
+                   GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') as included_apps,
+                   COUNT(pi.app_id) as app_count
+            FROM packages p
+            LEFT JOIN package_items pi ON pi.package_id = p.id
+            LEFT JOIN apps a ON a.id = pi.app_id
+            GROUP BY p.id
+            ORDER BY p.is_featured DESC, p.name ASC
+        `)
+        res.json({ items: r.rows })
+    } catch (e) {
+        console.error('Error getting admin packages:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// POST /store/admin/packages — create package
+router.post('/admin/packages', requireAdmin, async (req, res) => {
+    try {
+        const {
+            code, name, description, icon_url, is_featured, badge, discount_percent,
+            price_1_month, price_1_month_enabled,
+            price_6_months, price_6_months_enabled,
+            price_1_year, price_1_year_enabled,
+            app_ids
+        } = req.body
+
+        if (!code || !name) {
+            return res.status(400).json({ error: 'validation_error', message: 'code and name are required' })
+        }
+
+        const toBool = (v) => v === true || v === 'true' || v === 1 ? 1 : 0
+
+        const r = await query(
+            `INSERT INTO packages (code, name, description, icon_url, is_featured, badge, discount_percent,
+             price_1_month, price_1_month_enabled,
+             price_6_months, price_6_months_enabled,
+             price_1_year, price_1_year_enabled, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [
+                code, name, description || null, icon_url || null,
+                toBool(is_featured), badge || null, discount_percent || null,
+                price_1_month || null, toBool(price_1_month_enabled ?? 1),
+                price_6_months || null, toBool(price_6_months_enabled ?? 1),
+                price_1_year || null, toBool(price_1_year_enabled ?? 1)
+            ]
+        )
+        const pkgId = (await query('SELECT LAST_INSERT_ID() as id')).rows[0].id
+
+        // Insert app associations
+        if (Array.isArray(app_ids) && app_ids.length > 0) {
+            for (const appId of app_ids) {
+                await query('INSERT IGNORE INTO package_items (package_id, app_id) VALUES (?, ?)', [pkgId, appId])
+            }
+        }
+
+        console.log(`📦 Package created: ${name} (id=${pkgId})`)
+        res.json({ id: pkgId, code, name, created: true })
+    } catch (e) {
+        console.error('Error creating package:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// PUT /store/admin/packages/:id — update package
+router.put('/admin/packages/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = Number(req.params.id)
+        const {
+            name, description, icon_url, is_active, is_featured, badge, discount_percent,
+            price_1_month, price_1_month_enabled,
+            price_6_months, price_6_months_enabled,
+            price_1_year, price_1_year_enabled,
+            app_ids
+        } = req.body
+
+        const toBool = (v) => v === true || v === 'true' || v === 1 ? 1 : 0
+
+        await query(
+            `UPDATE packages SET
+             name = ?, description = ?, icon_url = ?,
+             is_active = ?, is_featured = ?, badge = ?, discount_percent = ?,
+             price_1_month = ?, price_1_month_enabled = ?,
+             price_6_months = ?, price_6_months_enabled = ?,
+             price_1_year = ?, price_1_year_enabled = ?,
+             updated_at = NOW()
+             WHERE id = ?`,
+            [
+                name, description || null, icon_url || null,
+                toBool(is_active ?? 1), toBool(is_featured), badge || null, discount_percent || null,
+                price_1_month || null, toBool(price_1_month_enabled ?? 1),
+                price_6_months || null, toBool(price_6_months_enabled ?? 1),
+                price_1_year || null, toBool(price_1_year_enabled ?? 1),
+                id
+            ]
+        )
+
+        // Replace app_ids if provided
+        if (Array.isArray(app_ids)) {
+            await query('DELETE FROM package_items WHERE package_id = ?', [id])
+            for (const appId of app_ids) {
+                await query('INSERT IGNORE INTO package_items (package_id, app_id) VALUES (?, ?)', [id, appId])
+            }
+        }
+
+        res.json({ id, updated: true })
+    } catch (e) {
+        console.error('Error updating package:', e)
+        res.status(500).json({ error: 'server_error', message: e.message })
+    }
+})
+
+// DELETE /store/admin/packages/:id
+router.delete('/admin/packages/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = Number(req.params.id)
+        await query('DELETE FROM packages WHERE id = ?', [id])
+        res.json({ id, deleted: true })
+    } catch (e) {
+        console.error('Error deleting package:', e)
         res.status(500).json({ error: 'server_error', message: e.message })
     }
 })

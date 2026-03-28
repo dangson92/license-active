@@ -79,8 +79,18 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
         }
     };
 
-    const handleCheckout = (appId: number, duration: string, price: number, appName: string) => {
-        navigate(`/user/checkout/${appId}`, { state: { duration, price, appName } });
+    const handleCheckout = (
+        itemId: number,
+        itemType: 'app' | 'package',
+        duration: string,
+        price: number,
+        itemName: string
+    ) => {
+        if (itemType === 'package') {
+            navigate(`/user/checkout/package/${itemId}`, { state: { duration, price, appName: itemName } });
+        } else {
+            navigate(`/user/checkout/${itemId}`, { state: { duration, price, appName: itemName } });
+        }
     };
 
     return (
@@ -103,7 +113,10 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
                     <Route path="support" element={<UserSupport />} />
                     <Route path="support/ticket/:ticketId" element={<TicketDetail />} />
                     <Route path="checkout/:appId" element={
-                        <CheckoutWrapper onSuccess={() => navigate('/user/checkout-success')} />
+                        <CheckoutWrapper onSuccess={() => navigate('/user/checkout-success')} type="app" />
+                    } />
+                    <Route path="checkout/package/:packageId" element={
+                        <CheckoutWrapper onSuccess={() => navigate('/user/checkout-success')} type="package" />
                     } />
                     <Route path="checkout-success" element={
                         <CheckoutSuccess
@@ -125,14 +138,16 @@ export const UserRoutes: React.FC<UserRoutesProps> = ({ user, onLogout }) => {
 // Checkout Wrapper
 import { useParams } from 'react-router-dom';
 
-const CheckoutWrapper: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
+const CheckoutWrapper: React.FC<{ onSuccess: () => void; type?: 'app' | 'package' }> = ({ onSuccess, type = 'app' }) => {
     const location = useLocation();
-    const { appId } = useParams<{ appId: string }>();
+    const { appId, packageId } = useParams<{ appId?: string; packageId?: string }>();
     const state = location.state as { duration?: string; price?: number; appName?: string } | null;
+    const isPackage = type === 'package';
 
     return (
         <Checkout
-            appId={appId}
+            appId={isPackage ? undefined : appId}
+            packageId={isPackage ? packageId : undefined}
             appName={state?.appName}
             duration={state?.duration || '12 Tháng'}
             price={state?.price || 1200000}

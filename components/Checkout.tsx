@@ -28,6 +28,7 @@ import api from '../services/api';
 
 interface CheckoutProps {
     appId?: string;
+    packageId?: string;    // For package orders
     appName?: string;
     duration?: string;
     price?: number;
@@ -37,6 +38,7 @@ interface CheckoutProps {
 
 export const Checkout: React.FC<CheckoutProps> = ({
     appId,
+    packageId,
     appName = 'Application',
     duration = '12 Tháng',
     price = 0,
@@ -65,9 +67,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
 
     const loadData = async () => {
         try {
-            // Load payment settings from public endpoint
             const settings = await api.settings.getPaymentSettings();
-            // Merge settings regardless of specific fields to ensure we get partial updates
             setPaymentSettings(prev => ({
                 bank_name: settings.bank_name || prev.bank_name,
                 bank_code: settings.bank_code || prev.bank_code,
@@ -75,11 +75,11 @@ export const Checkout: React.FC<CheckoutProps> = ({
                 bank_holder: settings.bank_holder || prev.bank_holder,
             }));
 
-            // Load app details
             if (appId) {
                 const response = await api.store.getApp(parseInt(appId));
                 setAppDetails(response);
             }
+            // For package orders we only need settings
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -100,10 +100,13 @@ export const Checkout: React.FC<CheckoutProps> = ({
     }
 
     const totalPrice = price * getQuantityValue();
-    // Generate transfer content for QR code - include app code and duration
-    const appCode = appDetails?.code || appName?.toUpperCase().replace(/\s+/g, '') || 'APP';
+    // Generate transfer content
+    const isPackageOrder = !!packageId && !appId;
+    const itemCode = isPackageOrder
+        ? `PKG${packageId}`
+        : (appDetails?.code || appName?.toUpperCase().replace(/\s+/g, '') || 'APP');
     const durationShort = getDurationMonths() === 1 ? '1M' : getDurationMonths() === 6 ? '6M' : '1Y';
-    const transferContent = `SDA_${appCode}_${getQuantityValue()}D_${durationShort}`;
+    const transferContent = `SDA_${itemCode}_${getQuantityValue()}D_${durationShort}`;
 
     // Generate VietQR URL
     const getVietQRUrl = () => {
@@ -148,9 +151,9 @@ export const Checkout: React.FC<CheckoutProps> = ({
         // Add 1s delay to show spinning before validation
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Validate all fields
-        if (!appId) {
-            setValidationError('Vui lòng chọn ứng dụng.');
+        // Validate
+        if (!appId && !packageId) {
+            setValidationError('Vui lòng chọn ứng dụng hoặc gói phần mềm.');
             setSubmitting(false);
             return;
         }
@@ -167,15 +170,14 @@ export const Checkout: React.FC<CheckoutProps> = ({
             return;
         }
         try {
-            // Create order with receipt in a single atomic request
             await api.store.createOrder({
-                app_id: parseInt(appId),
+                app_id: appId ? parseInt(appId) : undefined,
+                package_id: packageId ? parseInt(packageId) : undefined,
                 quantity: getQuantityValue(),
                 duration_months: getDurationMonths(),
                 unit_price: price
             }, receiptFile);
 
-            // Navigate to success
             onSuccess?.();
         } catch (error) {
             console.error('Failed to submit order:', error);
