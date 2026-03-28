@@ -64,8 +64,13 @@ interface SoftwarePackage {
     price_1_year_enabled?: boolean;
     is_featured?: boolean;
     badge?: string;
-    discount_percent?: number;
+    discount_percent?: number;       // legacy, no longer used
+    // Auto-calculated from individual app prices:
+    sum_price_1_month?: number;
+    sum_price_6_months?: number;
+    sum_price_1_year?: number;
     included_apps?: string;
+    included_app_icons?: string;
     app_count?: number;
     type: 'package';
 }
@@ -111,7 +116,15 @@ const formatPrice = (price?: number) => {
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 };
 
+// ─── Savings Calculator ──────────────────────────────────────────
+// Returns savings % (e.g. 16.7) or null if package isn't cheaper
+const calcSavingsPct = (pkgPrice?: number, sumPrice?: number): number | null => {
+    if (!pkgPrice || !sumPrice || sumPrice <= 0 || pkgPrice >= sumPrice) return null;
+    return Math.round((1 - pkgPrice / sumPrice) * 1000) / 10;
+};
+
 // ─── Props ────────────────────────────────────────────────────────
+
 
 interface ApplicationStoreProps {
     onCheckout?: (
@@ -236,6 +249,13 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
         const hasPricing = item.price_1_month || item.price_6_months || item.price_1_year;
         if (!hasPricing) return null;
         const selectedDuration = getSelectedDuration(item);
+        // For packages: map duration key to the sum_price field from API
+        const sumPrices: Record<string, number | undefined> = item.type === 'package' ? {
+            '1m': (item as SoftwarePackage).sum_price_1_month,
+            '6m': (item as SoftwarePackage).sum_price_6_months,
+            '1y': (item as SoftwarePackage).sum_price_1_year,
+        } : {};
+
         const opts = [
             { key: '1m', label: '1 Tháng', price: item.price_1_month, enabled: item.price_1_month_enabled !== false },
             { key: '6m', label: '6 Tháng', price: item.price_6_months, enabled: item.price_6_months_enabled !== false },
@@ -244,30 +264,40 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
 
         return (
             <div className="space-y-2 mb-6 flex-1">
-                {opts.map(option => (
-                    <label
-                        key={option.key}
-                        className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all ${selectedDuration === option.key
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                            : 'border-muted hover:bg-muted/50'
-                            }`}
-                    >
-                        <input
-                            type="radio"
-                            name={`pricing-${itemKey(item)}`}
-                            value={option.key}
-                            checked={selectedDuration === option.key}
-                            onChange={() => handlePricingChange(item, option.key)}
-                            className="hidden"
-                        />
-                        <span className={`text-xs font-semibold ${selectedDuration === option.key ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {option.label}
-                        </span>
-                        <span className={`text-sm font-bold ${selectedDuration === option.key ? 'text-primary' : ''}`}>
-                            {formatPrice(option.price)}
-                        </span>
-                    </label>
-                ))}
+                {opts.map(option => {
+                    const savings = calcSavingsPct(option.price, sumPrices[option.key]);
+                    return (
+                        <label
+                            key={option.key}
+                            className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-all ${selectedDuration === option.key
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                                : 'border-muted hover:bg-muted/50'
+                                }`}
+                        >
+                            <input
+                                type="radio"
+                                name={`pricing-${itemKey(item)}`}
+                                value={option.key}
+                                checked={selectedDuration === option.key}
+                                onChange={() => handlePricingChange(item, option.key)}
+                                className="hidden"
+                            />
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xs font-semibold ${selectedDuration === option.key ? 'text-primary' : 'text-muted-foreground'}`}>
+                                    {option.label}
+                                </span>
+                                {savings !== null && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                        -{savings}%
+                                    </span>
+                                )}
+                            </div>
+                            <span className={`text-sm font-bold ${selectedDuration === option.key ? 'text-primary' : ''}`}>
+                                {formatPrice(option.price)}
+                            </span>
+                        </label>
+                    );
+                })}
             </div>
         );
     };
@@ -283,13 +313,35 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                 <CardContent className="pt-6 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
-                        <div className="size-14 rounded-xl flex items-center justify-center border overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100 group-hover:scale-110 transition-transform duration-300">
-                            {pkg.icon_url ? (
-                                <img src={getAssetUrl(pkg.icon_url) || ''} alt={pkg.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <Boxes className="w-8 h-8 text-amber-600" />
-                            )}
-                        </div>
+                        {(() => {
+                            const appIcons = pkg.included_app_icons?.split(',').filter(Boolean) ?? [];
+                            const icons = appIcons.slice(0, 4);
+                            return (
+                                <div className="size-14 rounded-xl border overflow-hidden border-amber-100 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                                    {icons.length >= 2 ? (
+                                        <div className="grid grid-cols-2 gap-px w-full h-full bg-amber-100/40">
+                                            {Array.from({ length: 4 }).map((_, i) => (
+                                                <div key={i} className="overflow-hidden bg-white">
+                                                    {icons[i] ? (
+                                                        <img src={getAssetUrl(icons[i]) || ''} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-50" />
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : icons.length === 1 ? (
+                                        <img src={getAssetUrl(icons[0]) || ''} alt={pkg.name} className="w-full h-full object-cover" />
+                                    ) : pkg.icon_url ? (
+                                        <img src={getAssetUrl(pkg.icon_url) || ''} alt={pkg.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
+                                            <Boxes className="w-8 h-8 text-amber-600" />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                         <div className="flex flex-col items-end gap-1.5">
                             {/* PACKAGE badge */}
                             <span className="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-gradient-to-r from-amber-400 to-orange-400 text-white border-transparent">
@@ -306,13 +358,28 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                     {/* Name */}
                     <h3 className="text-lg font-bold mb-1">{pkg.name}</h3>
 
-                    {/* Discount badge */}
-                    {pkg.discount_percent && (
-                        <div className="flex items-center gap-1 mb-2">
-                            <Percent className="w-3 h-3 text-emerald-600" />
-                            <span className="text-xs font-bold text-emerald-600">Tiết kiệm {pkg.discount_percent}% so với mua lẻ</span>
-                        </div>
-                    )}
+                    {/* Auto-calculated savings badge for currently selected duration */}
+                    {(() => {
+                        const dur = getSelectedDuration(pkg);
+                        const sumMap: Record<string, number | undefined> = {
+                            '1m': pkg.sum_price_1_month,
+                            '6m': pkg.sum_price_6_months,
+                            '1y': pkg.sum_price_1_year,
+                        };
+                        const pkgPriceMap: Record<string, number | undefined> = {
+                            '1m': pkg.price_1_month,
+                            '6m': pkg.price_6_months,
+                            '1y': pkg.price_1_year,
+                        };
+                        const savings = calcSavingsPct(pkgPriceMap[dur], sumMap[dur]);
+                        if (!savings) return null;
+                        return (
+                            <div className="flex items-center gap-1 mb-2">
+                                <Percent className="w-3 h-3 text-emerald-600" />
+                                <span className="text-xs font-bold text-emerald-600">Tiết kiệm {savings}% so với mua lẻ</span>
+                            </div>
+                        );
+                    })()}
 
                     {/* Included apps */}
                     {pkg.included_apps && (

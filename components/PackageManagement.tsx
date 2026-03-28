@@ -39,7 +39,6 @@ interface PackageFormData {
     name: string;
     description: string;
     badge: string;
-    discount_percent: string;
     price_1_month: string;
     price_1_month_enabled: boolean;
     price_6_months: string;
@@ -58,10 +57,12 @@ interface AdminPackage {
     is_active: boolean;
     is_featured: boolean;
     badge?: string;
-    discount_percent?: number;
     price_1_month?: number;
     price_6_months?: number;
     price_1_year?: number;
+    sum_price_1_month?: number;
+    sum_price_6_months?: number;
+    sum_price_1_year?: number;
     app_count: number;
     included_apps?: string;
 }
@@ -79,7 +80,6 @@ const EMPTY_FORM: PackageFormData = {
     name: '',
     description: '',
     badge: '',
-    discount_percent: '',
     price_1_month: '',
     price_1_month_enabled: true,
     price_6_months: '',
@@ -89,6 +89,12 @@ const EMPTY_FORM: PackageFormData = {
     is_featured: false,
     is_active: true,
     app_ids: [],
+};
+
+// Auto-calculate savings %: (1 - pkgPrice/sumPrice) * 100
+const calcSavings = (pkgPrice?: number, sumPrice?: number): number | null => {
+    if (!pkgPrice || !sumPrice || sumPrice <= 0 || pkgPrice >= sumPrice) return null;
+    return Math.round((1 - pkgPrice / sumPrice) * 1000) / 10;
 };
 
 const formatPrice = (price?: number) => {
@@ -142,7 +148,6 @@ export const PackageManagement: React.FC = () => {
             name: pkg.name,
             description: '',
             badge: pkg.badge || '',
-            discount_percent: pkg.discount_percent?.toString() || '',
             price_1_month: pkg.price_1_month?.toString() || '',
             price_1_month_enabled: true,
             price_6_months: pkg.price_6_months?.toString() || '',
@@ -186,7 +191,6 @@ export const PackageManagement: React.FC = () => {
                 name: form.name,
                 description: form.description || undefined,
                 badge: form.badge || undefined,
-                discount_percent: form.discount_percent ? parseFloat(form.discount_percent) : undefined,
                 price_1_month: form.price_1_month ? parseFloat(form.price_1_month) : undefined,
                 price_1_month_enabled: form.price_1_month_enabled,
                 price_6_months: form.price_6_months ? parseFloat(form.price_6_months) : undefined,
@@ -290,11 +294,19 @@ export const PackageManagement: React.FC = () => {
                                                     {pkg.name}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">{pkg.code}</p>
-                                                {pkg.discount_percent && (
-                                                    <span className="text-[10px] text-emerald-600 font-bold">
-                                                        Tiết kiệm {pkg.discount_percent}%
-                                                    </span>
-                                                )}
+                                                {/* Show best savings across all durations */}
+                                                {(() => {
+                                                    const s1 = calcSavings(pkg.price_1_month, pkg.sum_price_1_month);
+                                                    const s6 = calcSavings(pkg.price_6_months, pkg.sum_price_6_months);
+                                                    const s12 = calcSavings(pkg.price_1_year, pkg.sum_price_1_year);
+                                                    const best = [s1, s6, s12].filter(Boolean).sort((a, b) => (b ?? 0) - (a ?? 0))[0];
+                                                    if (!best) return null;
+                                                    return (
+                                                        <span className="text-[10px] text-emerald-600 font-bold">
+                                                            Tiết kiệm đến {best}%
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -389,7 +401,7 @@ export const PackageManagement: React.FC = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label>Badge</Label>
+                                <Label>Badge <span className="text-xs text-muted-foreground">(tuỳ chọn)</span></Label>
                                 <Input
                                     placeholder="VD: HOT, BEST VALUE"
                                     value={form.badge}
@@ -397,13 +409,13 @@ export const PackageManagement: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Giảm giá (%)</Label>
-                                <Input
-                                    type="number"
-                                    placeholder="VD: 20"
-                                    value={form.discount_percent}
-                                    onChange={e => setForm(prev => ({ ...prev, discount_percent: e.target.value }))}
-                                />
+                                <Label className="flex items-center gap-1.5">
+                                    Tiết kiệm
+                                    <span className="text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Tự động tính</span>
+                                </Label>
+                                <div className="h-10 border rounded-md bg-muted/50 flex items-center px-3 text-sm text-muted-foreground">
+                                    % tính từ giá app lẻ
+                                </div>
                             </div>
                         </div>
 

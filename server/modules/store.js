@@ -613,17 +613,22 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
 // Packages — Public API
 // =====================
 
-// GET /store/packages — list all active packages with included app names
+// GET /store/packages — list all active packages with included app names and sum of individual prices
 router.get('/packages', async (req, res) => {
     try {
         const r = await query(`
             SELECT p.*,
                    GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') as included_apps,
                    GROUP_CONCAT(a.id ORDER BY a.name SEPARATOR ',') as included_app_ids,
-                   COUNT(pi.app_id) as app_count
+                   GROUP_CONCAT(a.icon_url ORDER BY a.name SEPARATOR ',') as included_app_icons,
+                   COUNT(pi.app_id) as app_count,
+                   SUM(ap.price_1_month) as sum_price_1_month,
+                   SUM(COALESCE(ap.price_6_months, ap.price_1_month * 6)) as sum_price_6_months,
+                   SUM(COALESCE(ap.price_1_year, ap.price_1_month * 12)) as sum_price_1_year
             FROM packages p
             LEFT JOIN package_items pi ON pi.package_id = p.id
             LEFT JOIN apps a ON a.id = pi.app_id
+            LEFT JOIN app_pricing ap ON ap.app_id = pi.app_id
             WHERE p.is_active = TRUE
             GROUP BY p.id
             ORDER BY p.is_featured DESC, p.name ASC
@@ -661,16 +666,21 @@ router.get('/packages/:id', async (req, res) => {
 // Packages — Admin CRUD
 // =====================
 
-// GET /store/admin/packages — list all packages (including inactive)
+// GET /store/admin/packages — list all packages (including inactive) with sum prices for savings calc
 router.get('/admin/packages', requireAdmin, async (req, res) => {
     try {
         const r = await query(`
             SELECT p.*,
                    GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') as included_apps,
-                   COUNT(pi.app_id) as app_count
+                   GROUP_CONCAT(a.icon_url ORDER BY a.name SEPARATOR ',') as included_app_icons,
+                   COUNT(pi.app_id) as app_count,
+                   SUM(ap.price_1_month) as sum_price_1_month,
+                   SUM(COALESCE(ap.price_6_months, ap.price_1_month * 6)) as sum_price_6_months,
+                   SUM(COALESCE(ap.price_1_year, ap.price_1_month * 12)) as sum_price_1_year
             FROM packages p
             LEFT JOIN package_items pi ON pi.package_id = p.id
             LEFT JOIN apps a ON a.id = pi.app_id
+            LEFT JOIN app_pricing ap ON ap.app_id = pi.app_id
             GROUP BY p.id
             ORDER BY p.is_featured DESC, p.name ASC
         `)
