@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Dialog,
     DialogContent,
@@ -144,7 +143,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     const [apps, setApps] = useState<StoreApp[]>([]);
     const [packages, setPackages] = useState<SoftwarePackage[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'app' | 'package'>('all');
+    const [filter, setFilter] = useState<'package' | 'app'>('package');
     const [selectedPricing, setSelectedPricing] = useState<Record<string, string>>({});
 
     // Trial state (apps only)
@@ -185,11 +184,10 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
         }
     };
 
-    // Unified list with filter support
-    const allItems: StoreItem[] = [
-        ...(filter !== 'package' ? apps : []),
-        ...(filter !== 'app' ? packages : []),
-    ].sort((a, b) => {
+    // Unified list with tab filter
+    const allItems: StoreItem[] = (
+        filter === 'package' ? packages : apps
+    ).sort((a, b) => {
         const fa = a.is_featured ? 1 : 0;
         const fb = b.is_featured ? 1 : 0;
         return fb - fa || a.name.localeCompare(b.name);
@@ -517,28 +515,51 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tight">Application Store</h1>
-                    <p className="text-muted-foreground mt-3 text-lg max-w-2xl">
-                        Nâng cấp hệ thống với các phần mềm và gói phần mềm được tuyển chọn.
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 shadow-sm">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filter</span>
-                        <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-                            <SelectTrigger className="border-none bg-transparent p-0 pr-6 h-auto focus:ring-0">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tất cả</SelectItem>
-                                <SelectItem value="app">Phần mềm đơn lẻ</SelectItem>
-                                <SelectItem value="package">Gói Phần Mềm</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+            <div>
+                <h1 className="text-4xl font-black tracking-tight">Application Store</h1>
+                <p className="text-muted-foreground mt-3 text-lg max-w-2xl">
+                    Nâng cấp hệ thống với các phần mềm và gói phần mềm được tuyển chọn.
+                </p>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-muted rounded-xl w-fit">
+                <button
+                    onClick={() => setFilter('package')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                        filter === 'package'
+                            ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md shadow-amber-500/20'
+                            : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                    <Boxes className="w-4 h-4" />
+                    Gói Phần Mềm
+                    {packages.length > 0 && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            filter === 'package' ? 'bg-white/25 text-white' : 'bg-muted-foreground/20'
+                        }`}>
+                            {packages.length}
+                        </span>
+                    )}
+                </button>
+                <button
+                    onClick={() => setFilter('app')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                        filter === 'app'
+                            ? 'bg-background text-foreground shadow-md'
+                            : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                    <Package className="w-4 h-4" />
+                    Phần Mềm Lẻ
+                    {apps.length > 0 && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            filter === 'app' ? 'bg-muted' : 'bg-muted-foreground/20'
+                        }`}>
+                            {apps.length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             {/* Grid */}
