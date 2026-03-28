@@ -528,7 +528,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                     onClick={() => setFilter('package')}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                         filter === 'package'
-                            ? 'bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md shadow-amber-500/20'
+                            ? 'bg-background text-foreground shadow-md'
                             : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
@@ -536,7 +536,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                     Gói Phần Mềm
                     {packages.length > 0 && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                            filter === 'package' ? 'bg-white/25 text-white' : 'bg-muted-foreground/20'
+                            filter === 'package' ? 'bg-muted' : 'bg-muted-foreground/20'
                         }`}>
                             {packages.length}
                         </span>
