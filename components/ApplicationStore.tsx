@@ -313,30 +313,23 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                 <CardContent className="pt-6 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
+                        {/* App logos — horizontal row */}
                         {(() => {
                             const appIcons = pkg.included_app_icons?.split(',').filter(Boolean) ?? [];
                             const icons = appIcons.slice(0, 4);
                             return (
-                                <div className="size-14 rounded-xl border overflow-hidden border-amber-100 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                                    {icons.length >= 2 ? (
-                                        <div className="grid grid-cols-2 gap-px w-full h-full bg-amber-100/40">
-                                            {Array.from({ length: 4 }).map((_, i) => (
-                                                <div key={i} className="overflow-hidden bg-white">
-                                                    {icons[i] ? (
-                                                        <img src={getAssetUrl(icons[i]) || ''} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-50" />
-                                                    )}
-                                                </div>
-                                            ))}
+                                <div className="flex items-center gap-1.5">
+                                    {icons.length > 0 ? icons.map((iconUrl, i) => (
+                                        <div key={i} className="w-10 h-10 rounded-lg border border-amber-100 overflow-hidden bg-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform duration-300" style={{ transitionDelay: `${i * 30}ms` }}>
+                                            <img src={getAssetUrl(iconUrl) || ''} alt="" className="w-full h-full object-cover" />
                                         </div>
-                                    ) : icons.length === 1 ? (
-                                        <img src={getAssetUrl(icons[0]) || ''} alt={pkg.name} className="w-full h-full object-cover" />
-                                    ) : pkg.icon_url ? (
-                                        <img src={getAssetUrl(pkg.icon_url) || ''} alt={pkg.name} className="w-full h-full object-cover" />
+                                    )) : pkg.icon_url ? (
+                                        <div className="w-10 h-10 rounded-lg border border-amber-100 overflow-hidden bg-white shadow-sm flex-shrink-0">
+                                            <img src={getAssetUrl(pkg.icon_url) || ''} alt={pkg.name} className="w-full h-full object-cover" />
+                                        </div>
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
-                                            <Boxes className="w-8 h-8 text-amber-600" />
+                                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 flex items-center justify-center">
+                                            <Boxes className="w-5 h-5 text-amber-600" />
                                         </div>
                                     )}
                                 </div>

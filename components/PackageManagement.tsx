@@ -462,10 +462,14 @@ export const PackageManagement: React.FC = () => {
                                         className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
                                         onClick={() => toggleAppId(app.id)}
                                     >
-                                        <Checkbox
-                                            checked={form.app_ids.includes(app.id)}
-                                            onCheckedChange={() => toggleAppId(app.id)}
-                                        />
+                                        {/* stopPropagation prevents the parent div onClick from
+                                            firing a second time when the Checkbox button is clicked */}
+                                        <div onClick={e => e.stopPropagation()}>
+                                            <Checkbox
+                                                checked={form.app_ids.includes(app.id)}
+                                                onCheckedChange={() => toggleAppId(app.id)}
+                                            />
+                                        </div>
                                         <div>
                                             <p className="text-sm font-medium">{app.name}</p>
                                             <p className="text-xs text-muted-foreground">{app.code}</p>
