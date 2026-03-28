@@ -672,6 +672,7 @@ router.get('/admin/packages', requireAdmin, async (req, res) => {
         const r = await query(`
             SELECT p.*,
                    GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') as included_apps,
+                   GROUP_CONCAT(a.id ORDER BY a.name SEPARATOR ',') as included_app_ids,
                    GROUP_CONCAT(a.icon_url ORDER BY a.name SEPARATOR ',') as included_app_icons,
                    COUNT(pi.app_id) as app_count,
                    SUM(ap.price_1_month) as sum_price_1_month,

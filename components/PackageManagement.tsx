@@ -65,6 +65,7 @@ interface AdminPackage {
     sum_price_1_year?: number;
     app_count: number;
     included_apps?: string;
+    included_app_ids?: string;
 }
 
 interface StoreAppItem {
@@ -156,7 +157,9 @@ export const PackageManagement: React.FC = () => {
             price_1_year_enabled: true,
             is_featured: pkg.is_featured,
             is_active: pkg.is_active,
-            app_ids: [],
+            app_ids: pkg.included_app_ids
+                ? pkg.included_app_ids.split(',').map(Number).filter(Boolean)
+                : [],
         });
         setDialogOpen(true);
     };
