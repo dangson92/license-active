@@ -98,7 +98,7 @@ export async function sendVerificationEmail(to, userName, token) {
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`
 
     const html = loadTemplate('verification-email', {
-        APP_NAME: settings.app_name || 'License System',
+        APP_NAME: settings.app_name || 'Phanmemauto.com',
         USER_NAME: userName,
         VERIFY_URL: verifyUrl
     })
@@ -109,7 +109,7 @@ export async function sendVerificationEmail(to, userName, token) {
     await transporter.sendMail({
         from: config.from,
         to: to,
-        subject: `[${settings.app_name || 'License System'}] Xác thực địa chỉ email`,
+        subject: `[${settings.app_name || 'Phanmemauto.com'}] Xác thực địa chỉ email`,
         html: html
     })
 
@@ -127,11 +127,11 @@ export async function sendTestEmail(to) {
     await transporter.sendMail({
         from: config.from,
         to: to,
-        subject: `[${settings.app_name || 'License System'}] Test Email`,
+        subject: `[${settings.app_name || 'Phanmemauto.com'}] Test Email`,
         html: `
       <h2>Test Email</h2>
       <p>Cấu hình SMTP hoạt động tốt!</p>
-      <p>Email này được gửi từ hệ thống ${settings.app_name || 'License System'}.</p>
+      <p>Email này được gửi từ hệ thống ${settings.app_name || 'Phanmemauto.com'}.</p>
       <hr>
       <p><small>SMTP Host: ${config.host}:${config.port}</small></p>
     `
@@ -176,7 +176,7 @@ export async function sendNewOrderNotification(order) {
         await transporter.sendMail({
             from: config.from,
             to: adminEmail,
-            subject: `[${settings.app_name || 'License System'}] Đơn hàng mới #${order.order_code}`,
+            subject: `[${settings.app_name || 'Phanmemauto.com'}] Đơn hàng mới #${order.order_code}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #2563eb;">🛒 Đơn hàng mới</h2>
@@ -212,7 +212,7 @@ export async function sendNewOrderNotification(order) {
                     <p>Vui lòng đăng nhập vào hệ thống để duyệt đơn hàng.</p>
                     
                     <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'License System'}</p>
+                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'Phanmemauto.com'}</p>
                 </div>
             `
         })
@@ -267,20 +267,23 @@ export async function sendOrderStatusEmail(order, newStatus) {
             return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         }
 
-        // Build license keys HTML for approved orders
+        // Build license keys HTML — each entry can be {key, app_name} or a plain string (legacy)
         const licenseKeysHtml = order.license_keys && order.license_keys.length > 0
-            ? order.license_keys.map((key, i) => `
+            ? order.license_keys.map((entry, i) => {
+                const licKey = typeof entry === 'object' ? entry.key : entry
+                const appLabel = typeof entry === 'object' && entry.app_name ? entry.app_name : `License ${i + 1}`
+                return `
                 <tr style="background: ${i % 2 === 0 ? '#f0fdf4' : '#ffffff'};">
-                    <td style="padding: 10px; border: 1px solid #e5e7eb;">License ${i + 1}</td>
-                    <td style="padding: 10px; border: 1px solid #e5e7eb; font-family: monospace; font-weight: bold; color: #059669;">${key}</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">${appLabel}</td>
+                    <td style="padding: 10px; border: 1px solid #e5e7eb; font-family: monospace; font-weight: bold; color: #059669;">${licKey}</td>
                 </tr>
-            `).join('')
+            `}).join('')
             : ''
 
         await transporter.sendMail({
             from: config.from,
             to: order.user_email,
-            subject: `[${settings.app_name || 'License System'}] ${statusInfo.title} - #${order.order_code}`,
+            subject: `[${settings.app_name || 'Phanmemauto.com'}] ${statusInfo.title} - #${order.order_code}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: ${statusInfo.color};">${statusInfo.title}</h2>
@@ -322,7 +325,7 @@ export async function sendOrderStatusEmail(order, newStatus) {
                     ` : ''}
                     
                     <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'License System'}</p>
+                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'Phanmemauto.com'}</p>
                 </div>
             `
         })

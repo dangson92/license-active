@@ -106,7 +106,7 @@ export const Checkout: React.FC<CheckoutProps> = ({
         ? `PKG${packageId}`
         : (appDetails?.code || appName?.toUpperCase().replace(/\s+/g, '') || 'APP');
     const durationShort = getDurationMonths() === 1 ? '1M' : getDurationMonths() === 6 ? '6M' : '1Y';
-    const transferContent = `SDA_${itemCode}_${getQuantityValue()}D_${durationShort}`;
+    const transferContent = `PMA_${itemCode}_${getQuantityValue()}D_${durationShort}`;
 
     // Generate VietQR URL
     const getVietQRUrl = () => {

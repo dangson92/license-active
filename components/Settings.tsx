@@ -38,7 +38,7 @@ export const Settings: React.FC = () => {
         smtp_pass: '',
         smtp_from: '',
         smtp_secure: 'false',
-        app_name: 'License System',
+        app_name: 'Phanmemauto.com',
         email_verify_required: 'true',
         bank_name: '',
         bank_code: '',
@@ -314,7 +314,7 @@ export const Settings: React.FC = () => {
                                 <Label htmlFor="app_name">Tên ứng dụng</Label>
                                 <Input
                                     id="app_name"
-                                    placeholder="License System"
+                                    placeholder="Phanmemauto.com"
                                     value={settings.app_name}
                                     onChange={(e) => updateSetting('app_name', e.target.value)}
                                 />

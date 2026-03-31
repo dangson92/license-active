@@ -23,6 +23,6 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('smtp_pass', ''),
 ('smtp_from', ''),
 ('smtp_secure', 'false'),
-('app_name', 'License System'),
+('app_name', 'Phanmemauto.com'),
 ('email_verify_required', 'true')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;

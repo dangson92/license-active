@@ -155,7 +155,7 @@ router.post('/trial', requireAuth, async (req, res) => {
 
 // Generate order code
 function generateOrderCode() {
-    return 'SDA_' + Math.random().toString(36).substring(2, 8).toUpperCase() + '_' + Date.now().toString(36).toUpperCase()
+    return 'PMA_' + Math.random().toString(36).substring(2, 8).toUpperCase() + '_' + Date.now().toString(36).toUpperCase()
 }
 // Get my orders (user)
 router.get('/orders', requireAuth, async (req, res) => {
@@ -373,23 +373,31 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
 
         if (order.package_id) {
             // Package order: create one license per app in the package (× quantity)
-            const pkgApps = await query('SELECT app_id FROM package_items WHERE package_id = ?', [order.package_id])
+            const pkgApps = await query(`
+                SELECT pi.app_id, a.name as app_name
+                FROM package_items pi
+                JOIN apps a ON a.id = pi.app_id
+                WHERE pi.package_id = ?
+                ORDER BY a.name ASC
+            `, [order.package_id])
             if (!pkgApps.rows.length) {
                 return res.status(400).json({ error: 'package_empty', message: 'Package has no apps' })
             }
             for (let i = 0; i < order.quantity; i++) {
-                for (const { app_id } of pkgApps.rows) {
+                for (const { app_id, app_name } of pkgApps.rows) {
                     const licenseKey = genKey()
                     await query(
                         `INSERT INTO licenses (user_id, app_id, license_key, max_devices, expires_at, status, created_at)
                          VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
                         [order.user_id, app_id, licenseKey, expiresAtStr]
                     )
-                    createdLicenses.push(licenseKey)
+                    createdLicenses.push({ key: licenseKey, app_name })
                 }
             }
         } else {
             // Single-app order: original logic
+            const appRes = await query('SELECT name FROM apps WHERE id = ?', [order.app_id])
+            const singleAppName = appRes.rows[0]?.name || 'Phần mềm'
             for (let i = 0; i < order.quantity; i++) {
                 const licenseKey = genKey()
                 await query(
@@ -397,7 +405,7 @@ router.post('/admin/orders/:id/approve', requireAdmin, async (req, res) => {
                      VALUES (?, ?, ?, 1, ?, 'active', NOW())`,
                     [order.user_id, order.app_id, licenseKey, expiresAtStr]
                 )
-                createdLicenses.push(licenseKey)
+                createdLicenses.push({ key: licenseKey, app_name: singleAppName })
             }
         }
 
