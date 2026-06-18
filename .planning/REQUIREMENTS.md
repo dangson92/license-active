@@ -46,24 +46,24 @@ Deferred to future. Tracked, not in current roadmap.
 
 ## Traceability
 
-Populated during roadmap creation. Each requirement maps to exactly one phase.
+Each requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NOTIF-01 | TBD | Pending |
-| NOTIF-02 | TBD | Pending |
-| NOTIF-03 | TBD | Pending |
-| REPORT-01 | TBD | Pending |
-| REPORT-02 | TBD | Pending |
-| REPORT-03 | TBD | Pending |
-| REPORT-04 | TBD | Pending |
-| REPORT-05 | TBD | Pending |
+| NOTIF-01 | Phase 1 | Pending |
+| NOTIF-02 | Phase 1 | Pending |
+| NOTIF-03 | Phase 1 | Pending |
+| REPORT-01 | Phase 2 | Pending |
+| REPORT-02 | Phase 2 | Pending |
+| REPORT-03 | Phase 2 | Pending |
+| REPORT-04 | Phase 2 | Pending |
+| REPORT-05 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 8 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 8 ⚠️
+- Mapped to phases: 8 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-18 after initial definition*
+*Last updated: 2026-06-18 after roadmap creation (traceability populated)*
