@@ -26,7 +26,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. When a user activates a trial, connected admins receive a `new-notification` identifying the user and the app, and a corresponding row is persisted.
   3. If notification creation or emission fails, the register and trial requests still succeed (correct response returned) and the failure is logged rather than surfaced to the caller.
   4. The register handler integrates `createNotification` via dynamic import, so the server starts without a circular-import error between `auth.js` and `notifications.js`.
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 01-01-PLAN.md — Fire non-blocking admin notifications on user register (new_user, via dynamic import) and trial activation (trial_started)
 
 ### Phase 2: Weekly System Report
 **Goal**: Admins receive an accurate weekly digest of overall system health by email every Monday morning, can override the recipient, and can trigger the report on demand for testing — all degrading gracefully when SMTP is unavailable.
@@ -47,5 +48,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Realtime Admin Notifications | 0/TBD | Not started | - |
+| 1. Realtime Admin Notifications | 0/1 | Not started | - |
 | 2. Weekly System Report | 0/TBD | Not started | - |
