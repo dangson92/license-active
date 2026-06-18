@@ -50,9 +50,9 @@ Each requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NOTIF-01 | Phase 1 | Pending |
-| NOTIF-02 | Phase 1 | Pending |
-| NOTIF-03 | Phase 1 | Pending |
+| NOTIF-01 | Phase 1 | Complete |
+| NOTIF-02 | Phase 1 | Complete |
+| NOTIF-03 | Phase 1 | Complete |
 | REPORT-01 | Phase 2 | Pending |
 | REPORT-02 | Phase 2 | Pending |
 | REPORT-03 | Phase 2 | Pending |

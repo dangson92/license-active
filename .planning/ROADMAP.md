@@ -12,7 +12,7 @@ A brownfield milestone on the existing Express (ESM) + MySQL + Socket.IO + React
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Realtime Admin Notifications** - Persist + emit an admin notification when a user registers or activates a trial, non-blocking
+- [x] **Phase 1: Realtime Admin Notifications** - Persist + emit an admin notification when a user registers or activates a trial, non-blocking (completed 2026-06-18)
 - [ ] **Phase 2: Weekly System Report** - Generate and auto-send a weekly system-summary email (Monday 08:00 UTC+7) with an admin on-demand trigger
 
 ## Phase Details
@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. If notification creation or emission fails, the register and trial requests still succeed (correct response returned) and the failure is logged rather than surfaced to the caller.
   4. The register handler integrates `createNotification` via dynamic import, so the server starts without a circular-import error between `auth.js` and `notifications.js`.
 **Plans**: 1 plan
-- [ ] 01-01-PLAN.md — Fire non-blocking admin notifications on user register (new_user, via dynamic import) and trial activation (trial_started)
+- [x] 01-01-PLAN.md — Fire non-blocking admin notifications on user register (new_user, via dynamic import) and trial activation (trial_started)
 
 ### Phase 2: Weekly System Report
 **Goal**: Admins receive an accurate weekly digest of overall system health by email every Monday morning, can override the recipient, and can trigger the report on demand for testing — all degrading gracefully when SMTP is unavailable.
@@ -48,5 +48,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Realtime Admin Notifications | 0/1 | Not started | - |
+| 1. Realtime Admin Notifications | 1/1 | Complete (code-verified; 3 human-UAT items pending) | 2026-06-18 |
 | 2. Weekly System Report | 0/TBD | Not started | - |

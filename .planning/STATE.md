@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Admins have timely, accurate visibility into system activity — real time for individual events, weekly digest for overall health.
-**Current focus:** Phase 1 — Realtime Admin Notifications
+**Current focus:** Phase 2 — Weekly System Report
 
 ## Current Position
 
-Phase: 1 of 2 (Realtime Admin Notifications)
-Plan: 0 of 1 in current phase
-Status: Ready to execute
-Last activity: 2026-06-18 — Phase 1 planned (1 plan, verification passed)
+Phase: 2 of 2 (Weekly System Report)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-06-18 — Phase 1 complete (code-verified; 3 human-UAT runtime items pending a live stack)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -75,5 +75,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-06-18
-Stopped at: Roadmap and STATE initialized; REQUIREMENTS traceability filled (8/8 mapped).
+Stopped at: Phase 1 (Realtime Admin Notifications) complete — auth.js + store.js fire non-blocking admin notifications on register/trial; code-verified (4/4 must-haves), 3 runtime human-UAT items pending a live stack (see 01-HUMAN-UAT.md). Phase 2 (Weekly System Report) next.
 Resume file: None
