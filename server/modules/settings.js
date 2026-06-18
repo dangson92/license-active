@@ -1,7 +1,7 @@
 import express from 'express'
 import { query } from '../db.js'
 import { requireAdmin } from './auth.js'
-import { sendTestEmail } from '../services/email.js'
+import { sendTestEmail, sendWeeklyReport } from '../services/email.js'
 
 const router = express.Router()
 
@@ -81,6 +81,18 @@ router.post('/test-email', requireAdmin, async (req, res) => {
     } catch (e) {
         console.error('Test email error:', e)
         res.status(500).json({ error: e.message || 'Failed to send test email' })
+    }
+})
+
+// Send weekly system report now (admin on-demand trigger)
+router.post('/send-weekly-report', requireAdmin, async (req, res) => {
+    try {
+        const { to } = req.body
+        const result = await sendWeeklyReport(to || null)
+        res.json({ success: true, to: result.to })
+    } catch (e) {
+        console.error('Send weekly report error:', e)
+        res.status(500).json({ error: e.message || 'Failed to send weekly report' })
     }
 })
 
