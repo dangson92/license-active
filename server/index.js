@@ -22,6 +22,7 @@ import downloadRouter from './modules/download.js'
 import { appsRouter as appAttachmentsRouter, attachmentsRouter } from './modules/app-attachments.js'
 import { initSocket } from './socket.js'
 import { initLicenseScheduler } from './services/license-scheduler.js'
+import { initReportScheduler } from './services/report-scheduler.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -194,6 +195,9 @@ initSocket(server)
 
 // Initialize License Expiring Scheduler (10:00 AM UTC+7 daily)
 initLicenseScheduler()
+
+// Initialize Weekly Report Scheduler (Monday 08:00 UTC+7 = 01:00 UTC)
+initReportScheduler()
 
 // Increase timeout for large file uploads (30 minutes)
 server.timeout = 30 * 60 * 1000
