@@ -137,6 +137,21 @@ router.post('/trial', requireAuth, async (req, res) => {
 
         console.log(`🎁 Trial license created for user ${userId}, app ${app_id}: ${licenseKey}`)
 
+        // Notify admins of the trial activation (non-blocking — must never break trial creation)
+        try {
+            const userInfo = await query('SELECT full_name, email FROM users WHERE id = ?', [userId])
+            const userName = userInfo.rows[0]?.full_name || userInfo.rows[0]?.email || req.user.email
+            const appName = appCheck.rows[0].name
+            await createNotification({
+                type: 'trial_started',
+                title: 'Dùng thử mới',
+                message: `${userName} vừa kích hoạt dùng thử ${appName}`,
+                link: '/admin/members'
+            })
+        } catch (notifyError) {
+            console.error('Failed to create trial_started notification:', notifyError)
+        }
+
         res.json({
             license_key: licenseKey,
             expires_at: expiresAtStr,
