@@ -50,6 +50,7 @@ export const Settings: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [testEmail, setTestEmail] = useState('');
     const [sendingTest, setSendingTest] = useState(false);
+    const [sendingReport, setSendingReport] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
@@ -107,6 +108,26 @@ export const Settings: React.FC = () => {
             setMessage({ type: 'error', text: error.message || 'Không thể gửi email test' });
         } finally {
             setSendingTest(false);
+        }
+    };
+
+    const handleSendWeeklyReport = async () => {
+        const to = settings.order_notification_email?.trim();
+        if (!to) {
+            setMessage({ type: 'error', text: 'Vui lòng nhập và lưu email nhận thông báo trước khi gửi báo cáo.' });
+            return;
+        }
+
+        try {
+            setSendingReport(true);
+            setMessage(null);
+            const result = await api.settings.sendWeeklyReport(to);
+            setMessage({ type: 'success', text: `✓ Đã gửi báo cáo tổng hợp tuần đến ${result?.to || to}!` });
+        } catch (error: any) {
+            console.error('Failed to send weekly report:', error);
+            setMessage({ type: 'error', text: error.message || 'Không thể gửi báo cáo tuần' });
+        } finally {
+            setSendingReport(false);
         }
     };
 
@@ -435,6 +456,39 @@ export const Settings: React.FC = () => {
                                     <li>• Khi đơn hàng bị từ chối → Email thông báo gửi đến khách hàng</li>
                                 </ul>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Weekly system report */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Send className="h-5 w-5" />
+                                Báo cáo tổng hợp tuần
+                            </CardTitle>
+                            <CardDescription>
+                                Tự động gửi vào 08:00 Thứ 2 hàng tuần (giờ VN). Báo cáo gồm tài khoản, phần mềm, license/dùng thử, doanh thu tuần và hỗ trợ.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                                Bấm để gửi thử ngay đến email nhận thông báo ở trên
+                                {settings.order_notification_email
+                                    ? <> (<span className="font-medium text-foreground">{settings.order_notification_email}</span>)</>
+                                    : ' (chưa cấu hình)'}.
+                            </p>
+                            <Button
+                                onClick={handleSendWeeklyReport}
+                                disabled={sendingReport || !settings.order_notification_email}
+                                variant="outline"
+                            >
+                                {sendingReport ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                ) : (
+                                    <Send className="h-4 w-4 mr-2" />
+                                )}
+                                Gửi báo cáo tuần ngay
+                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>

@@ -179,6 +179,13 @@ export const api = {
         body: JSON.stringify({ to }),
       });
     },
+
+    sendWeeklyReport: async (to?: string) => {
+      return apiCall('/api/admin/settings/send-weekly-report', {
+        method: 'POST',
+        body: JSON.stringify(to ? { to } : {}),
+      });
+    },
   },
 
   // Admin endpoints

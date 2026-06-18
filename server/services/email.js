@@ -503,7 +503,7 @@ export async function sendWeeklyReport(to = null) {
     const data = await getWeeklyReportData()
     const settings = await getSettings()
 
-    const recipient = to || process.env.WEEKLY_REPORT_EMAIL || settings.weekly_report_email || DEFAULT_WEEKLY_REPORT_EMAIL
+    const recipient = to || process.env.WEEKLY_REPORT_EMAIL || settings.weekly_report_email || settings.order_notification_email || DEFAULT_WEEKLY_REPORT_EMAIL
 
     const transporter = await createTransporter()
     const config = await getSmtpConfig()
