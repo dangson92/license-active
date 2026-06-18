@@ -32,6 +32,19 @@ router.post('/register', async (req, res) => {
       [email, passwordHash, fullName, 'user', false, verificationToken, verificationExpires]
     )
 
+    // Notify admins of the new registration (non-blocking — must never break register)
+    try {
+      const { createNotification } = await import('./notifications.js')
+      await createNotification({
+        type: 'new_user',
+        title: 'Người dùng mới đăng ký',
+        message: `${fullName} (${email}) vừa tạo tài khoản mới`,
+        link: '/admin/members'
+      })
+    } catch (notifyError) {
+      console.error('Failed to create new_user notification:', notifyError)
+    }
+
     // Check if email verification is required and SMTP is configured
     const settings = await getSettings()
     const emailVerifyRequired = settings.email_verify_required === 'true'
