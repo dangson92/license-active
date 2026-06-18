@@ -39,7 +39,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The recipient defaults to `dangson.1011@gmail.com` and can be overridden via the `WEEKLY_REPORT_EMAIL` environment variable or a `weekly_report_email` row in the `settings` table.
   4. An authenticated admin can trigger the weekly report to be sent immediately (optionally to a custom address) via an admin route and receive a success/failure response.
   5. When SMTP is not configured or sending fails, the scheduled send logs the error and skips without crashing the server or stopping the scheduler.
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 02-PLAN.md — Weekly report data + email (email.js), self-scheduling job (report-scheduler.js), index.js wiring, and the admin on-demand /send-weekly-report route
 
 ## Progress
 
@@ -49,4 +50,4 @@ Phases execute in numeric order: 1 → 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Realtime Admin Notifications | 1/1 | Complete (code-verified; 3 human-UAT items pending) | 2026-06-18 |
-| 2. Weekly System Report | 0/TBD | Not started | - |
+| 2. Weekly System Report | 0/1 | Not started | - |
