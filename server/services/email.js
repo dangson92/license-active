@@ -7,6 +7,8 @@ import { query } from '../db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const DEFAULT_WEEKLY_REPORT_EMAIL = 'dangson.1011@gmail.com'
+
 /**
  * Get all settings from database as key-value object
  */
@@ -147,7 +149,9 @@ export default {
     sendVerificationEmail,
     sendTestEmail,
     sendNewOrderNotification,
-    sendOrderStatusEmail
+    sendOrderStatusEmail,
+    getWeeklyReportData,
+    sendWeeklyReport
 }
 
 /**
@@ -335,4 +339,266 @@ export async function sendOrderStatusEmail(order, newStatus) {
         console.error('Failed to send order status email:', e)
         return false
     }
+}
+
+/**
+ * Gather weekly system report metrics over the last 7 days.
+ * Each section is wrapped in its own try/catch so one failing query
+ * defaults that section to zeros/empty and logs, rather than aborting
+ * the whole report. mysql2 returns SUM()/COUNT()/DECIMAL columns as
+ * strings, so every numeric field is coerced with Number(...).
+ */
+export async function getWeeklyReportData() {
+    const to = new Date()
+    const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    let accounts = { total: 0, newThisWeek: 0, activeThisWeek: 0, admins: 0 }
+    try {
+        const result = await query(`
+            SELECT
+                COUNT(*) AS total,
+                SUM(created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS new_this_week,
+                SUM(last_login_at IS NOT NULL AND last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS active_this_week,
+                SUM(role = 'admin') AS admins
+            FROM users
+        `)
+        const row = result.rows[0] || {}
+        accounts = {
+            total: Number(row.total) || 0,
+            newThisWeek: Number(row.new_this_week) || 0,
+            activeThisWeek: Number(row.active_this_week) || 0,
+            admins: Number(row.admins) || 0
+        }
+    } catch (e) {
+        console.error('Weekly report accounts query error:', e)
+    }
+
+    let software = { appsTotal: 0, appsActive: 0, versions: 0, packages: 0 }
+    try {
+        const result = await query(`
+            SELECT
+                (SELECT COUNT(*) FROM apps) AS apps_total,
+                (SELECT COUNT(*) FROM apps WHERE is_active = TRUE) AS apps_active,
+                (SELECT COUNT(*) FROM app_versions) AS versions,
+                (SELECT COUNT(*) FROM packages) AS packages
+        `)
+        const row = result.rows[0] || {}
+        software = {
+            appsTotal: Number(row.apps_total) || 0,
+            appsActive: Number(row.apps_active) || 0,
+            versions: Number(row.versions) || 0,
+            packages: Number(row.packages) || 0
+        }
+    } catch (e) {
+        console.error('Weekly report software query error:', e)
+    }
+
+    let licenses = { activeLicenses: 0, activeTrials: 0, newThisWeek: 0, newTrialsThisWeek: 0, expiringSoon: 0 }
+    try {
+        const result = await query(`
+            SELECT
+                SUM(status = 'active') AS active_licenses,
+                SUM(is_trial = TRUE AND status = 'active') AS active_trials,
+                SUM(created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS new_this_week,
+                SUM(is_trial = TRUE AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS new_trials_this_week,
+                SUM(status = 'active' AND expires_at IS NOT NULL
+                    AND expires_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)) AS expiring_soon
+            FROM licenses
+        `)
+        const row = result.rows[0] || {}
+        licenses = {
+            activeLicenses: Number(row.active_licenses) || 0,
+            activeTrials: Number(row.active_trials) || 0,
+            newThisWeek: Number(row.new_this_week) || 0,
+            newTrialsThisWeek: Number(row.new_trials_this_week) || 0,
+            expiringSoon: Number(row.expiring_soon) || 0
+        }
+    } catch (e) {
+        console.error('Weekly report licenses query error:', e)
+    }
+
+    let revenue = {
+        weeklyPaidTotal: 0,
+        weeklyPaidCount: 0,
+        allTimePaidTotal: 0,
+        newOrdersThisWeek: 0,
+        pendingOrders: 0,
+        topApps: []
+    }
+    try {
+        const result = await query(`
+            SELECT
+                COALESCE(SUM(CASE WHEN status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN total_price ELSE 0 END), 0) AS weekly_paid_total,
+                SUM(status = 'paid' AND paid_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS weekly_paid_count,
+                COALESCE(SUM(CASE WHEN status = 'paid' THEN total_price ELSE 0 END), 0) AS all_time_paid_total,
+                SUM(created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS new_orders_this_week,
+                SUM(status = 'pending') AS pending_orders
+            FROM purchase_orders
+        `)
+        const row = result.rows[0] || {}
+        revenue.weeklyPaidTotal = Number(row.weekly_paid_total) || 0
+        revenue.weeklyPaidCount = Number(row.weekly_paid_count) || 0
+        revenue.allTimePaidTotal = Number(row.all_time_paid_total) || 0
+        revenue.newOrdersThisWeek = Number(row.new_orders_this_week) || 0
+        revenue.pendingOrders = Number(row.pending_orders) || 0
+    } catch (e) {
+        console.error('Weekly report revenue query error:', e)
+    }
+
+    try {
+        const result = await query(`
+            SELECT COALESCE(a.name, pk.name, '(Khác)') AS name,
+                   COALESCE(SUM(po.total_price), 0) AS revenue
+            FROM purchase_orders po
+            LEFT JOIN apps a ON a.id = po.app_id
+            LEFT JOIN packages pk ON pk.id = po.package_id
+            WHERE po.status = 'paid' AND po.paid_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY name
+            ORDER BY revenue DESC
+            LIMIT 5
+        `)
+        revenue.topApps = (result.rows || []).map(row => ({
+            name: row.name,
+            revenue: Number(row.revenue) || 0
+        }))
+    } catch (e) {
+        console.error('Weekly report top apps query error:', e)
+        revenue.topApps = []
+    }
+
+    let support = { openTickets: 0, newThisWeek: 0 }
+    try {
+        const result = await query(`
+            SELECT
+                SUM(status IN ('pending','in_progress')) AS open_tickets,
+                SUM(created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) AS new_this_week
+            FROM support_tickets
+        `)
+        const row = result.rows[0] || {}
+        support = {
+            openTickets: Number(row.open_tickets) || 0,
+            newThisWeek: Number(row.new_this_week) || 0
+        }
+    } catch (e) {
+        console.error('Weekly report support query error:', e)
+    }
+
+    return {
+        period: { from, to },
+        accounts,
+        software,
+        licenses,
+        revenue,
+        support
+    }
+}
+
+/**
+ * Build and send the weekly system report email.
+ * Recipient resolves: to arg -> WEEKLY_REPORT_EMAIL env -> weekly_report_email
+ * setting -> default constant. createTransporter() is allowed to throw if SMTP
+ * is unconfigured (callers wrap this — REPORT-05). Returns { success, to, data }.
+ */
+export async function sendWeeklyReport(to = null) {
+    const data = await getWeeklyReportData()
+    const settings = await getSettings()
+
+    const recipient = to || process.env.WEEKLY_REPORT_EMAIL || settings.weekly_report_email || DEFAULT_WEEKLY_REPORT_EMAIL
+
+    const transporter = await createTransporter()
+    const config = await getSmtpConfig()
+
+    const formatDate = (date) => {
+        const d = new Date(date)
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    }
+    const period = `${formatDate(data.period.from)} - ${formatDate(data.period.to)}`
+
+    const row = (label, value, alt) => `
+                        <tr${alt ? ' style="background: #f3f4f6;"' : ''}>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">${label}</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${value}</td>
+                        </tr>
+    `
+
+    const topAppsRows = data.revenue.topApps.length > 0
+        ? data.revenue.topApps.map((app, i) => `
+                        <tr${i % 2 === 0 ? ' style="background: #f3f4f6;"' : ''}>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${app.name}</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; color: #2563eb; font-weight: bold;">${formatCurrency(app.revenue)}</td>
+                        </tr>
+        `).join('')
+        : `
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb;" colspan="2">Không có doanh thu trong tuần</td>
+                        </tr>
+        `
+
+    const html = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">📊 Báo cáo hệ thống tuần</h2>
+                    <p>Kỳ báo cáo: <strong>${period}</strong></p>
+
+                    <h3 style="color: #111827; margin-top: 24px;">👥 Tài khoản</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        ${row('Tổng tài khoản', data.accounts.total, true)}
+                        ${row('Tài khoản mới (7 ngày)', data.accounts.newThisWeek)}
+                        ${row('Hoạt động (7 ngày)', data.accounts.activeThisWeek, true)}
+                        ${row('Quản trị viên', data.accounts.admins)}
+                    </table>
+
+                    <h3 style="color: #111827; margin-top: 24px;">💻 Phần mềm</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        ${row('Tổng ứng dụng', data.software.appsTotal, true)}
+                        ${row('Ứng dụng đang bật', data.software.appsActive)}
+                        ${row('Phiên bản', data.software.versions, true)}
+                        ${row('Gói (packages)', data.software.packages)}
+                    </table>
+
+                    <h3 style="color: #111827; margin-top: 24px;">🔑 License & dùng thử</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        ${row('License đang hoạt động', data.licenses.activeLicenses, true)}
+                        ${row('Dùng thử đang hoạt động', data.licenses.activeTrials)}
+                        ${row('License mới (7 ngày)', data.licenses.newThisWeek, true)}
+                        ${row('Dùng thử mới (7 ngày)', data.licenses.newTrialsThisWeek)}
+                        ${row('Sắp hết hạn (7 ngày)', data.licenses.expiringSoon, true)}
+                    </table>
+
+                    <h3 style="color: #111827; margin-top: 24px;">💰 Doanh thu (7 ngày)</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        ${row('Doanh thu tuần', formatCurrency(data.revenue.weeklyPaidTotal), true)}
+                        ${row('Đơn đã thanh toán (tuần)', data.revenue.weeklyPaidCount)}
+                        ${row('Doanh thu toàn thời gian', formatCurrency(data.revenue.allTimePaidTotal), true)}
+                        ${row('Đơn hàng mới (tuần)', data.revenue.newOrdersThisWeek)}
+                        ${row('Đơn chờ xử lý', data.revenue.pendingOrders, true)}
+                    </table>
+
+                    <h4 style="color: #111827; margin-top: 16px;">🏆 Top sản phẩm theo doanh thu tuần</h4>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        <tr style="background: #e5e7eb;">
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Sản phẩm</td>
+                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Doanh thu</td>
+                        </tr>
+                        ${topAppsRows}
+                    </table>
+
+                    <h3 style="color: #111827; margin-top: 24px;">🎧 Hỗ trợ</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                        ${row('Ticket đang mở', data.support.openTickets, true)}
+                        ${row('Ticket mới (7 ngày)', data.support.newThisWeek)}
+                    </table>
+
+                    <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;">
+                    <p style="color: #6b7280; font-size: 12px;">Email được gửi tự động từ hệ thống ${settings.app_name || 'Phanmemauto.com'}</p>
+                </div>
+    `
+
+    await transporter.sendMail({
+        from: config.from,
+        to: recipient,
+        subject: `[${settings.app_name || 'Phanmemauto.com'}] Báo cáo hệ thống tuần (${period})`,
+        html: html
+    })
+
+    return { success: true, to: recipient, data }
 }
