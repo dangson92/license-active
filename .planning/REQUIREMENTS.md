@@ -53,11 +53,11 @@ Each requirement maps to exactly one phase.
 | NOTIF-01 | Phase 1 | Complete |
 | NOTIF-02 | Phase 1 | Complete |
 | NOTIF-03 | Phase 1 | Complete |
-| REPORT-01 | Phase 2 | Pending |
-| REPORT-02 | Phase 2 | Pending |
-| REPORT-03 | Phase 2 | Pending |
-| REPORT-04 | Phase 2 | Pending |
-| REPORT-05 | Phase 2 | Pending |
+| REPORT-01 | Phase 2 | Complete |
+| REPORT-02 | Phase 2 | Complete |
+| REPORT-03 | Phase 2 | Complete |
+| REPORT-04 | Phase 2 | Complete |
+| REPORT-05 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 8 total

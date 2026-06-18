@@ -13,7 +13,7 @@ A brownfield milestone on the existing Express (ESM) + MySQL + Socket.IO + React
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Realtime Admin Notifications** - Persist + emit an admin notification when a user registers or activates a trial, non-blocking (completed 2026-06-18)
-- [ ] **Phase 2: Weekly System Report** - Generate and auto-send a weekly system-summary email (Monday 08:00 UTC+7) with an admin on-demand trigger
+- [x] **Phase 2: Weekly System Report** - Generate and auto-send a weekly system-summary email (Monday 08:00 UTC+7) with an admin on-demand trigger (completed 2026-06-18)
 
 ## Phase Details
 
@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. An authenticated admin can trigger the weekly report to be sent immediately (optionally to a custom address) via an admin route and receive a success/failure response.
   5. When SMTP is not configured or sending fails, the scheduled send logs the error and skips without crashing the server or stopping the scheduler.
 **Plans**: 1 plan
-- [ ] 02-PLAN.md — Weekly report data + email (email.js), self-scheduling job (report-scheduler.js), index.js wiring, and the admin on-demand /send-weekly-report route
+- [x] 02-PLAN.md — Weekly report data + email (email.js), self-scheduling job (report-scheduler.js), index.js wiring, and the admin on-demand /send-weekly-report route
 
 ## Progress
 
@@ -50,4 +50,4 @@ Phases execute in numeric order: 1 → 2
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Realtime Admin Notifications | 1/1 | Complete (code-verified; 3 human-UAT items pending) | 2026-06-18 |
-| 2. Weekly System Report | 0/1 | Not started | - |
+| 2. Weekly System Report | 1/1 | Complete (code-verified; 4 human-UAT items pending) | 2026-06-18 |

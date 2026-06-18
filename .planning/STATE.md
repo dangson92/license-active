@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-18)
 
 **Core value:** Admins have timely, accurate visibility into system activity — real time for individual events, weekly digest for overall health.
-**Current focus:** Phase 2 — Weekly System Report
+**Current focus:** Milestone complete — Notifications & Weekly Reporting (both phases shipped)
 
 ## Current Position
 
-Phase: 2 of 2 (Weekly System Report)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-06-18 — Phase 1 complete (code-verified; 3 human-UAT runtime items pending a live stack)
+Phase: 2 of 2 (Weekly System Report) — DONE
+Plan: 1 of 1 complete
+Status: Milestone complete (code-verified; 7 human-UAT runtime items pending a live stack)
+Last activity: 2026-06-18 — Phase 2 complete; milestone "Notifications & Weekly Reporting" finished
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -75,5 +75,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-06-18
-Stopped at: Phase 1 (Realtime Admin Notifications) complete — auth.js + store.js fire non-blocking admin notifications on register/trial; code-verified (4/4 must-haves), 3 runtime human-UAT items pending a live stack (see 01-HUMAN-UAT.md). Phase 2 (Weekly System Report) next.
+Stopped at: Milestone "Notifications & Weekly Reporting" COMPLETE. Phase 1 (realtime admin notifications on register/trial) + Phase 2 (weekly system-report email + self-scheduling job + admin trigger) both shipped and code-verified. 7 runtime human-UAT items pending a live MySQL+SMTP stack (01-HUMAN-UAT.md: 3, 02-HUMAN-UAT.md: 4). Next: run /gsd-verify-work on a live stack, or /gsd-complete-milestone to archive.
 Resume file: None

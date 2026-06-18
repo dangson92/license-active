@@ -26,14 +26,14 @@ Admins have timely, accurate visibility into what's happening in the system (new
 - ✓ Daily license-expiry scheduler (self-scheduling setTimeout/setInterval, 10:00 UTC+7) — existing
 - ✓ Realtime admin notification (WebSocket + persisted) on new user registration — Phase 1 (2026-06-18)
 - ✓ Realtime admin notification (WebSocket + persisted) on trial activation — Phase 1 (2026-06-18)
+- ✓ Weekly system summary email (accounts, software, licenses/trials, weekly revenue, support), Monday 08:00 UTC+7, configurable recipient (default dangson.1011@gmail.com) — Phase 2 (2026-06-18)
+- ✓ Admin on-demand trigger to send the weekly report immediately — Phase 2 (2026-06-18)
 
 ### Active
 
-<!-- This milestone: Notifications & Weekly Reporting. -->
-<!-- Phase 1 (register/trial notifications) validated and moved to Validated above. -->
+<!-- Milestone "Notifications & Weekly Reporting" complete — all Active requirements validated and moved above. -->
 
-- [ ] Weekly system summary email (accounts, software, licenses/trials, weekly revenue, support) sent automatically every Monday 08:00 (UTC+7) to a configurable recipient (default dangson.1011@gmail.com)
-- [ ] Admin on-demand trigger to send the weekly report immediately (for testing)
+(None — milestone complete. Next milestone's requirements go here.)
 
 ### Out of Scope
 
@@ -69,10 +69,10 @@ Admins have timely, accurate visibility into what's happening in the system (new
 | Register/trial notifications go to **admins only** | Matches existing `new_order` pattern; goal is admin visibility ("bắn về" dashboard) | ✓ Good (Phase 1) |
 | Reuse `createNotification` for both events | Already does DB persist + Socket.IO emit + frontend renders unknown types | ✓ Good (Phase 1) |
 | Dynamic import of `createNotification` inside `auth.js` register | Avoids the `auth.js ↔ notifications.js` circular import at startup | ✓ Good (Phase 1) |
-| Weekly report sent **Monday 08:00 UTC+7** | Start-of-week digest of the previous 7 days | — Pending |
-| Recipient = **default dangson.1011@gmail.com, overridable** via `WEEKLY_REPORT_EMAIL` env or `weekly_report_email` setting | Honors the request but stays configurable | — Pending |
-| New weekly scheduler mirrors `license-scheduler.js` (in-memory) | Consistency; avoid new infra deps for one job | — Pending |
-| Add admin route to trigger report on demand | Enables testing without waiting for the weekly tick | — Pending |
+| Weekly report sent **Monday 08:00 UTC+7** | Start-of-week digest of the previous 7 days | ✓ Good (Phase 2) |
+| Recipient = **default dangson.1011@gmail.com, overridable** via `WEEKLY_REPORT_EMAIL` env or `weekly_report_email` setting | Honors the request but stays configurable | ✓ Good (Phase 2) |
+| New weekly scheduler mirrors `license-scheduler.js` (in-memory) | Consistency; avoid new infra deps for one job | ✓ Good (Phase 2) |
+| Add admin route to trigger report on demand | Enables testing without waiting for the weekly tick | ✓ Good (Phase 2) |
 
 ## Evolution
 
@@ -92,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-18 after Phase 1 (Realtime Admin Notifications) completion*
+*Last updated: 2026-06-18 after Phase 2 completion — milestone "Notifications & Weekly Reporting" finished*
