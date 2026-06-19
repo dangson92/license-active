@@ -37,9 +37,12 @@ import { config } from '../config';
 interface Order {
     id: number;
     order_code: string;
-    app_id: number;
-    app_name: string;
-    app_code: string;
+    app_id: number | null;
+    app_name: string | null;
+    app_code: string | null;
+    package_id: number | null;
+    package_name: string | null;
+    package_code: string | null;
     user_id: number;
     user_name: string;
     user_email: string;
@@ -172,7 +175,7 @@ export const OrderManagement: React.FC = () => {
             order.order_code.toLowerCase().includes(searchLower) ||
             order.user_email.toLowerCase().includes(searchLower) ||
             order.user_name.toLowerCase().includes(searchLower) ||
-            order.app_name.toLowerCase().includes(searchLower);
+            (order.app_name || order.package_name || '').toLowerCase().includes(searchLower);
 
         return matchesStatus && matchesSearch;
     });
@@ -290,7 +293,12 @@ export const OrderManagement: React.FC = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium text-sm">{order.app_name}</span>
+                                                    <span className="font-medium text-sm flex items-center gap-1.5">
+                                                        {order.app_name || order.package_name || '—'}
+                                                        {order.package_id && (
+                                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Gói</Badge>
+                                                        )}
+                                                    </span>
                                                     <span className="text-xs text-muted-foreground">
                                                         {order.quantity} thiết bị x {order.duration_months} tháng
                                                     </span>
