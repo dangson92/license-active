@@ -46,6 +46,7 @@ interface StoreApp {
     badge?: string;
     icon_class?: string;
     trial_enabled?: boolean;
+    trial_days?: number;
     type: 'app';
 }
 
@@ -114,6 +115,9 @@ const formatPrice = (price?: number) => {
     if (!price) return 'Liên hệ';
     return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 };
+
+// Thời hạn trial của app — mặc định 7 ngày khi backend chưa trả trial_days
+const trialDaysOf = (app?: StoreApp | null) => Number(app?.trial_days) || 7;
 
 // ─── Savings Calculator ──────────────────────────────────────────
 // Returns savings % (e.g. 16.7) or null if package isn't cheaper
@@ -488,7 +492,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                                 ) : (
                                     <Gift className="w-4 h-4 mr-2" />
                                 )}
-                                {trialSuccess[app.id] ? 'Đã kích hoạt trial' : 'Dùng thử 7 ngày'}
+                                {trialSuccess[app.id] ? 'Đã kích hoạt trial' : `Dùng thử ${trialDaysOf(app)} ngày`}
                             </Button>
                         )}
                     </div>
@@ -587,7 +591,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                             Dùng thử miễn phí
                         </DialogTitle>
                         <DialogDescription className="text-sm leading-relaxed">
-                            Bạn muốn dùng thử <span className="font-semibold text-foreground">{trialConfirmApp?.name}</span> miễn phí trong 7 ngày?
+                            Bạn muốn dùng thử <span className="font-semibold text-foreground">{trialConfirmApp?.name}</span> miễn phí trong {trialDaysOf(trialConfirmApp)} ngày?
                             <br /><br />
                             Mỗi tài khoản chỉ được dùng thử 1 lần cho mỗi ứng dụng.
                         </DialogDescription>
@@ -616,7 +620,7 @@ export const ApplicationStore: React.FC<ApplicationStoreProps> = ({ onCheckout }
                         <div className="space-y-1.5">
                             <h3 className="text-lg font-bold">Đăng ký trial thành công!</h3>
                             <p className="text-sm text-muted-foreground">
-                                Bạn đã kích hoạt trial 7 ngày cho <span className="font-semibold text-foreground">{trialSuccessApp?.name}</span>.
+                                Bạn đã kích hoạt trial {trialDaysOf(trialSuccessApp)} ngày cho <span className="font-semibold text-foreground">{trialSuccessApp?.name}</span>.
                             </p>
                         </div>
                         <Button

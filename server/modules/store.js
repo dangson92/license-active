@@ -36,7 +36,7 @@ router.get('/apps', async (req, res) => {
              p.price_6_months, p.price_6_months_enabled,
              p.price_1_year, p.price_1_year_enabled,
              p.is_featured, p.badge, p.icon_class,
-             p.trial_enabled
+             p.trial_enabled, p.trial_days
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
       WHERE a.is_active = TRUE
@@ -58,7 +58,8 @@ router.get('/apps/:id', async (req, res) => {
              p.description, p.price_1_month, p.price_1_month_enabled,
              p.price_6_months, p.price_6_months_enabled,
              p.price_1_year, p.price_1_year_enabled,
-             p.is_featured, p.badge, p.icon_class
+             p.is_featured, p.badge, p.icon_class,
+             p.trial_enabled, p.trial_days
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
       WHERE a.id = ?
@@ -88,6 +89,15 @@ const genKey = () => {
     });
 }
 
+// Số ngày trial hợp lệ — rơi về 7 khi thiếu/không hợp lệ (app_pricing cũ, NULL do LEFT JOIN...)
+const TRIAL_DAYS_DEFAULT = 7
+const TRIAL_DAYS_MAX = 365
+const normalizeTrialDays = (value) => {
+    const n = Number(value)
+    if (!Number.isInteger(n) || n < 1 || n > TRIAL_DAYS_MAX) return TRIAL_DAYS_DEFAULT
+    return n
+}
+
 router.post('/trial', requireAuth, async (req, res) => {
     try {
         const userId = req.user.id
@@ -99,7 +109,7 @@ router.post('/trial', requireAuth, async (req, res) => {
 
         // 1. Check app exists and trial is enabled
         const appCheck = await query(`
-            SELECT a.id, a.code, a.name, p.trial_enabled
+            SELECT a.id, a.code, a.name, p.trial_enabled, p.trial_days
             FROM apps a
             LEFT JOIN app_pricing p ON p.app_id = a.id
             WHERE a.id = ? AND a.is_active = TRUE
@@ -123,10 +133,11 @@ router.post('/trial', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'trial_already_used', message: 'You have already used the trial for this app' })
         }
 
-        // 3. Create trial license (7 days, 1 device, no checkout)
+        // 3. Create trial license (thời hạn theo cấu hình của app, 1 device, no checkout)
+        const trialDays = normalizeTrialDays(appCheck.rows[0].trial_days)
         const licenseKey = genKey()
         const expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + 7)
+        expiresAt.setDate(expiresAt.getDate() + trialDays)
         const expiresAtStr = expiresAt.toISOString().slice(0, 19).replace('T', ' ')
 
         await query(
@@ -135,7 +146,7 @@ router.post('/trial', requireAuth, async (req, res) => {
             [userId, app_id, licenseKey, expiresAtStr]
         )
 
-        console.log(`🎁 Trial license created for user ${userId}, app ${app_id}: ${licenseKey}`)
+        console.log(`🎁 Trial license created for user ${userId}, app ${app_id} (${trialDays} ngày): ${licenseKey}`)
 
         // Notify admins of the trial activation (non-blocking — must never break trial creation)
         try {
@@ -145,7 +156,7 @@ router.post('/trial', requireAuth, async (req, res) => {
             await createNotification({
                 type: 'trial_started',
                 title: 'Dùng thử mới',
-                message: `${userName} vừa kích hoạt dùng thử ${appName}`,
+                message: `${userName} vừa kích hoạt dùng thử ${appName} (${trialDays} ngày)`,
                 link: '/admin/members'
             })
         } catch (notifyError) {
@@ -156,6 +167,7 @@ router.post('/trial', requireAuth, async (req, res) => {
             license_key: licenseKey,
             expires_at: expiresAtStr,
             is_trial: true,
+            trial_days: trialDays,
             message: 'Trial license created successfully'
         })
     } catch (e) {
@@ -563,7 +575,7 @@ router.get('/admin/pricing', requireAdmin, async (req, res) => {
         const r = await query(`
       SELECT a.id as app_id, a.code, a.name, a.is_active,
              p.id, p.description, p.price_1_month, p.price_6_months, p.price_1_year,
-             p.is_featured, p.badge, p.icon_class, p.trial_enabled
+             p.is_featured, p.badge, p.icon_class, p.trial_enabled, p.trial_days
       FROM apps a
       LEFT JOIN app_pricing p ON p.app_id = a.id
       ORDER BY a.name ASC
@@ -583,7 +595,7 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
             price_6_months, price_6_months_enabled,
             price_1_year, price_1_year_enabled,
             is_featured, badge, icon_class,
-            trial_enabled
+            trial_enabled, trial_days
         } = req.body
 
         // Convert undefined to null/defaults - handle boolean correctly
@@ -598,8 +610,9 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
         const badgeVal = badge ?? null
         const iconVal = icon_class ?? null
         const trialVal = trial_enabled === true || trial_enabled === 'true' ? 1 : 0
+        const trialDaysVal = normalizeTrialDays(trial_days)
 
-        console.log('Saving pricing:', { app_id, p1mEnabled, p6mEnabled, p1yEnabled, trialVal })
+        console.log('Saving pricing:', { app_id, p1mEnabled, p6mEnabled, p1yEnabled, trialVal, trialDaysVal })
 
         // Check if pricing already exists
         const existing = await query('SELECT id FROM app_pricing WHERE app_id = ?', [app_id])
@@ -611,17 +624,17 @@ router.post('/admin/pricing', requireAdmin, async (req, res) => {
                  price_1_month = ?, price_1_month_enabled = ?,
                  price_6_months = ?, price_6_months_enabled = ?,
                  price_1_year = ?, price_1_year_enabled = ?,
-                 is_featured = ?, badge = ?, icon_class = ?, trial_enabled = ?, updated_at = NOW()
+                 is_featured = ?, badge = ?, icon_class = ?, trial_enabled = ?, trial_days = ?, updated_at = NOW()
                  WHERE app_id = ?`,
-                [desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal, trialVal, app_id]
+                [desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal, trialVal, trialDaysVal, app_id]
             )
             res.json({ app_id, updated: true })
         } else {
             // Insert new
             await query(
-                `INSERT INTO app_pricing (app_id, description, price_1_month, price_1_month_enabled, price_6_months, price_6_months_enabled, price_1_year, price_1_year_enabled, is_featured, badge, icon_class, trial_enabled, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-                [app_id, desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal, trialVal]
+                `INSERT INTO app_pricing (app_id, description, price_1_month, price_1_month_enabled, price_6_months, price_6_months_enabled, price_1_year, price_1_year_enabled, is_featured, badge, icon_class, trial_enabled, trial_days, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+                [app_id, desc, p1m, p1mEnabled, p6m, p6mEnabled, p1y, p1yEnabled, featured, badgeVal, iconVal, trialVal, trialDaysVal]
             )
             const r = await query('SELECT LAST_INSERT_ID() as id')
             res.json({ id: r.rows[0].id, app_id, created: true })

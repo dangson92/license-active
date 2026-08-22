@@ -858,6 +858,7 @@ export const api = {
       badge?: string;
       icon_class?: string;
       trial_enabled?: boolean;
+      trial_days?: number;
     }) => {
       return apiCall('/api/store/admin/pricing', {
         method: 'POST',

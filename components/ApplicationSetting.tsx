@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Upload, Image, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import api, { getAssetUrl } from '../services/api';
 
@@ -63,6 +64,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
         isActive: true,
         isPublic: false,
         trialEnabled: false,
+        trialDays: 7,
     });
     const [iconFile, setIconFile] = useState<File | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                 isActive: app.is_active ?? true,
                 isPublic: false,
                 trialEnabled: pricing.trial_enabled === 1 || pricing.trial_enabled === true,
+                trialDays: Number(pricing.trial_days) || 7,
             });
             if (app.icon_url) {
                 setIconPreview(getAssetUrl(app.icon_url));
@@ -200,6 +203,7 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                     price_1_year: formData.price1Year || 0,
                     price_1_year_enabled: formData.price1YearEnabled,
                     trial_enabled: formData.trialEnabled,
+                    trial_days: formData.trialDays,
                 });
             }
 
@@ -499,13 +503,34 @@ export const ApplicationSetting: React.FC<ApplicationSettingProps> = ({
                             <div className="space-y-0.5">
                                 <Label>Trial cho phép</Label>
                                 <p className="text-xs text-muted-foreground">
-                                    Cho phép user dùng thử 7 ngày miễn phí (giới hạn 1 lần/user/app).
+                                    Cho phép user dùng thử miễn phí (giới hạn 1 lần/user/app).
                                 </p>
                             </div>
                             <Switch
                                 checked={formData.trialEnabled}
                                 onCheckedChange={(checked) => handleInputChange('trialEnabled', checked)}
                             />
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="space-y-0.5">
+                                <Label>Thời hạn dùng thử</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Số ngày hiệu lực của license dùng thử.
+                                </p>
+                            </div>
+                            <Select
+                                value={String(formData.trialDays)}
+                                onValueChange={(value) => handleInputChange('trialDays', parseInt(value, 10))}
+                                disabled={!formData.trialEnabled}
+                            >
+                                <SelectTrigger className="w-36">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="7">7 ngày</SelectItem>
+                                    <SelectItem value="14">14 ngày</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </div>
