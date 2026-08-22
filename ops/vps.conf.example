@@ -1,0 +1,36 @@
+# Cấu hình quản trị VPS — copy thành ops/vps.conf trên server rồi sửa cho khớp.
+#
+#   cp ops/vps.conf.example ops/vps.conf
+#
+# File ops/vps.conf KHÔNG được commit (đã có trong .gitignore).
+# Mọi giá trị dưới đây đều có mặc định hợp lý trong ops/vps.sh — chỉ khai báo
+# những gì server của bạn khác đi.
+
+# Vị trí repo trên server.
+# Mặc định: thư mục cha của ops/ — thường đã đúng, không cần sửa.
+# APP_DIR="$HOME/apps/license-active"
+
+# Nhánh git dùng để deploy
+# BRANCH="main"
+
+# Tên process backend trong PM2
+# PM2_NAME="license-active"
+
+# Nơi Nginx serve SPA (frontend build đổ vào đây)
+# WEB_ROOT="/var/www/license-app"
+
+# API base nhúng vào bản build frontend
+# VITE_API_URL="https://api.phanmemauto.com"
+
+# Endpoint health check — mặc định suy ra từ VITE_API_URL + /health
+# HEALTH_URL="https://api.phanmemauto.com/health"
+
+# Nơi chứa backup DB và uploads
+# BACKUP_DIR="$HOME/backups/license-active"
+
+# Số bản backup giữ lại mỗi loại khi chạy tác vụ dọn dẹp (65)
+# BACKUP_KEEP=10
+
+# Log Nginx — sửa nếu site dùng log riêng thay vì log mặc định
+# NGINX_ERROR_LOG="/var/log/nginx/error.log"
+# NGINX_ACCESS_LOG="/var/log/nginx/access.log"
