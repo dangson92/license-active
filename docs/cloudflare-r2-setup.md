@@ -49,7 +49,6 @@ Bucket → **Settings** → **CORS Policy** → Add:
 [
   {
     "AllowedOrigins": [
-      "https://license.dangthanhson.com",
       "https://app.phanmemauto.com",
       "http://localhost:5173"
     ],
@@ -62,10 +61,10 @@ Bucket → **Settings** → **CORS Policy** → Add:
 ```
 
 `AllowedOrigins` phải là **domain hiện trên thanh địa chỉ khi bạn mở trang
-admin** — không phải domain của API, cũng không phải `dl.phanmemauto.com`.
-Hiện `FRONTEND_URL` đang là `https://license.dangthanhson.com`; nếu bạn còn mở
-admin ở subdomain khác thì thêm cả subdomain đó vào. Sai origin thì upload báo
-"Network error" dù mọi thứ khác đều đúng.
+admin** — không phải domain của API (`api.` / `upload.`), cũng không phải
+`dl.phanmemauto.com`. Trên production `FRONTEND_URL=https://app.phanmemauto.com`
+nên origin là `app.phanmemauto.com`. Nếu còn mở admin ở subdomain khác thì thêm
+cả subdomain đó. Sai origin thì upload báo "Network error" dù mọi thứ khác đúng.
 
 `http://localhost:5173` chỉ để dev, nên bỏ khi lên production.
 
