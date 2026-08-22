@@ -216,9 +216,9 @@ task_rollback() {
 # ── Nhóm 2: PM2 / Backend ─────────────────────────────────────────────
 
 task_pm2_status() { need_cmd pm2 || return 1; log "Trạng thái PM2"; pm2 list; }
-task_logs()       { need_cmd pm2 || return 1; log "200 dòng log gần nhất"; pm2 logs "$PM2_NAME" --lines 200 --nostream; }
-task_logs_error()  { need_cmd pm2 || return 1; log "200 dòng log LỖI gần nhất"; pm2 logs "$PM2_NAME" --lines 200 --nostream --err; }
-task_logs_follow() { need_cmd pm2 || return 1; log "Theo dõi log (Ctrl+C để dừng)"; pm2 logs "$PM2_NAME"; }
+task_logs()       { need_cmd pm2 || return 1; log "200 dòng log gần nhất"; pm2 logs "$PM2_NAME" --lines 200 --nostream --timestamp; }
+task_logs_error()  { need_cmd pm2 || return 1; log "200 dòng log LỖI gần nhất"; pm2 logs "$PM2_NAME" --lines 200 --nostream --err --timestamp; }
+task_logs_follow() { need_cmd pm2 || return 1; log "Theo dõi log (Ctrl+C để dừng)"; pm2 logs "$PM2_NAME" --timestamp; }
 task_restart()    { need_cmd pm2 || return 1; log "Restart backend"; pm2 restart "$PM2_NAME" --update-env && pm2 save && ok "Đã restart"; }
 task_monit()      { need_cmd pm2 || return 1; pm2 monit; }
 task_flush_logs() { need_cmd pm2 || return 1; confirm "Xoá toàn bộ log PM2?" || return 0; pm2 flush "$PM2_NAME" && ok "Đã xoá log"; }
