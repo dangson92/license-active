@@ -99,6 +99,16 @@ is_secret_key() {
   [[ "$1" =~ (SECRET|PASS|PASSWORD|TOKEN|SALT|ACCESS_KEY|PRIVATE) ]]
 }
 
+# Giá trị có phải placeholder trong tài liệu mà quên thay không.
+# Bắt lỗi kiểu R2_ACCOUNT_ID=<account id trong Cloudflare R2>.
+is_placeholder() {
+  local v="$1"
+  case "$v" in
+    *"<"*">"*|*your_*|*YOUR_*|*change_me*|*changeme*|xxx*|XXX*) return 0 ;;
+  esac
+  return 1
+}
+
 # Hiển thị giá trị .env: bí mật thì chỉ báo độ dài, còn lại hiện đầy đủ
 # (endpoint / bucket / URL hiện nguyên văn mới debug được).
 show_env_value() {
@@ -540,13 +550,19 @@ task_env_check() {
   local optional=(PRIVATE_KEY_PATH PUBLIC_KEY_PATH STORAGE_PROVIDER
                   R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET R2_PUBLIC_URL
                   IDRIVE_E2_ENDPOINT IDRIVE_E2_ACCESS_KEY IDRIVE_E2_SECRET_KEY IDRIVE_E2_BUCKET IDRIVE_E2_PUBLIC_URL)
-  local k v missing=0
+  local k v missing=0 placeholders=0
 
   echo
   printf '  %sBắt buộc%s\n' "$C_BOLD" "$C_RESET"
   for k in "${required[@]}"; do
     if v=$(env_get "$k"); then
-      printf '    %s✓%s %-22s %s\n' "$C_GREEN" "$C_RESET" "$k" "$(show_env_value "$k" "$v")"
+      if is_placeholder "$v"; then
+        printf '    %s⚠%s %-22s %sCÒN LÀ GIÁ TRỊ MẪU — chưa thay bằng giá trị thật%s\n' \
+          "$C_YELLOW" "$C_RESET" "$k" "$C_YELLOW" "$C_RESET"
+        placeholders=$((placeholders + 1))
+      else
+        printf '    %s✓%s %-22s %s\n' "$C_GREEN" "$C_RESET" "$k" "$(show_env_value "$k" "$v")"
+      fi
     else
       printf '    %s✗%s %-22s %sTHIẾU%s\n' "$C_RED" "$C_RESET" "$k" "$C_RED" "$C_RESET"
       missing=$((missing + 1))
@@ -557,7 +573,13 @@ task_env_check() {
   printf '  %sTuỳ chọn%s\n' "$C_BOLD" "$C_RESET"
   for k in "${optional[@]}"; do
     if v=$(env_get "$k"); then
-      printf '    %s✓%s %-22s %s\n' "$C_GREEN" "$C_RESET" "$k" "$(show_env_value "$k" "$v")"
+      if is_placeholder "$v"; then
+        printf '    %s⚠%s %-22s %sCÒN LÀ GIÁ TRỊ MẪU — chưa thay bằng giá trị thật%s\n' \
+          "$C_YELLOW" "$C_RESET" "$k" "$C_YELLOW" "$C_RESET"
+        placeholders=$((placeholders + 1))
+      else
+        printf '    %s✓%s %-22s %s\n' "$C_GREEN" "$C_RESET" "$k" "$(show_env_value "$k" "$v")"
+      fi
     else
       printf '    %s○%s %-22s %s—%s\n' "$C_DIM" "$C_RESET" "$k" "$C_DIM" "$C_RESET"
     fi
@@ -571,6 +593,7 @@ task_env_check() {
 
   echo
   [ "$missing" -eq 0 ] && ok "Đủ biến bắt buộc" || err "Thiếu $missing biến bắt buộc — backend sẽ lỗi"
+  [ "$placeholders" -gt 0 ] && err "$placeholders biến còn là giá trị mẫu — sửa thành giá trị thật rồi restart (24)"
 }
 
 # So sánh .env trên đĩa với env THẬT của process đang chạy.
@@ -578,40 +601,39 @@ task_env_check() {
 # vẫn chạy với env cũ, dù `node -e` hay tác vụ 42 (process mới) đã thấy giá trị mới.
 task_env_running() {
   need_cmd pm2 || return 1
-  log "Đối chiếu $ENV_FILE với env của process '$PM2_NAME' đang chạy"
+  log "Process '$PM2_NAME' có đang chạy với .env mới nhất không"
   if [ ! -f "$ENV_FILE" ]; then err "Không có file .env"; return 1; fi
 
-  local pid
+  local pid etimes now started envm
   pid=$(pm2 pid "$PM2_NAME" 2> /dev/null | tr -d '[:space:]')
   if [ -z "$pid" ] || [ "$pid" = "0" ]; then
     err "Không lấy được PID của '$PM2_NAME' — process có đang chạy không? (tác vụ 21)"
     return 1
   fi
-  if [ ! -r "/proc/$pid/environ" ]; then
-    err "Không đọc được /proc/$pid/environ (cần chạy bằng cùng user hoặc root)"
+
+  etimes=$(ps -p "$pid" -o etimes= 2> /dev/null | tr -d '[:space:]')
+  if [ -z "$etimes" ]; then err "Không đọc được thời gian chạy của PID $pid"; return 1; fi
+
+  now=$(date +%s)
+  started=$((now - etimes))
+  envm=$(stat -c %Y "$ENV_FILE" 2> /dev/null)
+  if [ -z "$envm" ]; then err "Không đọc được mtime của $ENV_FILE"; return 1; fi
+
+  echo
+  echo "  .env sửa lần cuối : $(date -d "@$envm" '+%Y-%m-%d %H:%M:%S')"
+  echo "  Process khởi động : $(date -d "@$started" '+%Y-%m-%d %H:%M:%S')  (PID $pid)"
+  echo
+
+  # Không đọc được biến dotenv qua /proc/<pid>/environ: dotenv nạp vào
+  # process.env lúc runtime, không nằm trong env khởi tạo của process.
+  # Nên so mốc thời gian là cách đáng tin duy nhất từ bên ngoài.
+  if [ "$envm" -gt "$started" ]; then
+    err ".env mới hơn process — backend đang chạy cấu hình CŨ."
+    echo "    Chạy tác vụ 24 (restart) để nạp lại."
     return 1
   fi
-
-  local running k missing=0
-  running=$(tr '\0' '\n' < "/proc/$pid/environ")
-
-  echo
-  while IFS= read -r k; do
-    [ -z "$k" ] && continue
-    if grep -q "^${k}=" <<< "$running"; then
-      printf '    %s✓%s %s\n' "$C_GREEN" "$C_RESET" "$k"
-    else
-      printf '    %s✗%s %-24s %sprocess CHƯA nạp%s\n' "$C_RED" "$C_RESET" "$k" "$C_RED" "$C_RESET"
-      missing=$((missing + 1))
-    fi
-  done < <(grep -oE '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$ENV_FILE" | tr -d ' =\r' | sort -u)
-
-  echo
-  if [ "$missing" -eq 0 ]; then
-    ok "Process đang chạy đã có đủ biến trong .env (PID $pid)"
-  else
-    err "$missing biến chưa được nạp — chạy tác vụ 24 (restart) để backend đọc lại .env"
-  fi
+  ok "Process khởi động sau lần sửa .env gần nhất — đang chạy cấu hình mới"
+  echo "    (muốn xem backend thực sự đọc được gì thì dùng tác vụ 41)"
 }
 
 task_backup_list() {
@@ -692,7 +714,7 @@ TASKS=(
   "63|env|Kiểm tra biến môi trường .env|task_env_check"
   "64|backups|Danh sách backup|task_backup_list"
   "65|backups-clean|Dọn backup cũ|task_backup_clean"
-  "66|env-running|Đối chiếu .env với env process đang chạy|task_env_running"
+  "66|env-running|.env có mới hơn process đang chạy không|task_env_running"
 )
 
 task_lookup() {

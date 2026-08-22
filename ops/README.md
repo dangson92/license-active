@@ -50,9 +50,13 @@ log · `55` trạng thái chứng chỉ · `56` gia hạn SSL.
 `64` danh sách backup · `65` dọn backup cũ · `66` đối chiếu `.env` với env của
 process đang chạy.
 
-> `63` đọc file `.env` trên đĩa, `66` đọc env THẬT của process PM2. Sửa `.env`
-> mà quên restart thì `63` báo ✓ còn backend vẫn chạy env cũ — `66` bắt được
-> đúng trường hợp đó.
+> `63` soát nội dung `.env`: thiếu biến, và biến nào còn để nguyên giá trị
+> mẫu trong tài liệu (`<...>`, `your_...`). `66` so mtime của `.env` với thời
+> điểm process khởi động — bắt trường hợp sửa `.env` xong quên restart.
+>
+> Không có cách nào đọc biến dotenv từ bên ngoài process: dotenv nạp vào
+> `process.env` lúc runtime nên chúng không nằm trong `/proc/<pid>/environ`.
+> Muốn biết backend thực sự đọc được gì thì dùng `41`, nó hỏi chính backend.
 
 ## Migration — đọc trước khi dùng lần đầu
 
