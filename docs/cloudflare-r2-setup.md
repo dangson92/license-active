@@ -29,8 +29,8 @@ qua đó sẽ bị 401. Phải chọn một trong hai:
 
 **Cách A — Custom domain (khuyến nghị cho production)**
 - Bucket → **Settings** → **Public access** → **Custom Domains** → Connect domain
-- Ví dụ `files.phanmemauto.com` (domain phải nằm trong Cloudflare của bạn)
-- `R2_PUBLIC_URL=https://files.phanmemauto.com`
+- Ví dụ `dl.phanmemauto.com` (domain phải nằm trong Cloudflare của bạn)
+- `R2_PUBLIC_URL=https://dl.phanmemauto.com`
 
 **Cách B — r2.dev subdomain (dùng để test)**
 - Bucket → **Settings** → **Public Development URL** → Enable
@@ -50,7 +50,7 @@ Bucket → **Settings** → **CORS Policy** → Add:
   {
     "AllowedOrigins": [
       "https://license.dangthanhson.com",
-      "https://phanmemauto.com",
+      "https://app.phanmemauto.com",
       "http://localhost:5173"
     ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
@@ -61,8 +61,13 @@ Bucket → **Settings** → **CORS Policy** → Add:
 ]
 ```
 
-Sửa `AllowedOrigins` cho khớp domain frontend thật. `http://localhost:5173`
-chỉ để dev, nên bỏ khi lên production.
+`AllowedOrigins` phải là **domain hiện trên thanh địa chỉ khi bạn mở trang
+admin** — không phải domain của API, cũng không phải `dl.phanmemauto.com`.
+Hiện `FRONTEND_URL` đang là `https://license.dangthanhson.com`; nếu bạn còn mở
+admin ở subdomain khác thì thêm cả subdomain đó vào. Sai origin thì upload báo
+"Network error" dù mọi thứ khác đều đúng.
+
+`http://localhost:5173` chỉ để dev, nên bỏ khi lên production.
 
 ## 5. Biến môi trường (`.env` trên VPS)
 
@@ -74,7 +79,7 @@ R2_ACCOUNT_ID=your_cloudflare_account_id
 R2_ACCESS_KEY_ID=your_r2_access_key_id
 R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
 R2_BUCKET=keymaster-files
-R2_PUBLIC_URL=https://files.phanmemauto.com
+R2_PUBLIC_URL=https://dl.phanmemauto.com
 ```
 
 `R2_ENDPOINT` là tuỳ chọn — bỏ trống thì suy ra từ `R2_ACCOUNT_ID`
@@ -94,21 +99,27 @@ Dữ liệu cũ không đổi.
 
 ## 7. Kiểm tra
 
-Sau khi restart backend:
+Cách nhanh nhất là dùng script quản trị trên VPS (không cần token):
 
 ```bash
-# Trạng thái cấu hình từng provider (cần token admin)
+bash ops/vps.sh 63   # .env đã đủ biến R2 chưa
+bash ops/vps.sh 41   # provider nào đang được cấu hình
+bash ops/vps.sh 42   # test kết nối thật tới bucket
+```
+
+Hoặc gọi qua HTTP API nếu muốn kiểm tra từ ngoài (cần token admin):
+
+```bash
 curl -H "Authorization: Bearer <admin_token>" \
   https://<api-host>/api/admin/app-versions/storage/providers
 
-# Test kết nối tới bucket
 curl -X POST -H "Authorization: Bearer <admin_token>" \
   -H "Content-Type: application/json" -d '{"storage":"r2"}' \
   https://<api-host>/api/admin/app-versions/storage/test
 ```
 
-Rồi upload thử một version qua UI, chọn **Cloudflare R2**, và mở URL tải về
-ở tab ẩn danh để chắc chắn file public.
+Cuối cùng upload thử một version qua UI, chọn **Cloudflare R2**, rồi mở URL tải
+về ở tab ẩn danh để chắc chắn file public.
 
 ---
 
