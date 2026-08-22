@@ -308,22 +308,44 @@ task_migrate_baseline() {
   need_cmd mysql || return 1
   ensure_migrations_table || { err "Không kết nối được DB"; return 1; }
   log "Baseline — đánh dấu migration là ĐÃ ÁP DỤNG mà không chạy chúng"
-  echo "  Dùng khi DB đã tồn tại từ trước, để lần sau chỉ chạy migration mới."
+  echo "  Dùng khi DB đã tồn tại từ trước và migration cũ đã chạy bằng tay."
   echo
-  local f base
-  while IFS= read -r f; do
-    [ -z "$f" ] && continue
-    echo "  • $(basename "$f")"
-  done < <(migration_files)
+
+  local files=() f
+  while IFS= read -r f; do [ -n "$f" ] && files+=("$f"); done < <(migration_files)
+  if [ "${#files[@]}" -eq 0 ]; then err "Không thấy file .sql nào trong $MIGRATIONS_DIR"; return 1; fi
+
+  local i=1
+  for f in "${files[@]}"; do
+    printf '  %2d) %s\n' "$i" "$(basename "$f")"
+    i=$((i + 1))
+  done
   echo
-  warn "Chỉ chọn những file bạn CHẮC CHẮN đã áp dụng rồi."
-  confirm "Đánh dấu TẤT CẢ file trên là đã áp dụng?" || { warn "Đã huỷ"; return 0; }
-  while IFS= read -r f; do
-    [ -z "$f" ] && continue
-    base=$(basename "$f")
-    db_query -e "INSERT IGNORE INTO schema_migrations (filename) VALUES ('$base');"
-  done < <(migration_files)
-  ok "Đã baseline. Xem lại bằng tác vụ 31."
+  warn "Chọn file CUỐI CÙNG mà DB đã áp dụng. File sau nó vẫn để nguyên trạng"
+  warn "'đang chờ' để tác vụ 32 chạy thật — đừng baseline nhầm migration mới."
+  echo
+
+  local cutoff
+  read -r -p "Số thứ tự của migration cuối cùng ĐÃ áp dụng (Enter để huỷ): " cutoff
+  [ -z "$cutoff" ] && { warn "Đã huỷ"; return 0; }
+  if ! [[ "$cutoff" =~ ^[0-9]+$ ]] || [ "$cutoff" -lt 1 ] || [ "$cutoff" -gt "${#files[@]}" ]; then
+    err "Lựa chọn không hợp lệ"; return 1
+  fi
+
+  echo
+  echo "  Sẽ đánh dấu ĐÃ ÁP DỤNG (không chạy):"
+  for ((i = 0; i < cutoff; i++)); do echo "    ✓ $(basename "${files[$i]}")"; done
+  if [ "$cutoff" -lt "${#files[@]}" ]; then
+    echo "  Vẫn để CHỜ CHẠY (dùng tác vụ 32):"
+    for ((i = cutoff; i < ${#files[@]}; i++)); do echo "    ○ $(basename "${files[$i]}")"; done
+  fi
+  echo
+  confirm "Đúng chưa?" || { warn "Đã huỷ"; return 0; }
+
+  for ((i = 0; i < cutoff; i++)); do
+    db_query -e "INSERT IGNORE INTO schema_migrations (filename) VALUES ('$(basename "${files[$i]}")');"
+  done
+  ok "Đã baseline $cutoff file. Xem lại bằng tác vụ 31."
 }
 
 task_db_backup() {

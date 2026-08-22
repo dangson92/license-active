@@ -55,17 +55,23 @@ Script theo dõi migration đã chạy bằng bảng `schema_migrations` (tự t
 Database hiện tại **đã chạy migration 001–012 bằng tay từ trước**, nên bảng này
 lúc đầu rỗng và tác vụ `31` sẽ báo tất cả là "chưa áp dụng".
 
-Lần đầu, chạy `33` (baseline) để đánh dấu những file đã áp dụng rồi, sau đó `32`
-mới chỉ chạy migration thật sự mới.
+Lần đầu, chạy `33` (baseline). Nó hỏi **file cuối cùng mà DB đã áp dụng** rồi
+chỉ đánh dấu tới đó — những file sau vẫn ở trạng thái chờ để `32` chạy thật.
 
 ```bash
 bash ops/vps.sh 31   # xem hiện trạng
-bash ops/vps.sh 33   # baseline — CHỈ chọn khi chắc chắn đã áp dụng
-bash ops/vps.sh 32   # từ đây trở đi: áp dụng migration mới
+bash ops/vps.sh 33   # baseline — nhập số của migration cuối đã chạy
+bash ops/vps.sh 32   # áp dụng phần còn lại
 ```
 
-Đảo thứ tự (chạy `32` trước khi baseline) sẽ chạy lại toàn bộ migration cũ.
-Phần lớn là `CREATE TABLE IF NOT EXISTS` nên thường vô hại, nhưng đừng thử.
+Ví dụ khi DB đã chạy tay tới `012` và vừa pull về `013`: ở bước `33` nhập `12`,
+sau đó `32` sẽ chạy đúng mỗi `013`.
+
+Nhập số quá tay ở bước `33` sẽ đánh dấu migration mới là "đã chạy" và nó bị bỏ
+qua vĩnh viễn — script in ra danh sách hai nhóm để bạn soát trước khi xác nhận.
+Đảo thứ tự (chạy `32` trước khi baseline) thì ngược lại: chạy lại toàn bộ
+migration cũ. Phần lớn là `CREATE TABLE IF NOT EXISTS` nên thường vô hại, nhưng
+đừng thử.
 
 ## Cấu hình
 
