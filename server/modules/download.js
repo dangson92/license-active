@@ -297,12 +297,12 @@ router.get('/:appCode/file', async (req, res) => {
 
     console.log(`📥 Verified download: User ${tokenData.userId} → ${app.code} v${version.version}`)
 
-    // Check if download_url is external (iDrive E2) or local VPS path
+    // Check if download_url is external (cloud: R2 / iDrive E2) or local VPS path
     const downloadUrl = version.download_url
     const isExternalUrl = downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://')
 
     if (isExternalUrl) {
-      // External URL (iDrive E2) - redirect
+      // External URL (cloud storage) - redirect
       return res.redirect(302, downloadUrl)
     } else {
       // VPS file - stream directly
@@ -398,12 +398,12 @@ router.get('/:appCode/attachment/:attachmentId', async (req, res) => {
 
     console.log(`📥 Verified attachment download: User ${tokenData.userId} → ${app.code} / ${attachment.description}`)
 
-    // Check if download_url is external (iDrive E2) or local VPS path
+    // Check if download_url is external (cloud: R2 / iDrive E2) or local VPS path
     const downloadUrl = attachment.download_url
     const isExternalUrl = downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://')
 
     if (isExternalUrl) {
-      // External URL (iDrive E2) - redirect
+      // External URL (cloud storage) - redirect
       return res.redirect(302, downloadUrl)
     } else {
       // VPS file - stream directly

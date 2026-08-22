@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { api } from '../services/api';
+import { api, STORAGE_LABELS } from '../services/api';
+import type { StorageType } from '../services/api';
 import { config } from '../config';
 
 // UI Components
@@ -34,7 +35,7 @@ interface EditAttachmentData {
     original_name: string;
     file_size: number | null;
     download_url: string;
-    storage_type: 'vps' | 'idrive-e2';
+    storage_type: StorageType;
 }
 
 interface AddAttachmentProps {
@@ -58,7 +59,7 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
 
     // Form states
     const [description, setDescription] = useState(editAttachment?.description || '');
-    const [storageType, setStorageType] = useState<'vps' | 'idrive-e2'>(editAttachment?.storage_type || 'vps');
+    const [storageType, setStorageType] = useState<StorageType>(editAttachment?.storage_type || 'vps');
     const [saving, setSaving] = useState(false);
 
     // Upload states
@@ -94,10 +95,12 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
         setUploadingFile(true);
         setUploadProgress(0);
 
+        const storageLabel = STORAGE_LABELS[storageType] || storageType;
+
         try {
             let uploadResult: { url: string; key?: string };
 
-            if (storageType === 'idrive-e2') {
+            if (storageType !== 'vps') {
                 // Bước 1: Lấy presigned URL từ server
                 setUploadProgress(2); // Show small progress to indicate starting
 
@@ -112,6 +115,7 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
                         appCode,
                         filename: file.name,
                         fileSize: file.size,
+                        storage: storageType,
                     }),
                 });
 
@@ -121,9 +125,9 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
                 }
 
                 const presignedData = await presignedResponse.json();
-                console.log('📎 Got presigned URL for attachment, uploading to E2...');
+                console.log(`📎 Got presigned URL for attachment, uploading to ${storageLabel}...`);
 
-                // Bước 2: Upload trực tiếp lên E2 bằng presigned URL
+                // Bước 2: Upload trực tiếp lên cloud bằng presigned URL
                 await new Promise<void>((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
                     xhr.timeout = 60 * 60 * 1000; // 1 hour for large files
@@ -137,17 +141,17 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
 
                     xhr.addEventListener('load', () => {
                         if (xhr.status >= 200 && xhr.status < 300) {
-                            console.log('✅ Attachment upload to E2 completed!');
+                            console.log(`✅ Upload attachment lên ${storageLabel} thành công!`);
                             resolve();
                         } else {
-                            console.error('E2 upload failed:', xhr.status, xhr.responseText);
-                            reject(new Error(`E2 upload failed: HTTP ${xhr.status}`));
+                            console.error(`${storageLabel} upload failed:`, xhr.status, xhr.responseText);
+                            reject(new Error(`Upload lên ${storageLabel} thất bại: HTTP ${xhr.status}`));
                         }
                     });
 
-                    xhr.addEventListener('error', () => reject(new Error('Network error during E2 upload')));
-                    xhr.addEventListener('abort', () => reject(new Error('E2 upload cancelled')));
-                    xhr.addEventListener('timeout', () => reject(new Error('E2 upload timeout')));
+                    xhr.addEventListener('error', () => reject(new Error(`Lỗi mạng khi upload lên ${storageLabel}`)));
+                    xhr.addEventListener('abort', () => reject(new Error('Đã huỷ upload')));
+                    xhr.addEventListener('timeout', () => reject(new Error(`Upload lên ${storageLabel} quá thời gian`)));
 
                     xhr.open('PUT', presignedData.uploadUrl);
                     xhr.setRequestHeader('Content-Type', presignedData.contentType || 'application/zip');
@@ -353,7 +357,7 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
                                     <Label>Lưu trữ</Label>
                                     <Select
                                         value={storageType}
-                                        onValueChange={(v: 'vps' | 'idrive-e2') => setStorageType(v)}
+                                        onValueChange={(v: StorageType) => setStorageType(v)}
                                         disabled={!!downloadUrl}
                                     >
                                         <SelectTrigger>
@@ -366,10 +370,16 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
                                                     VPS (Local Server)
                                                 </div>
                                             </SelectItem>
+                                            <SelectItem value="r2">
+                                                <div className="flex items-center gap-2">
+                                                    <Cloud className="w-4 h-4" />
+                                                    Cloudflare R2 (Cloud)
+                                                </div>
+                                            </SelectItem>
                                             <SelectItem value="idrive-e2">
                                                 <div className="flex items-center gap-2">
                                                     <Cloud className="w-4 h-4" />
-                                                    iDrive E2 (Cloud)
+                                                    iDrive E2 (sắp ngừng)
                                                 </div>
                                             </SelectItem>
                                         </SelectContent>
@@ -447,7 +457,7 @@ export const AddAttachment: React.FC<AddAttachmentProps> = ({
                                         <div>
                                             <p className="font-medium">{editAttachment.original_name}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                {formatFileSize(editAttachment.file_size || 0)} • {editAttachment.storage_type === 'idrive-e2' ? 'iDrive E2' : 'VPS'}
+                                                {formatFileSize(editAttachment.file_size || 0)} • {STORAGE_LABELS[editAttachment.storage_type] || editAttachment.storage_type}
                                             </p>
                                         </div>
                                     </div>

@@ -12,6 +12,25 @@ export const getAssetUrl = (relativePath: string | undefined | null): string | n
   return `${config.assetApiUrl}${relativePath}`;
 };
 
+// Nơi lưu trữ file: VPS local hoặc một cloud S3-compatible
+export type CloudStorageType = 'idrive-e2' | 'r2';
+export type StorageType = 'vps' | CloudStorageType;
+
+// Nhãn hiển thị cho người dùng
+export const STORAGE_LABELS: Record<StorageType, string> = {
+  'vps': 'VPS (Server)',
+  'idrive-e2': 'iDrive E2',
+  'r2': 'Cloudflare R2',
+};
+
+export interface PresignedUploadResponse {
+  uploadUrl: string;
+  publicUrl: string;
+  key: string;
+  storage: CloudStorageType;
+  contentType: string;
+}
+
 interface LoginResponse {
   token: string;
 }
@@ -434,7 +453,7 @@ export const api = {
       original_name: string;
       file_size: number;
       download_url: string;
-      storage_type: 'vps' | 'idrive-e2';
+      storage_type: StorageType;
       storage_key?: string;
     }) => {
       return apiCall(`/api/admin/apps/${appId}/attachments`, {
@@ -469,10 +488,43 @@ export const api = {
       return response.json();
     },
 
-    getAttachmentPresignedUrl: async (appId: number, appCode: string, filename: string) => {
+    getAttachmentPresignedUrl: async (
+      appId: number,
+      appCode: string,
+      filename: string,
+      storage: CloudStorageType = 'r2'
+    ): Promise<PresignedUploadResponse> => {
       return apiCall(`/api/admin/apps/${appId}/attachments/get-presigned-url`, {
         method: 'POST',
-        body: JSON.stringify({ appCode, filename }),
+        body: JSON.stringify({ appCode, filename, storage }),
+      });
+    },
+
+    // Danh sách cloud storage + trạng thái cấu hình (R2 / iDrive E2)
+    getStorageProviders: async (): Promise<{
+      default: CloudStorageType | null;
+      providers: Array<{
+        provider: CloudStorageType;
+        label: string;
+        configured: boolean;
+        bucket: string | null;
+        publicUrl: string | null;
+      }>;
+    }> => {
+      return apiCall('/api/admin/app-versions/storage/providers');
+    },
+
+    // Kiểm tra kết nối tới bucket của một provider
+    testStorageConnection: async (storage: CloudStorageType): Promise<{
+      ok: boolean;
+      provider: CloudStorageType;
+      label: string;
+      bucket: string | null;
+      error?: string;
+    }> => {
+      return apiCall('/api/admin/app-versions/storage/test', {
+        method: 'POST',
+        body: JSON.stringify({ storage }),
       });
     },
 

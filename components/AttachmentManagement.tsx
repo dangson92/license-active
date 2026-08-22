@@ -14,7 +14,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2, Upload, FileArchive, Loader2, Edit, X } from 'lucide-react'
-import { api } from '@/services/api'
+import { api, STORAGE_LABELS } from '@/services/api'
+import type { StorageType } from '@/services/api'
 import { config } from '@/config'
 
 // Toast notification helper - using simple alert for now
@@ -30,7 +31,7 @@ interface Attachment {
     file_size: number | null
     description: string | null
     download_url: string
-    storage_type: 'vps' | 'idrive-e2'
+    storage_type: StorageType
     created_at: string
 }
 
@@ -50,7 +51,7 @@ export function AttachmentManagement({ appId, appName, appCode }: AttachmentMana
 
     // Form state
     const [description, setDescription] = useState('')
-    const [storageType, setStorageType] = useState<'vps' | 'idrive-e2'>('vps')
+    const [storageType, setStorageType] = useState<StorageType>('vps')
     const [uploadProgress, setUploadProgress] = useState(0)
     const [uploading, setUploading] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -105,11 +106,11 @@ export function AttachmentManagement({ appId, appName, appCode }: AttachmentMana
         try {
             let uploadResult: { filename: string; path: string; size: number; key?: string }
 
-            if (storageType === 'idrive-e2') {
+            if (storageType !== 'vps') {
                 // Get presigned URL and upload directly
-                const presignedResponse = await api.admin.getAttachmentPresignedUrl(appId, appCode, selectedFile.name)
+                const presignedResponse = await api.admin.getAttachmentPresignedUrl(appId, appCode, selectedFile.name, storageType)
 
-                // Upload to E2 using XHR for progress
+                // Upload lên cloud bằng XHR để theo dõi tiến độ
                 await new Promise<void>((resolve, reject) => {
                     const xhr = new XMLHttpRequest()
                     xhr.open('PUT', presignedResponse.uploadUrl, true)
@@ -301,11 +302,13 @@ export function AttachmentManagement({ appId, appName, appCode }: AttachmentMana
                                     <TableCell className="text-muted-foreground text-sm">{att.original_name}</TableCell>
                                     <TableCell>{formatFileSize(att.file_size)}</TableCell>
                                     <TableCell>
-                                        <span className={`px-2 py-1 rounded text-xs ${att.storage_type === 'idrive-e2'
-                                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                        <span className={`px-2 py-1 rounded text-xs ${att.storage_type === 'r2'
+                                            ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                                            : att.storage_type === 'idrive-e2'
+                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                             }`}>
-                                            {att.storage_type === 'idrive-e2' ? 'iDrive E2' : 'VPS'}
+                                            {STORAGE_LABELS[att.storage_type] || att.storage_type}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-sm">{formatDate(att.created_at)}</TableCell>
@@ -352,13 +355,14 @@ export function AttachmentManagement({ appId, appName, appCode }: AttachmentMana
 
                         <div className="space-y-2">
                             <Label>Lưu trữ</Label>
-                            <Select value={storageType} onValueChange={(v: 'vps' | 'idrive-e2') => setStorageType(v)}>
+                            <Select value={storageType} onValueChange={(v: StorageType) => setStorageType(v)}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="vps">VPS (Local)</SelectItem>
-                                    <SelectItem value="idrive-e2">iDrive E2 (Cloud)</SelectItem>
+                                    <SelectItem value="r2">Cloudflare R2 (Cloud)</SelectItem>
+                                    <SelectItem value="idrive-e2">iDrive E2 (sắp ngừng)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, STORAGE_LABELS } from '../services/api';
+import type { StorageType } from '../services/api';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,7 @@ interface Attachment {
     file_size: number | null;
     description: string | null;
     download_url: string;
-    storage_type: 'vps' | 'idrive-e2';
+    storage_type: StorageType;
     created_at: string;
 }
 
@@ -172,15 +173,15 @@ export const AttachmentList: React.FC<AttachmentListProps> = ({
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                                                {att.storage_type === 'idrive-e2' ? (
-                                                    <>
-                                                        <Cloud className="w-3 h-3" />
-                                                        iDrive E2
-                                                    </>
-                                                ) : (
+                                                {att.storage_type === 'vps' ? (
                                                     <>
                                                         <Server className="w-3 h-3" />
                                                         VPS
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Cloud className="w-3 h-3" />
+                                                        {STORAGE_LABELS[att.storage_type] || att.storage_type}
                                                     </>
                                                 )}
                                             </Badge>

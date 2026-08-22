@@ -1,209 +1,70 @@
 /**
- * iDrive E2 Storage Service
- * Sử dụng AWS S3 SDK vì iDrive E2 tương thích S3 API
+ * iDrive E2 Storage Service — lớp tương thích ngược
+ *
+ * Toàn bộ logic S3 đã chuyển sang `cloud-storage.js` (đa provider: E2 + R2).
+ * File này giữ nguyên API cũ để code hiện hữu không phải sửa.
+ * Code mới nên import trực tiếp từ `cloud-storage.js`.
  */
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { Upload } from '@aws-sdk/lib-storage'
-import fs from 'fs'
-import path from 'path'
+import {
+  PROVIDER_E2,
+  uploadToCloud,
+  deleteFromCloud,
+  getPresignedUploadUrl as presignCloud,
+  generateStorageKey,
+  isConfigured,
+} from './cloud-storage.js'
 
-// Initialize S3 client for iDrive E2
-const getS3Client = () => {
-    let endpoint = process.env.IDRIVE_E2_ENDPOINT
-    const accessKey = process.env.IDRIVE_E2_ACCESS_KEY
-    const secretKey = process.env.IDRIVE_E2_SECRET_KEY
-
-    if (!endpoint || !accessKey || !secretKey) {
-        throw new Error('iDrive E2 credentials not configured. Please set IDRIVE_E2_ENDPOINT, IDRIVE_E2_ACCESS_KEY, and IDRIVE_E2_SECRET_KEY environment variables.')
-    }
-
-    // Auto-add https:// if missing
-    if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-        endpoint = `https://${endpoint}`
-    }
-
-    console.log(`🔗 Connecting to iDrive E2: ${endpoint}`)
-
-    return new S3Client({
-        endpoint: endpoint,
-        region: 'e2', // iDrive E2 uses 'e2' as region
-        credentials: {
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
-        },
-        forcePathStyle: true, // Required for iDrive E2
-    })
+/**
+ * Upload file lên iDrive E2
+ * @param {Object} options
+ * @param {string} options.filePath
+ * @param {string} options.key
+ * @param {string} [options.contentType]
+ * @param {Function} [options.onProgress]
+ * @returns {Promise<{url: string, key: string, size: number, provider: string}>}
+ */
+export function uploadToE2({ filePath, key, contentType, onProgress }) {
+  return uploadToCloud({ provider: PROVIDER_E2, filePath, key, contentType, onProgress })
 }
 
 /**
- * Upload file to iDrive E2
- * @param {Object} options Upload options
- * @param {string} options.filePath - Local file path
- * @param {string} options.key - S3 object key (path in bucket)
- * @param {string} options.contentType - MIME type
- * @param {Function} options.onProgress - Progress callback (optional)
- * @returns {Promise<{url: string, key: string, size: number}>}
- */
-export async function uploadToE2({ filePath, key, contentType, onProgress }) {
-    const s3Client = getS3Client()
-    const bucket = process.env.IDRIVE_E2_BUCKET
-
-    if (!bucket) {
-        throw new Error('iDrive E2 bucket not configured. Please set IDRIVE_E2_BUCKET environment variable.')
-    }
-
-    console.log(`📂 Uploading to bucket: ${bucket}, key: ${key}`)
-
-    // Read file stream
-    const fileStream = fs.createReadStream(filePath)
-    const fileStats = fs.statSync(filePath)
-
-    console.log(`📁 File size: ${(fileStats.size / 1024 / 1024).toFixed(2)} MB`)
-
-    try {
-        // Use multipart upload for large files
-        const upload = new Upload({
-            client: s3Client,
-            params: {
-                Bucket: bucket,
-                Key: key,
-                Body: fileStream,
-                ContentType: contentType || 'application/octet-stream',
-                // Note: ACL removed - not all S3-compatible services support it
-                // Configure bucket policy for public access instead
-            },
-            queueSize: 4, // Concurrent upload parts
-            partSize: 10 * 1024 * 1024, // 10MB parts
-            leavePartsOnError: false,
-        })
-
-        // Track upload progress
-        upload.on('httpUploadProgress', (progress) => {
-            if (onProgress && progress.total) {
-                const percentage = Math.round((progress.loaded / progress.total) * 100)
-                onProgress(percentage)
-            }
-        })
-
-        await upload.done()
-        console.log(`✅ Upload to E2 completed successfully`)
-
-        // Build public URL
-        const publicUrl = process.env.IDRIVE_E2_PUBLIC_URL
-            ? `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
-            : `${process.env.IDRIVE_E2_ENDPOINT}/${bucket}/${key}`
-
-        return {
-            url: publicUrl,
-            key: key,
-            size: fileStats.size,
-        }
-    } catch (error) {
-        console.error('❌ E2 Upload Error Details:', {
-            name: error.name,
-            message: error.message,
-            code: error.Code || error.code,
-            statusCode: error.$metadata?.httpStatusCode,
-        })
-        throw error
-    }
-}
-
-/**
- * Delete file from iDrive E2
- * @param {string} key - S3 object key
+ * Xoá file khỏi iDrive E2
+ * @param {string} key
  * @returns {Promise<boolean>}
  */
-export async function deleteFromE2(key) {
-    const s3Client = getS3Client()
-    const bucket = process.env.IDRIVE_E2_BUCKET
-
-    if (!bucket) {
-        throw new Error('iDrive E2 bucket not configured.')
-    }
-
-    try {
-        await s3Client.send(new DeleteObjectCommand({
-            Bucket: bucket,
-            Key: key,
-        }))
-        return true
-    } catch (error) {
-        console.error('Error deleting from E2:', error)
-        return false
-    }
+export function deleteFromE2(key) {
+  return deleteFromCloud({ provider: PROVIDER_E2, key })
 }
 
 /**
- * Generate S3 key for app version file
- * @param {string} appCode - Application code
- * @param {string} version - Version string
- * @param {string} filename - Original filename
- * @param {string} [platform] - Platform: 'Windows', 'macOS', 'Linux', etc.
- * @returns {string} S3 key
+ * Sinh object key cho file version
+ * @param {string} appCode
+ * @param {string} version
+ * @param {string} filename
+ * @param {string} [platform]
+ * @returns {string}
  */
 export function generateE2Key(appCode, version, filename, platform) {
-    const ext = path.extname(filename)
-    // Normalize platform to lowercase folder name
-    const platformFolder = platform
-        ? platform.toLowerCase().replace(/\s+/g, '-')
-        : 'windows'
-    // Format: releases/{appCode}/{platform}/{appCode}-{version}.{ext}
-    return `releases/${appCode}/${platformFolder}/${appCode}-${version}${ext}`
+  return generateStorageKey(appCode, version, filename, platform)
 }
 
 /**
- * Check if iDrive E2 is configured
+ * iDrive E2 đã cấu hình chưa?
  * @returns {boolean}
  */
 export function isE2Configured() {
-    return !!(
-        process.env.IDRIVE_E2_ENDPOINT &&
-        process.env.IDRIVE_E2_ACCESS_KEY &&
-        process.env.IDRIVE_E2_SECRET_KEY &&
-        process.env.IDRIVE_E2_BUCKET
-    )
+  return isConfigured(PROVIDER_E2)
 }
 
 /**
- * Get presigned URL for direct browser upload to E2
- * Cho phép client upload trực tiếp lên E2 mà không cần đi qua VPS
+ * Presigned URL upload trực tiếp lên E2
  * @param {Object} options
- * @param {string} options.key - S3 object key (path in bucket)
- * @param {string} options.contentType - MIME type
- * @param {number} options.expiresIn - URL expiration time in seconds (default: 3600)
+ * @param {string} options.key
+ * @param {string} [options.contentType]
+ * @param {number} [options.expiresIn]
  * @returns {Promise<{uploadUrl: string, publicUrl: string, key: string}>}
  */
-export async function getPresignedUploadUrl({ key, contentType, expiresIn = 3600 }) {
-    const s3Client = getS3Client()
-    const bucket = process.env.IDRIVE_E2_BUCKET
-
-    if (!bucket) {
-        throw new Error('iDrive E2 bucket not configured. Please set IDRIVE_E2_BUCKET environment variable.')
-    }
-
-    console.log(`🔑 Generating presigned URL for: ${key}`)
-
-    const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        ContentType: contentType || 'application/octet-stream',
-    })
-
-    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn })
-
-    // Build public URL for accessing the file after upload
-    const publicUrl = process.env.IDRIVE_E2_PUBLIC_URL
-        ? `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
-        : `${process.env.IDRIVE_E2_ENDPOINT}/${bucket}/${key}`
-
-    console.log(`✅ Presigned URL generated (expires in ${expiresIn}s)`)
-
-    return {
-        uploadUrl,
-        publicUrl,
-        key,
-    }
+export function getPresignedUploadUrl({ key, contentType, expiresIn = 3600 }) {
+  return presignCloud({ provider: PROVIDER_E2, key, contentType, expiresIn })
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { STORAGE_LABELS } from '../services/api';
+import type { StorageType, CloudStorageType } from '../services/api';
 import { config } from '../config';
 
 // UI Components
@@ -77,13 +78,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     const [fileSize, setFileSize] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Upload destination: '' | 'vps' | 'idrive-e2'
-    const [uploadDestination, setUploadDestination] = useState<'' | 'vps' | 'idrive-e2'>('');
+    // Upload destination: '' | 'vps' | 'idrive-e2' | 'r2'
+    const [uploadDestination, setUploadDestination] = useState<'' | StorageType>('');
 
     // Track uploaded file info for cleanup if cancel
     const [uploadedFileInfo, setUploadedFileInfo] = useState<{
         url: string;
-        storage: 'vps' | 'idrive-e2';
+        storage: StorageType;
         key?: string;
         filename?: string;
     } | null>(null);
@@ -144,7 +145,10 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             // If editing and has download URL, set a default destination
             if (editVersion.download_url) {
                 // Guess destination from URL
-                if (editVersion.download_url.includes('idrive') || editVersion.download_url.includes('e2')) {
+                const url = editVersion.download_url.toLowerCase();
+                if (url.includes('r2.cloudflarestorage.com') || url.includes('.r2.dev')) {
+                    setUploadDestination('r2');
+                } else if (url.includes('idrive') || url.includes('e2')) {
                     setUploadDestination('idrive-e2');
                 } else {
                     setUploadDestination('vps');
@@ -191,13 +195,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appCode = appInfo.code;
 
             // Upload with progress - use selected destination + platform
-            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2', platform || 'Windows');
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as StorageType, platform || 'Windows');
 
             // Update form with file info
-            // For E2, path is already full URL; for VPS, prepend base URL
-            const fileUrl = response.file.storage === 'idrive-e2'
-                ? response.file.path
-                : `${config.uploadApiUrl}${response.file.path}`;
+            // Cloud (R2 / E2): path đã là full URL; VPS: cần ghép base URL
+            const fileUrl = response.file.storage === 'vps'
+                ? `${config.uploadApiUrl}${response.file.path}`
+                : response.file.path;
             setDownloadUrl(fileUrl);
             setFileName(response.file.filename);
             setFileSize(response.file.size);
@@ -205,7 +209,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             // Save file info for cleanup if cancel
             setUploadedFileInfo({
                 url: fileUrl,
-                storage: response.file.storage || uploadDestination as 'vps' | 'idrive-e2',
+                storage: response.file.storage || uploadDestination as StorageType,
                 key: response.file.key,
                 filename: response.file.filename,
             });
@@ -221,10 +225,10 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
     };
 
     // Upload file với XMLHttpRequest để track progress
-    const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: 'vps' | 'idrive-e2', platform?: string): Promise<any> => {
-        // For iDrive E2: Use presigned URL to upload directly from browser
-        if (destination === 'idrive-e2') {
-            return uploadDirectToE2(file, appCode, version, platform);
+    const uploadFileWithProgress = (file: File, appCode: string, version: string, destination: StorageType, platform?: string): Promise<any> => {
+        // Cloud (R2 / iDrive E2): dùng presigned URL, browser upload thẳng lên cloud
+        if (destination !== 'vps') {
+            return uploadDirectToCloud(file, appCode, version, destination, platform);
         }
 
         // For VPS: Upload through server
@@ -277,10 +281,17 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         });
     };
 
-    // Upload trực tiếp lên iDrive E2 sử dụng presigned URL
-    // Flow: Browser -> E2 (không qua VPS)
-    const uploadDirectToE2 = async (file: File, appCode: string, version: string, platform?: string): Promise<any> => {
+    // Upload trực tiếp lên cloud (Cloudflare R2 / iDrive E2) bằng presigned URL
+    // Flow: Browser -> Cloud (không qua VPS)
+    const uploadDirectToCloud = async (
+        file: File,
+        appCode: string,
+        version: string,
+        destination: CloudStorageType,
+        platform?: string
+    ): Promise<any> => {
         const token = localStorage.getItem('auth_token');
+        const storageLabel = STORAGE_LABELS[destination] || destination;
 
         // Bước 1: Lấy presigned URL từ server
         setUploadProgress(2); // Show small progress to indicate starting
@@ -297,6 +308,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                 filename: file.name,
                 fileSize: file.size,
                 platform: platform || 'Windows',
+                storage: destination,
             }),
         });
 
@@ -306,9 +318,9 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
         }
 
         const presignedData = await presignedResponse.json();
-        console.log('📎 Got presigned URL, uploading directly to E2...');
+        console.log(`📎 Got presigned URL, uploading directly to ${storageLabel}...`);
 
-        // Bước 2: Upload trực tiếp lên E2 bằng presigned URL
+        // Bước 2: Upload trực tiếp lên cloud bằng presigned URL
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.timeout = 60 * 60 * 1000; // 1 hour for large files
@@ -322,7 +334,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
 
             xhr.addEventListener('load', () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    console.log('✅ Direct upload to E2 completed!');
+                    console.log(`✅ Upload trực tiếp lên ${storageLabel} thành công!`);
                     // Return file info in same format as VPS upload
                     resolve({
                         success: true,
@@ -331,19 +343,19 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             originalname: file.name,
                             size: file.size,
                             path: presignedData.publicUrl,
-                            storage: 'idrive-e2',
+                            storage: presignedData.storage || destination,
                             key: presignedData.key,
                         }
                     });
                 } else {
-                    console.error('E2 upload failed:', xhr.status, xhr.responseText);
-                    reject(new Error(`E2 upload failed: HTTP ${xhr.status}`));
+                    console.error(`${storageLabel} upload failed:`, xhr.status, xhr.responseText);
+                    reject(new Error(`Upload lên ${storageLabel} thất bại: HTTP ${xhr.status}`));
                 }
             });
 
-            xhr.addEventListener('error', () => reject(new Error('Network error during E2 upload')));
-            xhr.addEventListener('abort', () => reject(new Error('E2 upload cancelled')));
-            xhr.addEventListener('timeout', () => reject(new Error('E2 upload timeout')));
+            xhr.addEventListener('error', () => reject(new Error(`Lỗi mạng khi upload lên ${storageLabel}`)));
+            xhr.addEventListener('abort', () => reject(new Error('Đã huỷ upload')));
+            xhr.addEventListener('timeout', () => reject(new Error(`Upload lên ${storageLabel} quá thời gian`)));
 
             xhr.open('PUT', presignedData.uploadUrl);
             xhr.setRequestHeader('Content-Type', presignedData.contentType);
@@ -412,12 +424,12 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             const appInfo = await api.admin.getApp(parseInt(appId || '0'));
             const appCode = appInfo.code;
 
-            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as 'vps' | 'idrive-e2', platform || 'Windows');
+            const response = await uploadFileWithProgress(file, appCode, versionNumber, uploadDestination as StorageType, platform || 'Windows');
 
-            // For E2, path is already full URL; for VPS, prepend base URL
-            const fileUrl = response.file.storage === 'idrive-e2'
-                ? response.file.path
-                : `${config.uploadApiUrl}${response.file.path}`;
+            // Cloud (R2 / E2): path đã là full URL; VPS: cần ghép base URL
+            const fileUrl = response.file.storage === 'vps'
+                ? `${config.uploadApiUrl}${response.file.path}`
+                : response.file.path;
             setDownloadUrl(fileUrl);
             setFileName(response.file.filename);
             setFileSize(response.file.size);
@@ -425,7 +437,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
             // Save file info for cleanup if cancel
             setUploadedFileInfo({
                 url: fileUrl,
-                storage: response.file.storage || uploadDestination as 'vps' | 'idrive-e2',
+                storage: response.file.storage || uploadDestination as StorageType,
                 key: response.file.key,
                 filename: response.file.filename,
             });
@@ -661,7 +673,7 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                 <AlertCircle className="w-4 h-4" />
                                 Chọn nơi lưu trữ file <span className="text-red-500">*</span>
                             </Label>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setUploadDestination('vps')}
@@ -670,10 +682,24 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                         : 'border-gray-200 hover:border-gray-300 bg-white'
                                         }`}
                                 >
-                                    <Server className={`w-6 h-6 ${uploadDestination === 'vps' ? 'text-blue-500' : 'text-gray-400'}`} />
+                                    <Server className={`w-6 h-6 shrink-0 ${uploadDestination === 'vps' ? 'text-blue-500' : 'text-gray-400'}`} />
                                     <div className="text-left">
                                         <p className="font-semibold">VPS Server</p>
                                         <p className="text-xs opacity-70">Lưu trên máy chủ riêng</p>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadDestination('r2')}
+                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${uploadDestination === 'r2'
+                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        }`}
+                                >
+                                    <Cloud className={`w-6 h-6 shrink-0 ${uploadDestination === 'r2' ? 'text-orange-500' : 'text-gray-400'}`} />
+                                    <div className="text-left">
+                                        <p className="font-semibold">Cloudflare R2</p>
+                                        <p className="text-xs opacity-70">Cloud Storage (khuyến nghị)</p>
                                     </div>
                                 </button>
                                 <button
@@ -684,10 +710,10 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                                         : 'border-gray-200 hover:border-gray-300 bg-white'
                                         }`}
                                 >
-                                    <Cloud className={`w-6 h-6 ${uploadDestination === 'idrive-e2' ? 'text-purple-500' : 'text-gray-400'}`} />
+                                    <Cloud className={`w-6 h-6 shrink-0 ${uploadDestination === 'idrive-e2' ? 'text-purple-500' : 'text-gray-400'}`} />
                                     <div className="text-left">
                                         <p className="font-semibold">iDrive E2</p>
-                                        <p className="text-xs opacity-70">Cloud Storage (S3)</p>
+                                        <p className="text-xs opacity-70">Cloud Storage (sắp ngừng)</p>
                                     </div>
                                 </button>
                             </div>
@@ -698,9 +724,13 @@ export const AddAppVersion: React.FC<AddAppVersionProps> = ({
                             <>
                                 <p className="text-xs text-muted-foreground">
                                     ⚠️ Lưu ý: Phải nhập <strong>Version Number</strong> trước khi upload file.
-                                    <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
-                                        {uploadDestination === 'vps' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}">
-                                        {uploadDestination === 'vps' ? '📁 VPS' : '☁️ iDrive E2'}
+                                    <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${uploadDestination === 'vps'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : uploadDestination === 'r2'
+                                            ? 'bg-orange-100 text-orange-700'
+                                            : 'bg-purple-100 text-purple-700'
+                                        }`}>
+                                        {uploadDestination === 'vps' ? '📁 ' : '☁️ '}{STORAGE_LABELS[uploadDestination]}
                                     </span>
                                 </p>
 

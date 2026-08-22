@@ -11,8 +11,16 @@ import path from 'path'
 import fs from 'fs'
 import { query } from '../db.js'
 import { requireAdmin } from './auth.js'
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import {
+  normalizeProvider,
+  getDefaultProvider,
+  isConfigured,
+  deleteFromCloud,
+  getPresignedUploadUrl,
+  generateAttachmentKey,
+  detectProviderFromUrl,
+  extractKeyFromUrl,
+} from '../services/cloud-storage.js'
 
 const appsRouter = express.Router()    // mounted at /api/admin/apps
 const attachmentsRouter = express.Router() // mounted at /api/admin/attachments
@@ -51,26 +59,22 @@ const upload = multer({
 })
 
 // ===================
-// S3 Client for iDrive E2 (reused config)
+// Cloud storage helper (R2 / iDrive E2 — xem services/cloud-storage.js)
 // ===================
-const getS3Client = () => {
-  let endpoint = process.env.IDRIVE_E2_ENDPOINT
-
-  // Auto-add https:// if missing
-  if (endpoint && !endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
-    endpoint = `https://${endpoint}`
-    console.log(`🔗 Auto-added https:// to endpoint: ${endpoint}`)
+/**
+ * Chọn provider cloud cho một request attachment.
+ * @param {string} [requested] - 'r2' | 'idrive-e2' | 'vps'
+ * @returns {{provider: string|null, error: string|null}}
+ */
+function pickProvider(requested) {
+  const provider = normalizeProvider(requested) || getDefaultProvider()
+  if (!provider) {
+    return { provider: null, error: 'Chưa cấu hình cloud storage nào (R2 / iDrive E2).' }
   }
-
-  return new S3Client({
-    region: 'e2',
-    endpoint: endpoint,
-    credentials: {
-      accessKeyId: process.env.IDRIVE_E2_ACCESS_KEY,
-      secretAccessKey: process.env.IDRIVE_E2_SECRET_KEY
-    },
-    forcePathStyle: true
-  })
+  if (!isConfigured(provider)) {
+    return { provider: null, error: `Storage "${provider}" chưa được cấu hình đầy đủ trong biến môi trường.` }
+  }
+  return { provider, error: null }
 }
 
 // ===================
@@ -166,43 +170,37 @@ appsRouter.post('/:appId/attachments/upload', requireAdmin, upload.single('file'
 
 // ===================
 // POST /admin/apps/:appId/attachments/get-presigned-url
-// Get presigned URL for direct upload to iDrive E2
+// Presigned URL để browser upload thẳng lên cloud (R2 / iDrive E2)
+// Body: { appCode, filename, fileSize?, storage? }
 // ===================
 appsRouter.post('/:appId/attachments/get-presigned-url', requireAdmin, async (req, res) => {
   try {
-    const { appId } = req.params
-    const { appCode, filename, fileSize } = req.body
+    const { appCode, filename, storage } = req.body
 
     if (!filename) {
       return res.status(400).json({ error: 'invalid_input', message: 'filename is required' })
     }
 
-    // Generate unique key
-    const ext = path.extname(filename)
-    const baseName = path.basename(filename, ext)
-    const timestamp = Date.now()
-    const key = `attachments/${appCode || 'app'}/${baseName}-${timestamp}${ext}`
+    const { provider, error } = pickProvider(storage)
+    if (!provider) {
+      return res.status(500).json({ error: 'storage_not_configured', message: error })
+    }
 
-    // Get presigned URL
-    const s3 = getS3Client()
-    const bucket = process.env.IDRIVE_E2_BUCKET
+    const key = generateAttachmentKey(appCode, filename)
 
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: 'application/zip'
+    const result = await getPresignedUploadUrl({
+      provider,
+      key,
+      contentType: 'application/zip',
+      expiresIn: 3600, // 1 hour
     })
 
-    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 }) // 1 hour
-
-    // Public URL after upload
-    const publicUrl = `${process.env.IDRIVE_E2_PUBLIC_URL}/${key}`
-
     res.json({
-      uploadUrl,
-      publicUrl,
-      key,
-      contentType: 'application/zip'
+      uploadUrl: result.uploadUrl,
+      publicUrl: result.publicUrl,
+      key: result.key,
+      storage: provider,
+      contentType: result.contentType
     })
   } catch (e) {
     console.error('Error getting presigned URL:', e)
@@ -251,20 +249,20 @@ attachmentsRouter.delete('/:id', requireAdmin, async (req, res) => {
 
     const attachment = attachmentResult.rows[0]
 
-    // Delete file based on storage type
-    if (attachment.storage_type === 'idrive-e2') {
-      // Delete from iDrive E2
-      if (attachment.storage_key) {
+    // Xoá file theo nơi lưu trữ (R2 / iDrive E2 / VPS)
+    const cloudProvider = normalizeProvider(attachment.storage_type)
+      || detectProviderFromUrl(attachment.download_url)
+
+    if (cloudProvider) {
+      const key = attachment.storage_key || extractKeyFromUrl(attachment.download_url, cloudProvider)
+
+      if (key) {
         try {
-          const s3 = getS3Client()
-          await s3.send(new DeleteObjectCommand({
-            Bucket: process.env.IDRIVE_E2_BUCKET,
-            Key: attachment.storage_key
-          }))
-          console.log(`✅ Deleted E2 attachment: ${attachment.storage_key}`)
-        } catch (e2Error) {
-          console.error('Error deleting E2 file:', e2Error)
-          // Continue with DB deletion even if E2 delete fails
+          await deleteFromCloud({ provider: cloudProvider, key })
+          console.log(`✅ Đã xoá attachment trên ${cloudProvider}: ${key}`)
+        } catch (cloudError) {
+          console.error('Error deleting cloud file:', cloudError)
+          // Vẫn xoá bản ghi DB kể cả khi xoá file cloud thất bại
         }
       }
     } else {

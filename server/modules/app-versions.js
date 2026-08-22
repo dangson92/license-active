@@ -4,8 +4,38 @@ import path from 'path'
 import fs from 'fs'
 import { query } from '../db.js'
 import { requireAdmin } from './auth.js'
+import {
+  normalizeProvider,
+  getDefaultProvider,
+  isConfigured,
+  listProviders,
+  uploadToCloud,
+  deleteFromCloud,
+  getPresignedUploadUrl,
+  generateStorageKey,
+  detectProviderFromUrl,
+  extractKeyFromUrl,
+  contentTypeFor,
+  testConnection,
+} from '../services/cloud-storage.js'
 
 const router = express.Router()
+
+/**
+ * Chọn provider cloud cho một request.
+ * @param {string} [requested] - Giá trị client gửi lên ('r2' | 'idrive-e2' | 'vps')
+ * @returns {{provider: string|null, error: string|null}}
+ */
+function pickProvider(requested) {
+  const provider = normalizeProvider(requested) || getDefaultProvider()
+  if (!provider) {
+    return { provider: null, error: 'Chưa cấu hình cloud storage nào (R2 / iDrive E2).' }
+  }
+  if (!isConfigured(provider)) {
+    return { provider: null, error: `Storage "${provider}" chưa được cấu hình đầy đủ trong biến môi trường.` }
+  }
+  return { provider, error: null }
+}
 
 // Cấu hình multer để upload files
 const storage = multer.diskStorage({
@@ -301,7 +331,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 /**
  * DELETE /admin/app-versions/cleanup-upload
  * Xóa file đã upload khi user cancel (chưa tạo version)
- * Body: { url: string, storage: 'vps' | 'idrive-e2', key?: string }
+ * Body: { url: string, storage: 'vps' | 'idrive-e2' | 'r2', key?: string }
  * NOTE: This route MUST be defined BEFORE /:id route to match correctly
  */
 router.delete('/cleanup-upload', requireAdmin, async (req, res) => {
@@ -312,26 +342,20 @@ router.delete('/cleanup-upload', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'invalid_input', message: 'Missing url, key, or filename' })
     }
 
-    if (storage === 'idrive-e2') {
-      // Delete from iDrive E2
-      try {
-        const e2Service = await import('../services/idrive-e2.js')
+    // Cloud (R2 / iDrive E2) — suy ra provider từ storage, fallback đoán theo URL
+    const cloudProvider = normalizeProvider(storage) || detectProviderFromUrl(url)
 
-        // Use key if provided, otherwise extract from URL
-        let deleteKey = key
-        if (!deleteKey && url) {
-          const urlParts = url.split('/')
-          deleteKey = urlParts.slice(-3).join('/')
-        }
+    if (cloudProvider) {
+      try {
+        const deleteKey = key || extractKeyFromUrl(url, cloudProvider)
 
         if (deleteKey) {
-          console.log(`🗑️ Cleanup: Deleting E2 file: ${deleteKey}`)
-          await e2Service.deleteFromE2(deleteKey)
-          console.log(`✅ Cleanup: E2 file deleted`)
+          console.log(`🗑️ Cleanup: xoá ${cloudProvider} file: ${deleteKey}`)
+          await deleteFromCloud({ provider: cloudProvider, key: deleteKey })
         }
-      } catch (e2Error) {
-        console.error('Error cleaning up E2 file:', e2Error)
-        return res.status(500).json({ error: 'e2_delete_error', message: e2Error.message })
+      } catch (cloudError) {
+        console.error('Error cleaning up cloud file:', cloudError)
+        return res.status(500).json({ error: 'cloud_delete_error', message: cloudError.message })
       }
     } else {
       // Delete from VPS local storage
@@ -370,28 +394,20 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     if (versionInfo.rows.length > 0) {
       const { file_name, download_url } = versionInfo.rows[0]
 
-      // Check if file is on iDrive E2 (by URL pattern)
-      const isE2File = download_url && (
-        download_url.includes('idrive') ||
-        download_url.includes('e2-') ||
-        download_url.includes('.e2.')
-      )
+      // Xác định file nằm trên cloud nào (R2 / iDrive E2) dựa trên URL
+      const cloudProvider = detectProviderFromUrl(download_url)
 
-      if (isE2File) {
-        // Delete from iDrive E2
+      if (cloudProvider) {
         try {
-          const e2Service = await import('../services/idrive-e2.js')
-          // Extract key from URL
-          // URL format: https://xxx.com/releases/appcode/appcode-version.zip
-          const urlParts = download_url.split('/')
-          const key = urlParts.slice(-3).join('/') // Get last 3 parts: releases/appcode/filename
+          const key = extractKeyFromUrl(download_url, cloudProvider)
 
-          console.log(`🗑️ Deleting E2 file: ${key}`)
-          await e2Service.deleteFromE2(key)
-          console.log(`✅ E2 file deleted: ${key}`)
-        } catch (e2Error) {
-          console.error('Error deleting E2 file:', e2Error)
-          // Continue with version deletion even if E2 delete fails
+          if (key) {
+            console.log(`🗑️ Xoá file ${cloudProvider}: ${key}`)
+            await deleteFromCloud({ provider: cloudProvider, key })
+          }
+        } catch (cloudError) {
+          console.error('Error deleting cloud file:', cloudError)
+          // Vẫn xoá version trong DB kể cả khi xoá file cloud thất bại
         }
       } else {
         // Delete from VPS local storage
@@ -481,124 +497,84 @@ router.post('/upload', requireAdmin, upload.single('file'), async (req, res) => 
 })
 
 /**
- * POST /admin/app-versions/upload-e2
- * Upload file lên iDrive E2 cloud storage
+ * POST /admin/app-versions/upload-cloud   (alias cũ: /upload-e2)
+ *
+ * Upload file lên cloud storage thông qua VPS (server-side upload).
+ * Body (multipart): file, appCode, version, platform, storage
+ *   storage: 'r2' | 'idrive-e2' — bỏ trống thì dùng provider mặc định.
  * Security: Chỉ admin mới upload được (requireAdmin middleware)
  */
-router.post('/upload-e2', requireAdmin, upload.single('file'), async (req, res) => {
-  // Import E2 service dynamically
-  let e2Service
-  try {
-    e2Service = await import('../services/idrive-e2.js')
-  } catch (importError) {
-    console.error('Failed to import E2 service:', importError)
-    // Cleanup uploaded temp file
+async function handleCloudUpload(req, res) {
+  const cleanupTemp = () => {
     if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path)
+      try {
+        fs.unlinkSync(req.file.path)
+      } catch (unlinkError) {
+        console.error('Error removing temp file:', unlinkError.message)
+      }
     }
-    return res.status(500).json({
-      error: 'e2_service_error',
-      message: 'Failed to load E2 service'
-    })
   }
 
   try {
     if (!req.file) {
-      return res.status(400).json({
-        error: 'no_file',
-        message: 'No file uploaded'
-      })
+      return res.status(400).json({ error: 'no_file', message: 'No file uploaded' })
     }
 
-    // Check if E2 is configured
-    if (!e2Service.isE2Configured()) {
-      // Cleanup temp file
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path)
-      }
-      return res.status(500).json({
-        error: 'e2_not_configured',
-        message: 'iDrive E2 is not configured. Please set environment variables.'
-      })
+    const { provider, error } = pickProvider(req.body.storage)
+    if (!provider) {
+      cleanupTemp()
+      return res.status(500).json({ error: 'storage_not_configured', message: error })
     }
 
     const appCode = req.body.appCode || 'app'
     const version = req.body.version || 'unknown'
     const platform = req.body.platform || 'Windows'
 
-    // Generate S3 key — include platform in path to avoid overwriting
-    const e2Key = e2Service.generateE2Key(appCode, version, req.file.originalname, platform)
+    // Key có platform trong path để bản build khác nền tảng không ghi đè nhau
+    const key = generateStorageKey(appCode, version, req.file.originalname, platform)
 
-    // Determine content type
-    const ext = path.extname(req.file.originalname).toLowerCase()
-    const contentTypes = {
-      '.zip': 'application/zip',
-      '.exe': 'application/x-msdownload',
-      '.msi': 'application/x-msi',
-      '.dmg': 'application/x-apple-diskimage',
-      '.deb': 'application/x-debian-package',
-    }
-    const contentType = contentTypes[ext] || 'application/octet-stream'
+    console.log(`📤 Bắt đầu upload lên ${provider}: ${key}`)
 
-    console.log(`📤 Starting E2 upload: ${e2Key}`)
-
-    // Upload to E2
-    const result = await e2Service.uploadToE2({
+    const result = await uploadToCloud({
+      provider,
       filePath: req.file.path,
-      key: e2Key,
-      contentType: contentType,
+      key,
+      contentType: contentTypeFor(req.file.originalname),
     })
 
-    console.log(`✅ E2 upload complete: ${result.url}`)
+    // Xoá file tạm sau khi upload thành công
+    cleanupTemp()
 
-    // Cleanup temp file after successful upload
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path)
-    }
-
-    // Return file info
     res.json({
       success: true,
       file: {
-        filename: path.basename(e2Key),
+        filename: path.basename(key),
         originalname: req.file.originalname,
         size: result.size,
-        path: result.url, // Full URL for E2
-        storage: 'idrive-e2',
-        key: e2Key,
+        path: result.url, // Full public URL
+        storage: provider,
+        key: result.key,
       }
     })
   } catch (e) {
-    console.error('Error uploading to E2:', e)
-
-    // Cleanup temp file
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path)
-    }
-
-    res.status(500).json({ error: 'e2_upload_error', message: e.message })
+    console.error('Error uploading to cloud storage:', e)
+    cleanupTemp()
+    res.status(500).json({ error: 'cloud_upload_error', message: e.message })
   }
-})
+}
+
+router.post('/upload-cloud', requireAdmin, upload.single('file'), handleCloudUpload)
+// Alias giữ tương thích với client cũ đang gọi /upload-e2
+router.post('/upload-e2', requireAdmin, upload.single('file'), handleCloudUpload)
 
 /**
  * POST /admin/app-versions/get-presigned-url
- * Lấy presigned URL để upload trực tiếp từ browser lên iDrive E2
- * Body: { appCode: string, version: string, filename: string, contentType: string }
+ * Lấy presigned URL để browser upload thẳng lên cloud (không đi qua VPS)
+ * Body: { appCode, version, filename, contentType?, platform?, storage? }
  */
 router.post('/get-presigned-url', requireAdmin, async (req, res) => {
-  let e2Service
   try {
-    e2Service = await import('../services/idrive-e2.js')
-  } catch (importError) {
-    console.error('Failed to import E2 service:', importError)
-    return res.status(500).json({
-      error: 'e2_service_error',
-      message: 'Failed to load E2 service'
-    })
-  }
-
-  try {
-    const { appCode, version, filename, contentType, fileSize, platform } = req.body
+    const { appCode, version, filename, contentType, platform, storage } = req.body
 
     if (!appCode || !version || !filename) {
       return res.status(400).json({
@@ -607,33 +583,20 @@ router.post('/get-presigned-url', requireAdmin, async (req, res) => {
       })
     }
 
-    // Check if E2 is configured
-    if (!e2Service.isE2Configured()) {
-      return res.status(500).json({
-        error: 'e2_not_configured',
-        message: 'iDrive E2 is not configured. Please set environment variables.'
-      })
+    const { provider, error } = pickProvider(storage)
+    if (!provider) {
+      return res.status(500).json({ error: 'storage_not_configured', message: error })
     }
 
-    // Generate S3 key — include platform in path to avoid overwriting
-    const e2Key = e2Service.generateE2Key(appCode, version, filename, platform)
+    // Key có platform trong path để bản build khác nền tảng không ghi đè nhau
+    const key = generateStorageKey(appCode, version, filename, platform)
+    const finalContentType = contentType || contentTypeFor(filename)
 
-    // Determine content type
-    const ext = path.extname(filename).toLowerCase()
-    const contentTypes = {
-      '.zip': 'application/zip',
-      '.exe': 'application/x-msdownload',
-      '.msi': 'application/x-msi',
-      '.dmg': 'application/x-apple-diskimage',
-      '.deb': 'application/x-debian-package',
-    }
-    const finalContentType = contentType || contentTypes[ext] || 'application/octet-stream'
+    console.log(`📤 Tạo presigned URL (${provider}) cho upload trực tiếp: ${key}`)
 
-    console.log(`📤 Generating presigned URL for direct upload: ${e2Key}`)
-
-    // Get presigned URL (expires in 1 hour)
-    const result = await e2Service.getPresignedUploadUrl({
-      key: e2Key,
+    const result = await getPresignedUploadUrl({
+      provider,
+      key,
       contentType: finalContentType,
       expiresIn: 3600,
     })
@@ -643,11 +606,47 @@ router.post('/get-presigned-url', requireAdmin, async (req, res) => {
       uploadUrl: result.uploadUrl,
       publicUrl: result.publicUrl,
       key: result.key,
-      contentType: finalContentType,
+      storage: provider,
+      contentType: result.contentType,
     })
   } catch (e) {
     console.error('Error getting presigned URL:', e)
     res.status(500).json({ error: 'presigned_url_error', message: e.message })
+  }
+})
+
+/**
+ * GET /admin/app-versions/storage/providers
+ * Liệt kê provider cloud + trạng thái cấu hình (cho UI chọn nơi upload)
+ */
+router.get('/storage/providers', requireAdmin, (req, res) => {
+  try {
+    res.json({
+      default: getDefaultProvider(),
+      providers: listProviders(),
+    })
+  } catch (e) {
+    console.error('Error listing storage providers:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
+  }
+})
+
+/**
+ * POST /admin/app-versions/storage/test
+ * Kiểm tra kết nối tới bucket của một provider
+ * Body: { storage: 'r2' | 'idrive-e2' }
+ */
+router.post('/storage/test', requireAdmin, async (req, res) => {
+  try {
+    const provider = normalizeProvider(req.body.storage)
+    if (!provider) {
+      return res.status(400).json({ error: 'invalid_input', message: 'storage phải là "r2" hoặc "idrive-e2"' })
+    }
+
+    res.json(await testConnection(provider))
+  } catch (e) {
+    console.error('Error testing storage connection:', e)
+    res.status(500).json({ error: 'server_error', message: e.message })
   }
 })
 
