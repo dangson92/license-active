@@ -573,6 +573,47 @@ task_env_check() {
   [ "$missing" -eq 0 ] && ok "Đủ biến bắt buộc" || err "Thiếu $missing biến bắt buộc — backend sẽ lỗi"
 }
 
+# So sánh .env trên đĩa với env THẬT của process đang chạy.
+# dotenv chỉ đọc .env lúc khởi động — sửa .env mà không restart thì backend
+# vẫn chạy với env cũ, dù `node -e` hay tác vụ 42 (process mới) đã thấy giá trị mới.
+task_env_running() {
+  need_cmd pm2 || return 1
+  log "Đối chiếu $ENV_FILE với env của process '$PM2_NAME' đang chạy"
+  if [ ! -f "$ENV_FILE" ]; then err "Không có file .env"; return 1; fi
+
+  local pid
+  pid=$(pm2 pid "$PM2_NAME" 2> /dev/null | tr -d '[:space:]')
+  if [ -z "$pid" ] || [ "$pid" = "0" ]; then
+    err "Không lấy được PID của '$PM2_NAME' — process có đang chạy không? (tác vụ 21)"
+    return 1
+  fi
+  if [ ! -r "/proc/$pid/environ" ]; then
+    err "Không đọc được /proc/$pid/environ (cần chạy bằng cùng user hoặc root)"
+    return 1
+  fi
+
+  local running k missing=0
+  running=$(tr '\0' '\n' < "/proc/$pid/environ")
+
+  echo
+  while IFS= read -r k; do
+    [ -z "$k" ] && continue
+    if grep -q "^${k}=" <<< "$running"; then
+      printf '    %s✓%s %s\n' "$C_GREEN" "$C_RESET" "$k"
+    else
+      printf '    %s✗%s %-24s %sprocess CHƯA nạp%s\n' "$C_RED" "$C_RESET" "$k" "$C_RED" "$C_RESET"
+      missing=$((missing + 1))
+    fi
+  done < <(grep -oE '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$ENV_FILE" | tr -d ' =\r' | sort -u)
+
+  echo
+  if [ "$missing" -eq 0 ]; then
+    ok "Process đang chạy đã có đủ biến trong .env (PID $pid)"
+  else
+    err "$missing biến chưa được nạp — chạy tác vụ 24 (restart) để backend đọc lại .env"
+  fi
+}
+
 task_backup_list() {
   log "Backup trong $BACKUP_DIR"
   if [ ! -d "$BACKUP_DIR" ]; then warn "Chưa có thư mục backup"; return 0; fi
@@ -651,6 +692,7 @@ TASKS=(
   "63|env|Kiểm tra biến môi trường .env|task_env_check"
   "64|backups|Danh sách backup|task_backup_list"
   "65|backups-clean|Dọn backup cũ|task_backup_clean"
+  "66|env-running|Đối chiếu .env với env process đang chạy|task_env_running"
 )
 
 task_lookup() {

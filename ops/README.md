@@ -47,7 +47,12 @@ thật duy nhất, không nhân bản logic build.
 log · `55` trạng thái chứng chỉ · `56` gia hạn SSL.
 
 **Hệ thống** — `61` tổng quan · `62` health check · `63` kiểm tra `.env` ·
-`64` danh sách backup · `65` dọn backup cũ.
+`64` danh sách backup · `65` dọn backup cũ · `66` đối chiếu `.env` với env của
+process đang chạy.
+
+> `63` đọc file `.env` trên đĩa, `66` đọc env THẬT của process PM2. Sửa `.env`
+> mà quên restart thì `63` báo ✓ còn backend vẫn chạy env cũ — `66` bắt được
+> đúng trường hợp đó.
 
 ## Migration — đọc trước khi dùng lần đầu
 
