@@ -44,3 +44,7 @@ ops/vps.conf
 # cPanel build bundle + biến môi trường build riêng
 deploy/
 .env.cpanel
+
+# RSA key ký license (private.pem / public.pem) — không bao giờ commit
+*.pem
+keys/

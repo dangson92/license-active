@@ -10,7 +10,7 @@ Quy ước trong hướng dẫn:
 | `~/apps/license-active` | Thư mục app trên VPS (mặc định của `ops/vps.sh`) |
 | `~/backups/license-active` | Nơi `ops/vps.sh` lưu backup |
 | `USER` | Tài khoản cPanel |
-| `keymaster-api` | Thư mục Node.js App trên cPanel |
+| `~/license-active` | Thư mục Node.js App trên cPanel (`/home/USER/license-active`). Trùng tên với thư mục trên VPS nhưng là **máy khác**: chú ý lệnh đang chạy ở máy nào |
 
 ---
 
@@ -59,8 +59,8 @@ Bật SSH trong cPanel (**SSH Access**, hoặc nhờ hosting bật), rồi chạ
 cd ~/backups/license-active
 # Cổng SSH của cPanel thường là 22; nhiều hosting dùng cổng khác (ví dụ 2222) → thêm -P <cổng>
 scp db-*.sql.gz uploads-*.tar.gz USER@<host-cpanel>:~/
-scp ~/apps/license-active/keys/private.pem ~/apps/license-active/keys/public.pem USER@<host-cpanel>:~/keymaster-api/keys/
-scp ~/apps/license-active/.env USER@<host-cpanel>:~/keymaster-api/.env.vps
+scp ~/apps/license-active/keys/private.pem ~/apps/license-active/keys/public.pem USER@<host-cpanel>:~/license-active/keys/
+scp ~/apps/license-active/.env USER@<host-cpanel>:~/license-active/.env.vps
 ```
 
 > `scp db-*.sql.gz` sẽ chép **mọi** bản backup. Nếu có nhiều bản, ghi rõ tên file mới nhất (xem từ tác vụ `64`).
@@ -81,8 +81,8 @@ Sau đó upload các file này lên cPanel bằng **File Manager**:
 
 | File | Upload vào |
 |---|---|
-| `uploads-….tar.gz` | `keymaster-api/`, rồi **Extract** (sẽ tạo thư mục `uploads/`) |
-| `private.pem`, `public.pem` | `keymaster-api/keys/` |
+| `uploads-….tar.gz` | `license-active/`, rồi **Extract** (sẽ tạo thư mục `uploads/`) |
+| `private.pem`, `public.pem` | `license-active/keys/` |
 | `env-vps.txt` | Không cần upload. Mở bằng Notepad để copy giá trị khi tạo `.env` |
 | `db-….sql.gz` | Import ở bước 3 |
 
@@ -138,7 +138,7 @@ UNION ALL SELECT 'app_versions', COUNT(*) FROM app_versions;
 
 ## Bước 4. Tạo `.env` trên cPanel
 
-Tạo `keymaster-api/.env` từ `.env` của VPS. **Giữ nguyên** `JWT_SECRET`, `DEVICE_SALT` và các biến `R2_*` / `IDRIVE_E2_*`. Chỉ sửa:
+Tạo `license-active/.env` từ `.env` của VPS. **Giữ nguyên** `JWT_SECRET`, `DEVICE_SALT` và các biến `R2_*` / `IDRIVE_E2_*`. Chỉ sửa:
 
 ```ini
 # XÓA dòng PORT
@@ -155,7 +155,7 @@ DISABLE_INTERNAL_SCHEDULERS=1
 Có thể làm nhanh trên Terminal của cPanel nếu đã dùng **Cách A**:
 
 ```bash
-cd ~/keymaster-api
+cd ~/license-active
 cp .env.vps .env && rm .env.vps
 nano .env   # sửa các dòng ở trên
 ```
@@ -203,7 +203,7 @@ bash ops/vps.sh 44   # nén uploads lần cuối (nếu có upload mới từ l�
 
 1. Chép 2 file mới theo **bước 2**. Key và `.env` không đổi nên không cần chép lại.
 2. Import đè database: phpMyAdmin → chọn `USER_keymaster` → **Check all** → **Drop** toàn bộ bảng → **Import** file mới. Có thể làm bằng Terminal như bước 3.
-3. Giải nén `uploads` mới vào `keymaster-api/` và chọn ghi đè.
+3. Giải nén `uploads` mới vào `license-active/` và chọn ghi đè.
 4. **Restart** app.
 5. Đổi DNS của `app`, `api`, `upload` sang IP của cPanel.
 6. Chạy lại checklist ở **bước 5** (lần này không cần sửa `hosts`).

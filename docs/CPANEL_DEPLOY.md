@@ -10,7 +10,7 @@ Mô hình triển khai:
 | `api.phanmemauto.com` | Backend (Express + Socket.IO) | Node.js App, startup file `app.cjs` |
 | `upload.phanmemauto.com` | Giữ link tải cũ | Chỉ có `.htaccess` chuyển hướng sang `api.` |
 
-> Trong hướng dẫn, `USER` là tên tài khoản cPanel, `keymaster-api` là thư mục app. Đổi lại theo thực tế.
+> Trong hướng dẫn, `USER` là tên tài khoản cPanel, `license-active` là thư mục app. Đổi lại theo thực tế.
 
 ---
 
@@ -78,14 +78,14 @@ Nếu đây là cài mới hoàn toàn, bỏ qua bước này. Khi đó tạo ke
 1. cPanel → **Setup Node.js App** → **Create Application**:
    - **Node.js version:** 22 (hoặc 20)
    - **Application mode:** Production
-   - **Application root:** `keymaster-api`
+   - **Application root:** `license-active`
    - **Application URL:** `api.phanmemauto.com`
    - **Application startup file:** `app.cjs`
    - Bấm **Create**.
-2. **File Manager** → vào `/home/USER/keymaster-api`. Xóa file `app.js` mẫu nếu có, upload `backend.zip` rồi **Extract**.
-3. Upload `private.pem` và `public.pem` vào `keymaster-api/keys/`.
-4. Upload nội dung thư mục `uploads/` cũ vào `keymaster-api/uploads/`.
-5. Tạo file `keymaster-api/.env` từ `.env` của VPS và sửa các dòng sau:
+2. **File Manager** → vào `/home/USER/license-active`. Xóa file `app.js` mẫu nếu có, upload `backend.zip` rồi **Extract**.
+3. Upload `private.pem` và `public.pem` vào `license-active/keys/`.
+4. Upload nội dung thư mục `uploads/` cũ vào `license-active/uploads/`.
+5. Tạo file `license-active/.env` từ `.env` của VPS và sửa các dòng sau:
    ```ini
    # XÓA dòng PORT — Passenger tự cấp cổng
    DB_HOST=localhost
@@ -102,7 +102,7 @@ Nếu đây là cài mới hoàn toàn, bỏ qua bước này. Khi đó tạo ke
 6. Quay lại **Setup Node.js App** → bấm **Run NPM Install**, chờ xong rồi bấm **Restart**.
 7. Kiểm tra: mở `https://api.phanmemauto.com/health`, phải thấy `{"ok":true}`.
 
-> `.env` chứa mật khẩu và secret. Không để file này trong `public_html`. Thư mục `keymaster-api` nằm ngoài `public_html` nên an toàn.
+> `.env` chứa mật khẩu và secret. Không để file này trong `public_html`. Thư mục `license-active` nằm ngoài `public_html` nên an toàn.
 
 ---
 
@@ -124,10 +124,10 @@ Upload `upload-redirect/.htaccess` vào document root của `upload.phanmemauto.
 
 Passenger tắt process khi không có request, nên các job hẹn giờ phải chạy bằng cron.
 
-1. Lấy đường dẫn `node` của app: trên trang **Setup Node.js App**, dòng *"Enter to the virtual environment"* có dạng `/home/USER/nodevenv/keymaster-api/22/bin/activate`. Đường dẫn node là `/home/USER/nodevenv/keymaster-api/22/bin/node`.
+1. Lấy đường dẫn `node` của app: trên trang **Setup Node.js App**, dòng *"Enter to the virtual environment"* có dạng `/home/USER/nodevenv/license-active/22/bin/activate`. Đường dẫn node là `/home/USER/nodevenv/license-active/22/bin/node`.
 2. cPanel → **Cron Jobs** → **Add New Cron Job**, chọn **Once Per Hour** (`0 * * * *`):
    ```bash
-   cd /home/USER/keymaster-api && /home/USER/nodevenv/keymaster-api/22/bin/node server/cron.js >> /home/USER/keymaster-api/cron.log 2>&1
+   cd /home/USER/license-active && /home/USER/nodevenv/license-active/22/bin/node server/cron.js >> /home/USER/license-active/cron.log 2>&1
    ```
 
 Script tự quyết định chạy job nào theo giờ UTC, nên không phụ thuộc múi giờ của server:
@@ -141,9 +141,9 @@ Các giờ còn lại, log chỉ ghi `no job due this hour`.
 
 Chạy thử ngay bằng **Terminal** trong cPanel:
 ```bash
-cd ~/keymaster-api
-~/nodevenv/keymaster-api/22/bin/node server/cron.js weekly-report   # gửi báo cáo tuần thật
-~/nodevenv/keymaster-api/22/bin/node server/cron.js license         # quét license sắp hết hạn
+cd ~/license-active
+~/nodevenv/license-active/22/bin/node server/cron.js weekly-report   # gửi báo cáo tuần thật
+~/nodevenv/license-active/22/bin/node server/cron.js license         # quét license sắp hết hạn
 ```
 
 ---
@@ -163,7 +163,7 @@ cd ~/keymaster-api
 ## 10. Cập nhật phiên bản mới
 
 1. Ở máy local: `git pull` → `npm run package:cpanel`.
-2. Upload `backend.zip` vào `keymaster-api` → Extract và chọn ghi đè. Việc này **không xóa** `.env`, `keys/` hay `uploads/`.
+2. Upload `backend.zip` vào `license-active` → Extract và chọn ghi đè. Việc này **không xóa** `.env`, `keys/` hay `uploads/`.
 3. Nếu `package.json` có thư viện mới: bấm **Run NPM Install**.
 4. Bấm **Restart**.
 5. Frontend: xóa thư mục `assets/` cũ, upload và extract `frontend.zip` mới.
@@ -173,7 +173,7 @@ cd ~/keymaster-api
 
 ## 11. Xử lý lỗi thường gặp
 
-Log lỗi của app nằm ở `keymaster-api/stderr.log`. Nếu không có file này, xem *Errors* trong cPanel → **Metrics**.
+Log lỗi của app nằm ở `license-active/stderr.log`. Nếu không có file này, xem *Errors* trong cPanel → **Metrics**.
 
 | Triệu chứng | Nguyên nhân / Cách xử lý |
 |---|---|
