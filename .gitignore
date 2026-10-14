@@ -40,3 +40,7 @@ yarn-error.log*
 
 # Cấu hình quản trị VPS riêng của từng server
 ops/vps.conf
+
+# cPanel build bundle + biến môi trường build riêng
+deploy/
+.env.cpanel

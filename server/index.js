@@ -193,11 +193,17 @@ const server = app.listen(port, () => {
 // Initialize Socket.IO
 initSocket(server)
 
-// Initialize License Expiring Scheduler (10:00 AM UTC+7 daily)
-initLicenseScheduler()
+// In-process schedulers. On cPanel/Passenger idle processes get stopped, so set
+// DISABLE_INTERNAL_SCHEDULERS=1 and run server/cron.js hourly from cron instead.
+if (process.env.DISABLE_INTERNAL_SCHEDULERS === '1') {
+  console.log('⏸️ Internal schedulers disabled (DISABLE_INTERNAL_SCHEDULERS=1) — use server/cron.js')
+} else {
+  // Initialize License Expiring Scheduler (10:00 AM UTC+7 daily)
+  initLicenseScheduler()
 
-// Initialize Weekly Report Scheduler (Monday 08:00 UTC+7 = 01:00 UTC)
-initReportScheduler()
+  // Initialize Weekly Report Scheduler (Monday 08:00 UTC+7 = 01:00 UTC)
+  initReportScheduler()
+}
 
 // Increase timeout for large file uploads (30 minutes)
 server.timeout = 30 * 60 * 1000
